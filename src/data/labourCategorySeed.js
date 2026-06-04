@@ -1,7 +1,20 @@
 /**
  * Labour Chowk category catalogue — profile tags + trades.
  * Admins can add/edit via API; this seed bootstraps the baseline list.
+ * Each item includes imageUrl (Unsplash) for homeowner discovery tiles.
  */
+import { LABOUR_CATEGORY_IMAGES as IMG } from './labourCategoryImages.js'
+
+/** @param {string} name @param {string} subtitle @param {number} sortOrder @param {keyof typeof IMG} imageKey */
+function cat(name, subtitle, sortOrder, imageKey) {
+  return {
+    name,
+    subtitle,
+    sortOrder,
+    imageUrl: IMG[imageKey] || '',
+  }
+}
+
 export const LABOUR_CATEGORY_SEED = [
   {
     group: {
@@ -13,9 +26,9 @@ export const LABOUR_CATEGORY_SEED = [
       sortOrder: 0,
     },
     items: [
-      { name: 'Skilled labor', subtitle: 'Electricians, plumbers, masons, trained trades', sortOrder: 0 },
-      { name: 'Semi-skilled labor', subtitle: 'Helpers with some training', sortOrder: 1 },
-      { name: 'Unskilled labor', subtitle: 'General helpers, loaders', sortOrder: 2 },
+      cat('Skilled labor', 'Electricians, plumbers, masons, trained trades', 0, 'skilledLabor'),
+      cat('Semi-skilled labor', 'Helpers with some training', 1, 'semiSkilledLabor'),
+      cat('Unskilled labor', 'General helpers, loaders', 2, 'unskilledLabor'),
     ],
   },
   {
@@ -28,10 +41,10 @@ export const LABOUR_CATEGORY_SEED = [
       sortOrder: 1,
     },
     items: [
-      { name: 'Organized sector worker', subtitle: '', sortOrder: 0 },
-      { name: 'Unorganized sector worker', subtitle: '', sortOrder: 1 },
-      { name: 'Contract labor', subtitle: '', sortOrder: 2 },
-      { name: 'Migrant worker', subtitle: '', sortOrder: 3 },
+      cat('Organized sector worker', '', 0, 'organizedSector'),
+      cat('Unorganized sector worker', '', 1, 'unorganizedSector'),
+      cat('Contract labor', '', 2, 'contractLabor'),
+      cat('Migrant worker', '', 3, 'migrantWorker'),
     ],
   },
   {
@@ -44,9 +57,9 @@ export const LABOUR_CATEGORY_SEED = [
       sortOrder: 2,
     },
     items: [
-      { name: 'Blue-collar worker', subtitle: 'Manual / field labor', sortOrder: 0 },
-      { name: 'White-collar worker', subtitle: 'Office / desk roles', sortOrder: 1 },
-      { name: 'Grey-collar worker', subtitle: 'Technical / hybrid roles', sortOrder: 2 },
+      cat('Blue-collar worker', 'Manual / field labor', 0, 'blueCollar'),
+      cat('White-collar worker', 'Office / desk roles', 1, 'whiteCollar'),
+      cat('Grey-collar worker', 'Technical / hybrid roles', 2, 'greyCollar'),
     ],
   },
   {
@@ -59,21 +72,21 @@ export const LABOUR_CATEGORY_SEED = [
       sortOrder: 10,
     },
     items: [
-      { name: 'Plumber', subtitle: '', sortOrder: 0 },
-      { name: 'Electrician', subtitle: '', sortOrder: 1 },
-      { name: 'Carpenter', subtitle: '', sortOrder: 2 },
-      { name: 'Mason (Raj Mistri)', subtitle: '', sortOrder: 3 },
-      { name: 'Tile installer', subtitle: '', sortOrder: 4 },
-      { name: 'Painter', subtitle: '', sortOrder: 5 },
-      { name: 'Welder', subtitle: '', sortOrder: 6 },
-      { name: 'Fabricator', subtitle: '', sortOrder: 7 },
-      { name: 'Bar bender (steel fixer)', subtitle: '', sortOrder: 8 },
-      { name: 'Shuttering carpenter', subtitle: '', sortOrder: 9 },
-      { name: 'POP worker (Plaster of Paris)', subtitle: '', sortOrder: 10 },
-      { name: 'Waterproofing worker', subtitle: '', sortOrder: 11 },
-      { name: 'HVAC technician', subtitle: '', sortOrder: 12 },
-      { name: 'Elevator technician', subtitle: '', sortOrder: 13 },
-      { name: 'Solar panel technician', subtitle: '', sortOrder: 14 },
+      cat('Plumber', '', 0, 'plumber'),
+      cat('Electrician', '', 1, 'electrician'),
+      cat('Carpenter', '', 2, 'carpenter'),
+      cat('Mason (Raj Mistri)', '', 3, 'mason'),
+      cat('Tile installer', '', 4, 'tileInstaller'),
+      cat('Painter', '', 5, 'painter'),
+      cat('Welder', '', 6, 'welder'),
+      cat('Fabricator', '', 7, 'fabricator'),
+      cat('Bar bender (steel fixer)', '', 8, 'barBender'),
+      cat('Shuttering carpenter', '', 9, 'shutteringCarpenter'),
+      cat('POP worker (Plaster of Paris)', '', 10, 'popWorker'),
+      cat('Waterproofing worker', '', 11, 'waterproofing'),
+      cat('HVAC technician', '', 12, 'hvacTechnician'),
+      cat('Elevator technician', '', 13, 'elevatorTechnician'),
+      cat('Solar panel technician', '', 14, 'solarTechnician'),
     ],
   },
   {
@@ -86,15 +99,15 @@ export const LABOUR_CATEGORY_SEED = [
       sortOrder: 20,
     },
     items: [
-      { name: 'General labor / helper', subtitle: '', sortOrder: 0 },
-      { name: 'Construction helper', subtitle: '', sortOrder: 1 },
-      { name: 'Loader / unloader', subtitle: '', sortOrder: 2 },
-      { name: 'Scaffolding worker', subtitle: '', sortOrder: 3 },
-      { name: 'Demolition worker', subtitle: '', sortOrder: 4 },
-      { name: 'Road construction worker', subtitle: '', sortOrder: 5 },
-      { name: 'Asphalt worker', subtitle: '', sortOrder: 6 },
-      { name: 'Concrete mixer operator', subtitle: '', sortOrder: 7 },
-      { name: 'Drill machine operator', subtitle: '', sortOrder: 8 },
+      cat('General labor / helper', '', 0, 'generalHelper'),
+      cat('Construction helper', '', 1, 'constructionHelper'),
+      cat('Loader / unloader', '', 2, 'loader'),
+      cat('Scaffolding worker', '', 3, 'scaffolding'),
+      cat('Demolition worker', '', 4, 'demolition'),
+      cat('Road construction worker', '', 5, 'roadConstruction'),
+      cat('Asphalt worker', '', 6, 'asphalt'),
+      cat('Concrete mixer operator', '', 7, 'concreteMixer'),
+      cat('Drill machine operator', '', 8, 'drillOperator'),
     ],
   },
   {
@@ -107,13 +120,13 @@ export const LABOUR_CATEGORY_SEED = [
       sortOrder: 30,
     },
     items: [
-      { name: 'JCB operator', subtitle: '', sortOrder: 0 },
-      { name: 'Crane operator', subtitle: '', sortOrder: 1 },
-      { name: 'Forklift operator', subtitle: '', sortOrder: 2 },
-      { name: 'Excavator operator', subtitle: '', sortOrder: 3 },
-      { name: 'Bulldozer operator', subtitle: '', sortOrder: 4 },
-      { name: 'Dumper driver', subtitle: '', sortOrder: 5 },
-      { name: 'Tractor operator', subtitle: '', sortOrder: 6 },
+      cat('JCB operator', '', 0, 'jcbOperator'),
+      cat('Crane operator', '', 1, 'craneOperator'),
+      cat('Forklift operator', '', 2, 'forkliftOperator'),
+      cat('Excavator operator', '', 3, 'excavatorOperator'),
+      cat('Bulldozer operator', '', 4, 'bulldozerOperator'),
+      cat('Dumper driver', '', 5, 'dumperDriver'),
+      cat('Tractor operator', '', 6, 'tractorOperator'),
     ],
   },
   {
@@ -126,13 +139,13 @@ export const LABOUR_CATEGORY_SEED = [
       sortOrder: 40,
     },
     items: [
-      { name: 'AC technician', subtitle: '', sortOrder: 0 },
-      { name: 'Refrigerator technician', subtitle: '', sortOrder: 1 },
-      { name: 'Washing machine technician', subtitle: '', sortOrder: 2 },
-      { name: 'RO technician', subtitle: '', sortOrder: 3 },
-      { name: 'CCTV installer', subtitle: '', sortOrder: 4 },
-      { name: 'Home appliance repair technician', subtitle: '', sortOrder: 5 },
-      { name: 'Pest control worker', subtitle: '', sortOrder: 6 },
+      cat('AC technician', '', 0, 'acTechnician'),
+      cat('Refrigerator technician', '', 1, 'refrigeratorTechnician'),
+      cat('Washing machine technician', '', 2, 'washingMachineTechnician'),
+      cat('RO technician', '', 3, 'roTechnician'),
+      cat('CCTV installer', '', 4, 'cctvInstaller'),
+      cat('Home appliance repair technician', '', 5, 'applianceRepair'),
+      cat('Pest control worker', '', 6, 'pestControl'),
     ],
   },
   {
@@ -145,12 +158,12 @@ export const LABOUR_CATEGORY_SEED = [
       sortOrder: 50,
     },
     items: [
-      { name: 'Mechanic (2-wheeler)', subtitle: '', sortOrder: 0 },
-      { name: 'Mechanic (4-wheeler)', subtitle: '', sortOrder: 1 },
-      { name: 'Diesel mechanic', subtitle: '', sortOrder: 2 },
-      { name: 'Auto electrician', subtitle: '', sortOrder: 3 },
-      { name: 'Tyre repair worker', subtitle: '', sortOrder: 4 },
-      { name: 'Car washer', subtitle: '', sortOrder: 5 },
+      cat('Mechanic (2-wheeler)', '', 0, 'mechanic2w'),
+      cat('Mechanic (4-wheeler)', '', 1, 'mechanic4w'),
+      cat('Diesel mechanic', '', 2, 'dieselMechanic'),
+      cat('Auto electrician', '', 3, 'autoElectrician'),
+      cat('Tyre repair worker', '', 4, 'tyreRepair'),
+      cat('Car washer', '', 5, 'carWasher'),
     ],
   },
   {
@@ -163,12 +176,12 @@ export const LABOUR_CATEGORY_SEED = [
       sortOrder: 60,
     },
     items: [
-      { name: 'Housekeeping staff', subtitle: '', sortOrder: 0 },
-      { name: 'Office cleaner', subtitle: '', sortOrder: 1 },
-      { name: 'Industrial cleaner', subtitle: '', sortOrder: 2 },
-      { name: 'Garbage collector', subtitle: '', sortOrder: 3 },
-      { name: 'Drain cleaner', subtitle: '', sortOrder: 4 },
-      { name: 'Sweeper', subtitle: '', sortOrder: 5 },
+      cat('Housekeeping staff', '', 0, 'housekeeping'),
+      cat('Office cleaner', '', 1, 'officeCleaner'),
+      cat('Industrial cleaner', '', 2, 'industrialCleaner'),
+      cat('Garbage collector', '', 3, 'garbageCollector'),
+      cat('Drain cleaner', '', 4, 'drainCleaner'),
+      cat('Sweeper', '', 5, 'sweeper'),
     ],
   },
   {
@@ -181,11 +194,11 @@ export const LABOUR_CATEGORY_SEED = [
       sortOrder: 70,
     },
     items: [
-      { name: 'Cook / chef', subtitle: '', sortOrder: 0 },
-      { name: 'Helper cook', subtitle: '', sortOrder: 1 },
-      { name: 'Waiter', subtitle: '', sortOrder: 2 },
-      { name: 'Dishwasher', subtitle: '', sortOrder: 3 },
-      { name: 'Delivery boy', subtitle: '', sortOrder: 4 },
+      cat('Cook / chef', '', 0, 'cook'),
+      cat('Helper cook', '', 1, 'helperCook'),
+      cat('Waiter', '', 2, 'waiter'),
+      cat('Dishwasher', '', 3, 'dishwasher'),
+      cat('Delivery boy', '', 4, 'deliveryBoy'),
     ],
   },
   {
@@ -198,11 +211,11 @@ export const LABOUR_CATEGORY_SEED = [
       sortOrder: 80,
     },
     items: [
-      { name: 'Interior designer helper', subtitle: '', sortOrder: 0 },
-      { name: 'Glass installer', subtitle: '', sortOrder: 1 },
-      { name: 'Aluminium worker', subtitle: '', sortOrder: 2 },
-      { name: 'False ceiling worker', subtitle: '', sortOrder: 3 },
-      { name: 'Modular kitchen installer', subtitle: '', sortOrder: 4 },
+      cat('Interior designer helper', '', 0, 'interiorHelper'),
+      cat('Glass installer', '', 1, 'glassInstaller'),
+      cat('Aluminium worker', '', 2, 'aluminiumWorker'),
+      cat('False ceiling worker', '', 3, 'falseCeiling'),
+      cat('Modular kitchen installer', '', 4, 'modularKitchen'),
     ],
   },
   {
@@ -215,11 +228,11 @@ export const LABOUR_CATEGORY_SEED = [
       sortOrder: 90,
     },
     items: [
-      { name: 'Gardener / mali', subtitle: '', sortOrder: 0 },
-      { name: 'Security guard', subtitle: '', sortOrder: 1 },
-      { name: 'Driver (light vehicle)', subtitle: '', sortOrder: 2 },
-      { name: 'Driver (heavy vehicle)', subtitle: '', sortOrder: 3 },
-      { name: 'Mover & packer worker', subtitle: '', sortOrder: 4 },
+      cat('Gardener / mali', '', 0, 'gardener'),
+      cat('Security guard', '', 1, 'securityGuard'),
+      cat('Driver (light vehicle)', '', 2, 'driverLight'),
+      cat('Driver (heavy vehicle)', '', 3, 'driverHeavy'),
+      cat('Mover & packer worker', '', 4, 'moverPacker'),
     ],
   },
 ]

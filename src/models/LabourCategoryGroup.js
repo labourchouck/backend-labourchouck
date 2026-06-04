@@ -20,6 +20,8 @@ const labourCategoryGroupSchema = new mongoose.Schema(
       index: true,
     },
     sortOrder: { type: Number, default: 0 },
+    /** HTTPS tile image for homeowner work-area rails (optional; falls back to first subcategory) */
+    imageUrl: { type: String, default: '', maxlength: 2048 },
     isActive: { type: Boolean, default: true },
   },
   { timestamps: true },

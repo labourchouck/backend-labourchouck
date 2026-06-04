@@ -21,6 +21,7 @@ router.post(
     body('helperText').optional().trim(),
     body('kind').optional().isIn(Object.values(LABOUR_GROUP_KIND)),
     body('sortOrder').optional().isInt({ min: 0, max: 9999 }),
+    body('imageUrl').optional().isString(),
   ],
   validateRequest,
   admin.createGroup,
@@ -28,7 +29,10 @@ router.post(
 
 router.patch(
   '/labour-category-groups/:id',
-  [param('id').isMongoId().withMessage('Invalid id')],
+  [
+    param('id').isMongoId().withMessage('Invalid id'),
+    body('imageUrl').optional().isString(),
+  ],
   validateRequest,
   admin.patchGroup,
 )

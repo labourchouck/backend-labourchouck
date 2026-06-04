@@ -33,11 +33,31 @@ export const listAllGroups = asyncHandler(async (_req, res) => {
 })
 
 export const createGroup = asyncHandler(async (req, res) => {
-  const { name, slug: rawSlug, description = '', helperText = '', kind = LABOUR_GROUP_KIND.TRADE, sortOrder = 99 } = req.body
+  const {
+    name,
+    slug: rawSlug,
+    description = '',
+    helperText = '',
+    kind = LABOUR_GROUP_KIND.TRADE,
+    sortOrder = 99,
+    imageUrl,
+  } = req.body
   const slug = rawSlug ? slugify(rawSlug) : slugify(name)
   const exists = await LabourCategoryGroup.findOne({ slug })
   if (exists) {
     return sendError(res, { message: 'Group slug already exists', statusCode: HTTP_STATUS.CONFLICT, code: 'DUPLICATE' })
+  }
+  let image = ''
+  if (imageUrl != null) {
+    const normalized = normalizeImageUrl(imageUrl)
+    if (normalized === null) {
+      return sendError(res, {
+        message: 'imageUrl must be empty or a valid https:// URL (upload via /uploads/media first)',
+        statusCode: HTTP_STATUS.BAD_REQUEST,
+        code: 'VALIDATION',
+      })
+    }
+    image = normalized
   }
   const g = await LabourCategoryGroup.create({
     name: name.trim(),
@@ -46,6 +66,7 @@ export const createGroup = asyncHandler(async (req, res) => {
     helperText,
     kind,
     sortOrder,
+    imageUrl: image,
     isActive: true,
   })
   return sendSuccess(res, { message: 'Group created', statusCode: HTTP_STATUS.CREATED, data: { group: g } })
@@ -56,13 +77,24 @@ export const patchGroup = asyncHandler(async (req, res) => {
   if (!g) {
     return sendError(res, { message: 'Group not found', statusCode: HTTP_STATUS.NOT_FOUND, code: 'NOT_FOUND' })
   }
-  const { name, description, helperText, kind, sortOrder, isActive } = req.body
+  const { name, description, helperText, kind, sortOrder, isActive, imageUrl } = req.body
   if (name != null) g.name = String(name).trim()
   if (description != null) g.description = String(description)
   if (helperText != null) g.helperText = String(helperText)
   if (kind != null) g.kind = kind
   if (sortOrder != null) g.sortOrder = Number(sortOrder)
   if (isActive != null) g.isActive = Boolean(isActive)
+  if (imageUrl !== undefined) {
+    const normalized = normalizeImageUrl(imageUrl)
+    if (normalized === null) {
+      return sendError(res, {
+        message: 'imageUrl must be empty or a valid https:// URL (upload via /uploads/media first)',
+        statusCode: HTTP_STATUS.BAD_REQUEST,
+        code: 'VALIDATION',
+      })
+    }
+    g.imageUrl = normalized
+  }
   await g.save()
   return sendSuccess(res, { message: 'Group updated', data: { group: g } })
 })

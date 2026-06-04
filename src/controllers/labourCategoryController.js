@@ -40,6 +40,7 @@ export const listGrouped = asyncHandler(async (_req, res) => {
       helperText: g.helperText,
       kind: g.kind,
       sortOrder: g.sortOrder,
+      imageUrl: g.imageUrl || '',
       categories: byGroup.get(String(g._id)) ?? [],
     })),
     meta: {
