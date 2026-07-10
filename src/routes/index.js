@@ -16,6 +16,9 @@ import broadcastRoutes from './broadcastRoutes.js'
 import paymentRoutes from './paymentRoutes.js'
 import reviewRoutes from './reviewRoutes.js'
 
+import adminZoneRoutes from './adminZoneRoutes.js'
+import locationRoutes from './locationRoutes.js'
+
 const router = Router()
 
 router.use('/auth', authRoutes)
@@ -32,7 +35,9 @@ router.use('/broadcasts', broadcastRoutes)
 router.use('/payments', paymentRoutes)
 router.use('/reviews', reviewRoutes)
 router.use('/admin/settings', systemSettingRoutes)
-router.use('/admin', adminLabourCategoryRoutes)
+router.use('/admin/zones', adminZoneRoutes)
 router.use('/admin/workforce', adminWorkforceRoutes)
+router.use('/admin', adminLabourCategoryRoutes)
+router.use('/labour/location', locationRoutes)
 
 export default router

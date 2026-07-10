@@ -84,6 +84,9 @@ const labourProfileSchema = new mongoose.Schema(
       enum: ['available', 'busy', 'offline'],
       default: 'available',
     },
+    currentLatitude: { type: Number },
+    currentLongitude: { type: Number },
+    lastLocationUpdatedAt: { type: Date },
   },
   { _id: false },
 )

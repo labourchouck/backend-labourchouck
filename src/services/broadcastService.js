@@ -1,145 +1,160 @@
 import { User } from '../models/User.js'
 import { Booking } from '../models/Booking.js'
 import { BroadcastLog } from '../models/BroadcastLog.js'
+import { SystemSetting } from '../models/SystemSetting.js'
 import { checkWalletEligibility } from '../controllers/walletController.js'
+import { getRoadDistances } from '../utils/googleMapsDistance.js'
 
-// In a real distributed system, we would use Redis/BullMQ to handle the timeout queues.
-// For this MVP, we use in-memory NodeJS timeouts.
-const activeBroadcastTimeouts = new Map()
-
-export const BROADCAST_TIMEOUT_MS = 30000 // 30 seconds per labor
+export const BROADCAST_TIMEOUT_MS = 60000 // 60 seconds flash broadcast timeout
 
 /**
- * Finds eligible laborers for a given booking based on:
- * 1. Online status
- * 2. Subcategory support
- * 3. Price range overlaps with Booking's laborShare
- * 4. Wallet admin balance under limit
- */
-async function findEligibleLaborers(booking) {
-  // 1 & 2 & 3: Database Query
-  const potentialLaborers = await User.find({
-    role: { $in: ['LABOUR', 'INDIVIDUAL'] },
-    'labourProfile.availabilityStatus': 'available',
-    'labourProfile.subcategoryIds': booking.subcategoryId,
-    'labourProfile.minAcceptedPrice': { $lte: booking.laborShare },
-    $or: [
-      { 'labourProfile.maxAcceptedPrice': { $gte: booking.laborShare } },
-      { 'labourProfile.maxAcceptedPrice': null }, // If max is not set, they accept any amount above min
-    ]
-  }).lean()
-
-  // 4: Wallet Validation (Could be optimized with aggregate joins, doing it iteratively for clarity here)
-  const eligible = []
-  for (const labor of potentialLaborers) {
-    const isEligible = await checkWalletEligibility(labor._id)
-    if (isEligible) {
-      eligible.push(labor)
-    }
-  }
-
-  // Sort the eligible labourers price wise (lowest minAcceptedPrice first)
-  eligible.sort((a, b) => {
-    const aPrice = a.labourProfile?.minAcceptedPrice || 0
-    const bPrice = b.labourProfile?.minAcceptedPrice || 0
-    return aPrice - bPrice
-  })
-
-  // Ideally, sort by distance here if coordinates exist, but currently sorted by price
-  return eligible
-}
-
-/**
- * Starts the broadcast chain for a new booking.
+ * Starts the flash broadcast for a new booking based on a radius zone.
  */
 export async function startBroadcastCycle(bookingId) {
   const booking = await Booking.findById(bookingId)
   if (!booking || booking.status !== 'CREATED') return
 
+  // 1. Get Radius Setting
+  const settings = await SystemSetting.findOne({ configKey: 'master_config' })
+  const radiusKm = settings?.bookingBroadcastRadius || 10
+
+  // Log snapshot of radius onto booking
+  booking.broadcastRadius = radiusKm
+
+  // Validate coordinates
+  const bookingLng = booking.address?.coordinates?.coordinates[0]
+  const bookingLat = booking.address?.coordinates?.coordinates[1]
+
+  if (!bookingLng || !bookingLat) {
+    console.error(`Booking ${bookingId} FAILED: Invalid coordinates for zone broadcast.`)
+    booking.status = 'FAILED'
+    await booking.save()
+    // Emit to customer
+    import('../socket.js').then(({ emitToUser }) => {
+      emitToUser(booking.userId, 'BOOKING_FAILED', { bookingId, reason: 'Invalid location' })
+    }).catch(err => console.error(err))
+    return
+  }
+
   booking.status = 'BROADCASTING'
   await booking.save()
 
-  const eligibleLaborers = await findEligibleLaborers(booking)
+  // 2. Pre-filter labourers by bounding box (rough estimate to avoid hitting Google Maps for everyone)
+  const latDiff = radiusKm / 111
+  const lngDiff = radiusKm / (111 * Math.cos(bookingLat * (Math.PI / 180)))
 
-  if (eligibleLaborers.length === 0) {
-    booking.status = 'FAILED'
-    await booking.save()
-    console.log(`Booking ${bookingId} FAILED: No eligible laborers found.`)
+  // Multiply radius slightly to ensure we don't accidentally cut off corners in the rough box
+  const bufferLatDiff = latDiff * 1.2
+  const bufferLngDiff = lngDiff * 1.2
+
+  const potentialLaborers = await User.find({
+    role: { $in: ['LABOUR', 'INDIVIDUAL'] },
+    'labourProfile.availabilityStatus': 'available',
+    'labourProfile.subcategoryIds': booking.subcategoryId,
+    'labourProfile.currentLatitude': { $gte: bookingLat - bufferLatDiff, $lte: bookingLat + bufferLatDiff },
+    'labourProfile.currentLongitude': { $gte: bookingLng - bufferLngDiff, $lte: bookingLng + bufferLngDiff },
+    'labourProfile.minAcceptedPrice': { $lte: booking.laborShare },
+    $or: [
+      { 'labourProfile.maxAcceptedPrice': { $gte: booking.laborShare } },
+      { 'labourProfile.maxAcceptedPrice': null },
+    ]
+  }).lean()
+
+  if (potentialLaborers.length === 0) {
+    await markBookingFailed(booking, 'No laborers in area')
     return
   }
 
-  // Store queue in memory for sequential processing
-  await processNextInQueue(bookingId, eligibleLaborers)
-}
+  // 3. Wallet Eligibility Filter
+  const walletEligible = []
+  for (const labor of potentialLaborers) {
+    const isEligible = await checkWalletEligibility(labor._id)
+    if (isEligible) {
+      walletEligible.push(labor)
+    }
+  }
 
-/**
- * Processes the next labor in the queue.
- */
-async function processNextInQueue(bookingId, laborQueue) {
-  const booking = await Booking.findById(bookingId)
-  if (!booking || booking.status !== 'BROADCASTING') return // Booking accepted or cancelled
-
-  if (laborQueue.length === 0) {
-    booking.status = 'FAILED'
-    await booking.save()
-    console.log(`Booking ${bookingId} FAILED: Queue exhausted.`)
+  if (walletEligible.length === 0) {
+    await markBookingFailed(booking, 'No eligible laborers found')
     return
   }
 
-  const nextLabor = laborQueue.shift() // Dequeue
+  // 4. Precise Distance Filter (Google Maps)
+  const destinations = walletEligible.map(l => ({
+    id: String(l._id),
+    lat: l.labourProfile.currentLatitude,
+    lng: l.labourProfile.currentLongitude
+  }))
 
-  // Create Broadcast Log
-  const log = await BroadcastLog.create({
-    bookingId: booking._id,
-    laborId: nextLabor._id,
-    status: 'PENDING'
+  const distances = await getRoadDistances(bookingLat, bookingLng, destinations)
+  
+  const eligibleLaborers = walletEligible.filter(labor => {
+    const distData = distances.find(d => d.id === String(labor._id))
+    // Include them if distance is within radius. 
+    // If FALLBACK or error, we still include if Haversine said it's within radius
+    return distData && distData.distanceKm <= radiusKm
   })
 
-  // Emit WebSocket event to this specific Labor here
-  console.log(`Emitting BROADCAST to Labor ${nextLabor._id} for Booking ${booking._id}`)
+  // 5. Update eligible count
+  booking.eligibleLabourCount = eligibleLaborers.length
+  await booking.save()
+
+  if (eligibleLaborers.length === 0) {
+    await markBookingFailed(booking, 'No laborers within actual driving radius')
+    return
+  }
+
+  // 6. Flash Broadcast via WebSockets
+  console.log(`Flash broadcasting Booking ${booking._id} to ${eligibleLaborers.length} laborers`)
+
+  // Notify customer
   import('../socket.js').then(({ emitToUser }) => {
-    emitToUser(nextLabor._id, 'NEW_BROADCAST', {
+    emitToUser(booking.userId, 'BOOKING_BROADCAST_STARTED', { 
       bookingId: booking._id,
-      logId: log._id,
-      basePrice: booking.basePrice,
-      laborShare: booking.laborShare,
-      address: booking.address,
-      scheduledAt: booking.scheduledAt,
-      type: booking.type,
-      timeoutMs: BROADCAST_TIMEOUT_MS
+      radiusKm: radiusKm,
+      eligibleCount: eligibleLaborers.length
+    })
+
+    // Notify all eligible laborers
+    eligibleLaborers.forEach(labor => {
+      emitToUser(labor._id, 'BOOKING_RECEIVED', {
+        bookingId: booking._id,
+        basePrice: booking.basePrice,
+        laborShare: booking.laborShare,
+        address: booking.address,
+        scheduledAt: booking.scheduledAt,
+        type: booking.type,
+        timeoutMs: BROADCAST_TIMEOUT_MS
+      })
     })
   }).catch(err => console.error('Failed to load socket emitter:', err))
 
-  // Set timeout for 30s
-  const timeoutId = setTimeout(async () => {
-    // 30 seconds elapsed, check if still pending
-    const currentLog = await BroadcastLog.findById(log._id)
-    if (currentLog && currentLog.status === 'PENDING') {
-      currentLog.status = 'TIMEOUT'
-      await currentLog.save()
-      console.log(`Broadcast TIMEOUT for Labor ${nextLabor._id}`)
+  // Set timeout to expire broadcast if no one accepts
+  setTimeout(async () => {
+    const currentBooking = await Booking.findById(booking._id)
+    if (currentBooking && currentBooking.status === 'BROADCASTING') {
+      currentBooking.status = 'FAILED'
+      await currentBooking.save()
+      console.log(`Booking ${booking._id} EXPIRED without acceptance.`)
       
-      // Recursively process next
-      await processNextInQueue(bookingId, laborQueue)
+      // Notify customer
+      import('../socket.js').then(({ emitToUser }) => {
+        emitToUser(currentBooking.userId, 'BOOKING_FAILED', { bookingId: currentBooking._id, reason: 'Expired' })
+        
+        // Notify laborers that it expired
+        eligibleLaborers.forEach(labor => {
+          emitToUser(labor._id, 'BOOKING_EXPIRED', { bookingId: currentBooking._id })
+        })
+      }).catch(err => console.error(err))
     }
   }, BROADCAST_TIMEOUT_MS)
-
-  activeBroadcastTimeouts.set(String(log._id), { timeoutId, laborQueue })
 }
 
-/**
- * Cancels a pending timeout for a broadcast log (used when accepted/rejected)
- */
-export function cancelBroadcastTimeout(logId) {
-  const meta = activeBroadcastTimeouts.get(String(logId))
-  if (meta) {
-    clearTimeout(meta.timeoutId)
-    activeBroadcastTimeouts.delete(String(logId))
-    return meta.laborQueue
-  }
-  return null
-}
-
-export async function continueBroadcastCycle(bookingId, laborQueue) {
-  await processNextInQueue(bookingId, laborQueue)
+async function markBookingFailed(booking, reason) {
+  booking.status = 'FAILED'
+  await booking.save()
+  console.log(`Booking ${booking._id} FAILED: ${reason}`)
+  import('../socket.js').then(({ emitToUser }) => {
+    emitToUser(booking.userId, 'BOOKING_FAILED', { bookingId: booking._id, reason })
+  }).catch(err => console.error(err))
 }

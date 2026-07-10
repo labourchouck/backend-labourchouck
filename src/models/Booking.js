@@ -68,6 +68,9 @@ const bookingSchema = new mongoose.Schema(
       default: 'CREATED',
       index: true,
     },
+    broadcastRadius: { type: Number },
+    eligibleLabourCount: { type: Number, default: 0 },
+    acceptedLabourId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   },
   { timestamps: true }
 )
