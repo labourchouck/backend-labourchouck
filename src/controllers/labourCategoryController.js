@@ -14,6 +14,15 @@ export const listGrouped = asyncHandler(async (_req, res) => {
     .sort({ sortOrder: 1, name: 1 })
     .lean()
 
+  const subcats = await import('../models/LabourSubcategory.js').then(m => m.LabourSubcategory.find({ isActive: true }).sort({ name: 1 }).lean())
+  
+  const subcatsByCat = new Map()
+  for (const sc of subcats) {
+    const k = String(sc.categoryId)
+    if (!subcatsByCat.has(k)) subcatsByCat.set(k, [])
+    subcatsByCat.get(k).push(sc)
+  }
+
   const byGroup = new Map()
   for (const g of groups) {
     byGroup.set(String(g._id), [])
@@ -28,6 +37,7 @@ export const listGrouped = asyncHandler(async (_req, res) => {
       subtitle: c.subtitle,
       imageUrl: c.imageUrl || '',
       sortOrder: c.sortOrder,
+      subcategories: subcatsByCat.get(String(c._id)) || []
     })
   }
 

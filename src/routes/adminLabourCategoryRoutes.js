@@ -60,4 +60,28 @@ router.patch(
   admin.patchCategory,
 )
 
+router.post(
+  '/labour-subcategories',
+  [
+    body('categoryId').isMongoId().withMessage('Valid category required'),
+    body('name').trim().notEmpty().withMessage('Name required'),
+    body('description').optional().trim(),
+    body('basePrice').isNumeric().withMessage('Base price is required and must be a number'),
+    body('estimatedDurationMins').optional().isInt({ min: 1 }),
+    body('iconUrl').optional().isString(),
+  ],
+  validateRequest,
+  admin.createSubcategory,
+)
+
+router.patch(
+  '/labour-subcategories/:id',
+  [
+    param('id').isMongoId().withMessage('Invalid id'),
+    body('iconUrl').optional().isString(),
+  ],
+  validateRequest,
+  admin.patchSubcategory,
+)
+
 export default router

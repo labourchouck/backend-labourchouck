@@ -1,12 +1,18 @@
 import 'dotenv/config'
+import http from 'http'
 import app from './app.js'
 import { connectDb } from './config/db.js'
+import { initSocket } from './socket.js'
 
 const port = Number(process.env.PORT) || 5000
 
 async function main() {
   await connectDb()
-  app.listen(port, () => {
+  
+  const server = http.createServer(app)
+  initSocket(server)
+
+  server.listen(port, () => {
     console.log(`LabourChowck API listening on :${port}`)
   })
 }
