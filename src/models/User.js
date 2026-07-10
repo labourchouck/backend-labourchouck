@@ -76,6 +76,9 @@ const labourProfileSchema = new mongoose.Schema(
     /** @deprecated prefer categoryIds — kept for backward compatibility */
     skills: [{ type: String, trim: true }],
     categoryIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'LabourCategory' }],
+    subcategoryIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'LabourSubcategory' }],
+    minAcceptedPrice: { type: Number, min: 0 },
+    maxAcceptedPrice: { type: Number, min: 0 },
     availabilityStatus: {
       type: String,
       enum: ['available', 'busy', 'offline'],
