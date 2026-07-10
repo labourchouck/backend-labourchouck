@@ -26,6 +26,26 @@ const bookingSchema = new mongoose.Schema(
     scheduledAt: {
       type: Date,
     },
+    timeSlot: {
+      type: String,
+    },
+    images: {
+      type: [String],
+      default: []
+    },
+    notes: { 
+      type: String, 
+      trim: true 
+    },
+    durationKind: {
+      type: String,
+      enum: ['few_hours', 'full_day', 'multi_day'],
+      default: 'full_day'
+    },
+    durationDays: {
+      type: Number,
+      default: 1
+    },
     address: {
       locationText: { type: String, required: true, trim: true },
       // Could add lat/lng for geospatial querying
@@ -68,6 +88,11 @@ const bookingSchema = new mongoose.Schema(
       default: 'CREATED',
       index: true,
     },
+    broadcastRadius: { type: Number },
+    eligibleLabourCount: { type: Number, default: 0 },
+    acceptedLabourId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    startOtp: { type: String },
+    completionOtp: { type: String },
   },
   { timestamps: true }
 )

@@ -1,23 +1,23 @@
 import { Router } from 'express'
 import { protect, restrictTo } from '../middleware/auth.js'
 import { USER_ROLES } from '../constants/roles.js'
-import * as broadcast from '../controllers/broadcastController.js'
+import * as zoneController from '../controllers/zoneController.js'
 
 const router = Router()
 
-router.use(protect)
-
-// Only Labourers/Contractors can interact with broadcasts directly
+// Only LABOUR/CONTRACTOR can update their location via this route
 router.post(
-  '/:bookingId/accept',
+  '/update',
+  protect,
   restrictTo(USER_ROLES.LABOUR, USER_ROLES.CONTRACTOR),
-  broadcast.acceptBroadcast,
+  zoneController.updateLabourLocation
 )
 
 router.post(
-  '/:bookingId/reject',
+  '/status',
+  protect,
   restrictTo(USER_ROLES.LABOUR, USER_ROLES.CONTRACTOR),
-  broadcast.rejectBroadcast,
+  zoneController.updateLabourStatus
 )
 
 export default router

@@ -72,6 +72,15 @@ const systemSettingSchema = new mongoose.Schema(
       min: 0,
       default: 50,
     },
+    bookingBroadcastRadius: {
+      type: Number,
+      min: 1,
+      default: 10,
+    },
+    updatedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+    },
   },
   { timestamps: true }
 )

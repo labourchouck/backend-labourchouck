@@ -6,7 +6,7 @@ import { asyncHandler } from '../utils/asyncHandler.js'
 import { HTTP_STATUS, sendError, sendSuccess } from '../utils/apiResponse.js'
 
 export const calculateBill = asyncHandler(async (req, res) => {
-  const { subcategoryId } = req.body
+  const { subcategoryId, durationDays = 1 } = req.body
   const subcategory = await LabourSubcategory.findById(subcategoryId)
   if (!subcategory) {
     return sendError(res, { message: 'Subcategory not found', statusCode: HTTP_STATUS.NOT_FOUND })
@@ -17,7 +17,7 @@ export const calculateBill = asyncHandler(async (req, res) => {
     settings = await SystemSetting.create({ configKey: 'master_config' })
   }
 
-  const basePrice = subcategory.basePrice
+  const basePrice = subcategory.basePrice * durationDays
   let platformFee = 0
 
   if (settings.platformFee.isActive) {
@@ -56,10 +56,18 @@ export const calculateBill = asyncHandler(async (req, res) => {
 })
 
 export const createBooking = asyncHandler(async (req, res) => {
-  const { subcategoryId, type, scheduledAt, locationText, paymentMethod } = req.body
+  const { subcategoryId, type, scheduledAt, timeSlot, locationText, lat, lng, paymentMethod, notes, durationKind = 'full_day', durationDays = 1, imageNames = [] } = req.body
 
-  if (type === 'SCHEDULED' && !scheduledAt) {
-    return sendError(res, { message: 'scheduledAt is required for SCHEDULED bookings', statusCode: HTTP_STATUS.BAD_REQUEST })
+  if (!subcategoryId || !type || !locationText || !paymentMethod) {
+    return sendError(res, { message: 'Missing required fields', statusCode: HTTP_STATUS.BAD_REQUEST })
+  }
+
+  if (lat === undefined || lng === undefined) {
+    return sendError(res, { message: 'Latitude and Longitude are required for accurate matching', statusCode: HTTP_STATUS.BAD_REQUEST })
+  }
+
+  if (type === 'SCHEDULED' && (!scheduledAt || !timeSlot)) {
+    return sendError(res, { message: 'scheduledAt date and timeSlot are required for SCHEDULED bookings', statusCode: HTTP_STATUS.BAD_REQUEST })
   }
 
   const subcategory = await LabourSubcategory.findById(subcategoryId)
@@ -92,12 +100,26 @@ export const createBooking = asyncHandler(async (req, res) => {
 
   const laborShare = baseAmount - commissionAmount
 
+  const startOtp = Math.floor(1000 + Math.random() * 9000).toString()
+  const completionOtp = Math.floor(1000 + Math.random() * 9000).toString()
+
   const booking = await Booking.create({
     userId: req.user._id,
     subcategoryId,
     type,
     scheduledAt: type === 'SCHEDULED' ? new Date(scheduledAt) : undefined,
-    address: { locationText },
+    timeSlot: type === 'SCHEDULED' ? timeSlot : undefined,
+    images: Array.isArray(imageNames) ? imageNames : [],
+    notes,
+    durationKind,
+    durationDays,
+    address: { 
+      locationText,
+      coordinates: {
+        type: 'Point',
+        coordinates: [parseFloat(lng), parseFloat(lat)] // GeoJSON uses [longitude, latitude]
+      }
+    },
     basePrice,
     platformFee,
     taxes,
@@ -105,7 +127,9 @@ export const createBooking = asyncHandler(async (req, res) => {
     commissionAmount,
     laborShare,
     paymentMethod,
-    status: 'CREATED'
+    status: 'CREATED',
+    startOtp,
+    completionOtp
   })
 
   // Phase 3: Trigger the Broadcast Engine asynchronously
@@ -118,10 +142,22 @@ export const createBooking = asyncHandler(async (req, res) => {
 })
 
 export const getBookingStatus = asyncHandler(async (req, res) => {
-  const booking = await Booking.findById(req.params.id).populate('subcategoryId').populate('laborId', 'name phone profilePic').populate('userId', 'name phone')
+  const booking = await Booking.findById(req.params.id)
+    .populate('subcategoryId')
+    .populate('laborId', 'name phone profilePic')
+    .populate('userId', 'name phone')
+    .lean()
+
   if (!booking) {
     return sendError(res, { message: 'Booking not found', statusCode: HTTP_STATUS.NOT_FOUND })
   }
+
+  // Hide OTPs from labourer
+  if (['LABOUR', 'CONTRACTOR'].includes(req.user.role)) {
+    delete booking.startOtp
+    delete booking.completionOtp
+  }
+
   return sendSuccess(res, { data: { booking } })
 })
 
@@ -146,12 +182,19 @@ export const getMyBookings = asyncHandler(async (req, res) => {
     .sort({ createdAt: -1 })
     .lean()
 
+  if (['LABOUR', 'CONTRACTOR'].includes(role)) {
+    bookings.forEach(b => {
+      delete b.startOtp
+      delete b.completionOtp
+    })
+  }
+
   return sendSuccess(res, { data: { bookings } })
 })
 
 export const updateBookingStatus = asyncHandler(async (req, res) => {
   const { id } = req.params
-  const { status } = req.body
+  const { status, otp } = req.body
   const booking = await Booking.findById(id)
   
   if (!booking) return sendError(res, { message: 'Booking not found', statusCode: HTTP_STATUS.NOT_FOUND })
@@ -168,6 +211,17 @@ export const updateBookingStatus = asyncHandler(async (req, res) => {
 
   if (!validTransitions[booking.status]?.includes(status)) {
     return sendError(res, { message: `Invalid transition from ${booking.status} to ${status}`, statusCode: HTTP_STATUS.BAD_REQUEST })
+  }
+
+  // OTP Verification
+  if (status === 'STARTED') {
+    if (!otp) return sendError(res, { message: 'OTP is required to start the job', statusCode: HTTP_STATUS.BAD_REQUEST })
+    if (otp !== booking.startOtp) return sendError(res, { message: 'Invalid Start OTP', statusCode: HTTP_STATUS.BAD_REQUEST })
+  }
+
+  if (status === 'COMPLETED') {
+    if (!otp) return sendError(res, { message: 'OTP is required to complete the job', statusCode: HTTP_STATUS.BAD_REQUEST })
+    if (otp !== booking.completionOtp) return sendError(res, { message: 'Invalid Completion OTP', statusCode: HTTP_STATUS.BAD_REQUEST })
   }
 
   booking.status = status
@@ -195,33 +249,26 @@ export const updateBookingStatus = asyncHandler(async (req, res) => {
         }).catch(err => console.error('WalletTx error:', err))
       })
     } else if (booking.paymentMethod === 'ONLINE') {
-      // Add laborShare to labor's self wallet
-      wallet.selfBalance += booking.laborShare
-      await wallet.save()
+      // ONLY payout if the customer has actually completed the online payment.
+      // If they haven't paid yet, the paymentController will handle this payout later once they pay.
+      if (booking.paymentStatus === 'PAID') {
+        // Add laborShare to labor's self wallet
+        wallet.selfBalance += booking.laborShare
+        await wallet.save()
 
-      import('../models/WalletTransaction.js').then(({ WalletTransaction }) => {
-        WalletTransaction.create({
-          walletId: wallet._id,
-          amount: booking.laborShare,
-          type: 'CREDIT',
-          targetWallet: 'SELF',
-          context: 'PAYOUT',
-          referenceId: booking._id,
-          description: 'Payout for Online Booking'
-        }).catch(err => console.error('WalletTx error:', err))
-      })
+        import('../models/WalletTransaction.js').then(({ WalletTransaction }) => {
+          WalletTransaction.create({
+            walletId: wallet._id,
+            amount: booking.laborShare,
+            type: 'CREDIT',
+            targetWallet: 'SELF',
+            context: 'PAYOUT',
+            referenceId: booking._id,
+            description: 'Payout for Online Booking'
+          }).catch(err => console.error('WalletTx error:', err))
+        })
+      }
     }
-  }
-
-  // Phase 4: Handle Penalty if Cancelled by Labor after accepting
-  if (status === 'CANCELLED' && String(req.user._id) === String(booking.laborId)) {
-    let wallet = await Wallet.findOne({ userId: booking.laborId })
-    if (!wallet) wallet = new Wallet({ userId: booking.laborId })
-    
-    const settings = await SystemSetting.findOne({ configKey: 'master_config' })
-    const penaltyAmount = settings?.cancellationPenalty ?? 50
-    wallet.adminBalance += penaltyAmount
-    await wallet.save()
   }
 
   // Notify customer
