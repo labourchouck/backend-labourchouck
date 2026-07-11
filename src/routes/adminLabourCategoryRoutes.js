@@ -60,6 +60,23 @@ router.patch(
   admin.patchCategory,
 )
 
+router.get(
+  '/labour-categories/:id',
+  [param('id').isMongoId().withMessage('Invalid id')],
+  validateRequest,
+  admin.getCategory,
+)
+
+router.put(
+  '/labour-categories/:id',
+  [
+    param('id').isMongoId().withMessage('Invalid id'),
+    body('imageUrl').optional().isString(),
+  ],
+  validateRequest,
+  admin.putCategory,
+)
+
 router.post(
   '/labour-subcategories',
   [
