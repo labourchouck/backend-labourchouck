@@ -22,6 +22,7 @@ import { verifyAttendanceAdmin } from '../controllers/attendanceController.js'
 import {
   listPricingRatesAdmin,
   upsertPricingRateAdmin,
+  listInvoicesAdmin,
   generateInvoiceAdmin,
   patchInvoiceStatusAdmin,
 } from '../controllers/billingController.js'
@@ -47,6 +48,7 @@ router.patch('/attendance/:id/verify', verifyAttendanceAdmin)
 
 router.get('/pricing', listPricingRatesAdmin)
 router.post('/pricing', upsertPricingRateAdmin)
+router.get('/invoices', listInvoicesAdmin)
 router.post('/invoices/generate', generateInvoiceAdmin)
 router.patch('/invoices/:id', patchInvoiceStatusAdmin)
 

@@ -5,6 +5,7 @@ import { Complaint } from '../models/Complaint.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { sendSuccess } from '../utils/apiResponse.js'
 import { USER_ROLES } from '../constants/roles.js'
+import { LabourCategory } from '../models/LabourCategory.js'
 
 export const getDashboardStats = asyncHandler(async (req, res) => {
   // Revenue calculation: Sum of platform fees from completed bookings
@@ -24,6 +25,8 @@ export const getDashboardStats = asyncHandler(async (req, res) => {
   const totalCustomers = await User.countDocuments({ role: USER_ROLES.USER })
   const totalLabourers = await User.countDocuments({ role: USER_ROLES.LABOUR })
   const totalContractors = await User.countDocuments({ role: USER_ROLES.CONTRACTOR })
+  const totalCorporates = await User.countDocuments({ role: USER_ROLES.CORPORATE })
+  const totalCategories = await LabourCategory.countDocuments()
 
   // Actionable Pending Items
   const pendingWithdrawals = await WithdrawalRequest.countDocuments({ status: 'PENDING' })
@@ -44,10 +47,14 @@ export const getDashboardStats = asyncHandler(async (req, res) => {
         customers: totalCustomers,
         labourers: totalLabourers,
         contractors: totalContractors,
+        corporates: totalCorporates,
       },
       actionable: {
         pendingWithdrawals,
         openComplaints,
+      },
+      system: {
+        categories: totalCategories,
       },
       bookings: {
         active: activeBookings,

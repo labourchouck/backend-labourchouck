@@ -13,6 +13,24 @@ export const listPricingRatesAdmin = asyncHandler(async (req, res) => {
   sendSuccess(res, { rates })
 })
 
+export const listInvoicesAdmin = asyncHandler(async (req, res) => {
+  const { status, page = 1, limit = 20 } = req.query
+  const filter = {}
+  if (status) filter.status = status
+
+  const skip = (Number(page) - 1) * Number(limit)
+  const [invoices, total] = await Promise.all([
+    Invoice.find(filter)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(Number(limit))
+      .populate('corporateId', 'fullName email')
+      .lean(),
+    Invoice.countDocuments(filter),
+  ])
+  sendSuccess(res, { invoices, total, page: Number(page), limit: Number(limit) })
+})
+
 export const upsertPricingRateAdmin = asyncHandler(async (req, res) => {
   const { categoryId, clientType, corporateId, ratePerShift, workerRatePerShift, gstPercent } = req.body
   if (!mongoose.Types.ObjectId.isValid(categoryId) || ratePerShift == null) {

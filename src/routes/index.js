@@ -24,6 +24,7 @@ import adminComplaintRoutes from './adminComplaintRoutes.js'
 import adminDashboardRoutes from './adminDashboardRoutes.js'
 import bannerRoutes from './bannerRoutes.js'
 import adminBannerRoutes from './adminBannerRoutes.js'
+import adminReportsRoutes from './adminReportsRoutes.js'
 
 const router = Router()
 
@@ -50,6 +51,7 @@ router.use('/admin/wallets', adminWalletRoutes)
 router.use('/admin/complaints', adminComplaintRoutes)
 router.use('/admin/dashboard', adminDashboardRoutes)
 router.use('/admin/banners', adminBannerRoutes)
+router.use('/admin/reports', adminReportsRoutes)
 router.use('/admin', adminLabourCategoryRoutes)
 router.use('/labour/location', locationRoutes)
 
