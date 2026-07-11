@@ -12,7 +12,7 @@ router.use(protect)
 router.post(
   '/calculate',
   [
-    body('subcategoryId').isMongoId().withMessage('Valid subcategory ID required'),
+    body('serviceId').isMongoId().withMessage('Valid service ID required'),
   ],
   validateRequest,
   booking.calculateBill,
@@ -21,7 +21,7 @@ router.post(
 router.post(
   '/',
   [
-    body('subcategoryId').isMongoId().withMessage('Valid subcategory ID required'),
+    body('serviceId').isMongoId().withMessage('Valid service ID required'),
     body('type').isIn(['INSTANT', 'SCHEDULED']).withMessage('Invalid booking type'),
     body('locationText').trim().notEmpty().withMessage('Location is required'),
     body('paymentMethod').isIn(['ONLINE', 'CASH']).withMessage('Invalid payment method'),

@@ -159,6 +159,14 @@ export const createCategory = asyncHandler(async (req, res) => {
   return sendSuccess(res, { message: 'Category created', statusCode: HTTP_STATUS.CREATED, data: { category: c } })
 })
 
+export const getCategory = asyncHandler(async (req, res) => {
+  const c = await LabourCategory.findById(req.params.id)
+  if (!c) {
+    return sendError(res, { message: 'Category not found', statusCode: HTTP_STATUS.NOT_FOUND, code: 'NOT_FOUND' })
+  }
+  return sendSuccess(res, { data: { category: c } })
+})
+
 export const patchCategory = asyncHandler(async (req, res) => {
   const c = await LabourCategory.findById(req.params.id)
   if (!c) {
@@ -189,6 +197,38 @@ export const patchCategory = asyncHandler(async (req, res) => {
   }
   await c.save()
   return sendSuccess(res, { message: 'Category updated', data: { category: c } })
+})
+
+export const putCategory = asyncHandler(async (req, res) => {
+  const c = await LabourCategory.findById(req.params.id)
+  if (!c) {
+    return sendError(res, { message: 'Category not found', statusCode: HTTP_STATUS.NOT_FOUND, code: 'NOT_FOUND' })
+  }
+  const { name, subtitle, sortOrder, isActive, groupId, imageUrl } = req.body
+  if (name != null) c.name = String(name).trim()
+  if (subtitle != null) c.subtitle = String(subtitle)
+  if (sortOrder != null) c.sortOrder = Number(sortOrder)
+  if (isActive != null) c.isActive = Boolean(isActive)
+  if (imageUrl !== undefined) {
+    const normalized = normalizeImageUrl(imageUrl)
+    if (normalized === null) {
+      return sendError(res, {
+        message: 'imageUrl must be empty or a valid https:// URL (upload via /uploads/media first)',
+        statusCode: HTTP_STATUS.BAD_REQUEST,
+        code: 'VALIDATION',
+      })
+    }
+    c.imageUrl = normalized
+  }
+  if (groupId != null) {
+    const g = await LabourCategoryGroup.findById(groupId)
+    if (!g) {
+      return sendError(res, { message: 'Group not found', statusCode: HTTP_STATUS.NOT_FOUND, code: 'NOT_FOUND' })
+    }
+    c.group = g._id
+  }
+  await c.save()
+  return sendSuccess(res, { message: 'Category replaced/updated', data: { category: c } })
 })
 
 export const createSubcategory = asyncHandler(async (req, res) => {
