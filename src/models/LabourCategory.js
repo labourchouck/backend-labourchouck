@@ -2,7 +2,6 @@ import mongoose from 'mongoose'
 
 const labourCategorySchema = new mongoose.Schema(
   {
-    group: { type: mongoose.Schema.Types.ObjectId, ref: 'LabourCategoryGroup', required: true, index: true },
     name: { type: String, required: true, trim: true },
     slug: { type: String, required: true, unique: true, trim: true, lowercase: true },
     /** Short line for cards (optional) */
@@ -15,6 +14,6 @@ const labourCategorySchema = new mongoose.Schema(
   { timestamps: true },
 )
 
-labourCategorySchema.index({ group: 1, sortOrder: 1 })
+labourCategorySchema.index({ sortOrder: 1 })
 
 export const LabourCategory = mongoose.model('LabourCategory', labourCategorySchema)

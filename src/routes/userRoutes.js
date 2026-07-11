@@ -8,6 +8,24 @@ import { validateUserIdParam } from '../validators/authValidators.js'
 
 const router = Router()
 
+router.get(
+  '/discover/labours',
+  [
+    query('groupId').optional().isMongoId().withMessage('groupId must be a valid id'),
+    query('categoryId').optional().isMongoId().withMessage('categoryId must be a valid id'),
+    query('limit').optional().isInt({ min: 1, max: 50 }).withMessage('limit must be 1–50'),
+  ],
+  validateRequest,
+  user.listDiscoverLabours,
+)
+
+router.get(
+  '/discover/labours/:id',
+  [param('id').isMongoId().withMessage('Invalid user id')],
+  validateRequest,
+  user.getDiscoverLabour,
+)
+
 router.use(protect)
 
 router.get('/me', user.getProfile)
@@ -46,23 +64,6 @@ router.post(
   user.submitLabourKycDocuments,
 )
 
-router.get(
-  '/discover/labours',
-  [
-    query('groupId').optional().isMongoId().withMessage('groupId must be a valid id'),
-    query('categoryId').optional().isMongoId().withMessage('categoryId must be a valid id'),
-    query('limit').optional().isInt({ min: 1, max: 50 }).withMessage('limit must be 1–50'),
-  ],
-  validateRequest,
-  user.listDiscoverLabours,
-)
-
-router.get(
-  '/discover/labours/:id',
-  [param('id').isMongoId().withMessage('Invalid user id')],
-  validateRequest,
-  user.getDiscoverLabour,
-)
 
 router.get('/', restrictTo(USER_ROLES.ADMIN), user.listUsers)
 

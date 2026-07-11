@@ -66,7 +66,7 @@ export function uploadBufferToCloudinary({
       (err, result) => {
         if (err) {
           const e = new Error(err.message || 'Cloudinary upload failed')
-          e.statusCode = 502
+          e.statusCode = 400
           e.code = 'CLOUDINARY_UPLOAD_FAILED'
           e.cause = err
           return reject(e)

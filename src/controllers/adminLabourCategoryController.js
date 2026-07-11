@@ -15,8 +15,7 @@ function normalizeImageUrl(value) {
   return normalized
 }
 
-export const listAllGroups = asyncHandler(async (_req, res) => {
-  const groups = await LabourCategoryGroup.find().sort({ sortOrder: 1, name: 1 }).lean()
+export const listAllCategories = asyncHandler(async (_req, res) => {
   const cats = await LabourCategory.find().sort({ sortOrder: 1, name: 1 }).lean()
   const subcats = await LabourSubcategory.find().sort({ name: 1 }).lean()
   const services = await LabourService.find().sort({ name: 1 }).lean()
@@ -36,19 +35,11 @@ export const listAllGroups = asyncHandler(async (_req, res) => {
     subcatsByCat.get(k).push(sc)
   }
 
-  const byGroup = new Map()
-  for (const g of groups) byGroup.set(String(g._id), [])
-  for (const c of cats) {
-    c.subcategories = subcatsByCat.get(String(c._id)) ?? []
-    const k = String(c.group)
-    if (byGroup.has(k)) byGroup.get(k).push(c)
-  }
-  
   return sendSuccess(res, {
     data: {
-      groups: groups.map((g) => ({
-        ...g,
-        categories: byGroup.get(String(g._id)) ?? [],
+      categories: cats.map((c) => ({
+        ...c,
+        subcategories: subcatsByCat.get(String(c._id)) ?? [],
       })),
     },
   })
@@ -122,17 +113,13 @@ export const patchGroup = asyncHandler(async (req, res) => {
 })
 
 export const createCategory = asyncHandler(async (req, res) => {
-  const { groupId, name, subtitle = '', sortOrder = 0, imageUrl } = req.body
-  const group = await LabourCategoryGroup.findById(groupId)
-  if (!group) {
-    return sendError(res, { message: 'Group not found', statusCode: HTTP_STATUS.NOT_FOUND, code: 'NOT_FOUND' })
-  }
+  const { name, subtitle = '', sortOrder = 0, imageUrl } = req.body
   const base = slugify(name)
-  let slug = `${group.slug}-${base}-${sortOrder}`
+  let slug = `${base}-${sortOrder}`
   let n = 0
   while (await LabourCategory.findOne({ slug })) {
     n += 1
-    slug = `${group.slug}-${base}-${sortOrder}-${n}`
+    slug = `${base}-${sortOrder}-${n}`
   }
   let image = ''
   if (imageUrl != null) {
@@ -148,7 +135,6 @@ export const createCategory = asyncHandler(async (req, res) => {
   }
 
   const c = await LabourCategory.create({
-    group: group._id,
     name: name.trim(),
     slug,
     subtitle,
@@ -172,7 +158,7 @@ export const patchCategory = asyncHandler(async (req, res) => {
   if (!c) {
     return sendError(res, { message: 'Category not found', statusCode: HTTP_STATUS.NOT_FOUND, code: 'NOT_FOUND' })
   }
-  const { name, subtitle, sortOrder, isActive, groupId, imageUrl } = req.body
+  const { name, subtitle, sortOrder, isActive, imageUrl } = req.body
   if (name != null) c.name = String(name).trim()
   if (subtitle != null) c.subtitle = String(subtitle)
   if (sortOrder != null) c.sortOrder = Number(sortOrder)
@@ -187,13 +173,6 @@ export const patchCategory = asyncHandler(async (req, res) => {
       })
     }
     c.imageUrl = normalized
-  }
-  if (groupId != null) {
-    const g = await LabourCategoryGroup.findById(groupId)
-    if (!g) {
-      return sendError(res, { message: 'Group not found', statusCode: HTTP_STATUS.NOT_FOUND, code: 'NOT_FOUND' })
-    }
-    c.group = g._id
   }
   await c.save()
   return sendSuccess(res, { message: 'Category updated', data: { category: c } })
@@ -204,7 +183,7 @@ export const putCategory = asyncHandler(async (req, res) => {
   if (!c) {
     return sendError(res, { message: 'Category not found', statusCode: HTTP_STATUS.NOT_FOUND, code: 'NOT_FOUND' })
   }
-  const { name, subtitle, sortOrder, isActive, groupId, imageUrl } = req.body
+  const { name, subtitle, sortOrder, isActive, imageUrl } = req.body
   if (name != null) c.name = String(name).trim()
   if (subtitle != null) c.subtitle = String(subtitle)
   if (sortOrder != null) c.sortOrder = Number(sortOrder)
@@ -220,19 +199,12 @@ export const putCategory = asyncHandler(async (req, res) => {
     }
     c.imageUrl = normalized
   }
-  if (groupId != null) {
-    const g = await LabourCategoryGroup.findById(groupId)
-    if (!g) {
-      return sendError(res, { message: 'Group not found', statusCode: HTTP_STATUS.NOT_FOUND, code: 'NOT_FOUND' })
-    }
-    c.group = g._id
-  }
   await c.save()
   return sendSuccess(res, { message: 'Category replaced/updated', data: { category: c } })
 })
 
 export const createSubcategory = asyncHandler(async (req, res) => {
-  const { categoryId, name, description = '', basePrice, estimatedDurationMins = 60, iconUrl } = req.body
+  const { categoryId, name, description = '', iconUrl } = req.body
   const cat = await LabourCategory.findById(categoryId)
   if (!cat) {
     return sendError(res, { message: 'Category not found', statusCode: HTTP_STATUS.NOT_FOUND, code: 'NOT_FOUND' })
@@ -257,12 +229,27 @@ export const createSubcategory = asyncHandler(async (req, res) => {
     categoryId: cat._id,
     name: name.trim(),
     description,
-    basePrice: Number(basePrice),
-    estimatedDurationMins: Number(estimatedDurationMins),
+
     iconUrl: image,
     isActive: true,
   })
   return sendSuccess(res, { message: 'Subcategory created', statusCode: HTTP_STATUS.CREATED, data: { subcategory: sc } })
+})
+
+export const getSubcategory = asyncHandler(async (req, res) => {
+  const sc = await LabourSubcategory.findById(req.params.id)
+  if (!sc) {
+    return sendError(res, { message: 'Subcategory not found', statusCode: HTTP_STATUS.NOT_FOUND, code: 'NOT_FOUND' })
+  }
+  const cat = await LabourCategory.findById(sc.categoryId)
+  return sendSuccess(res, {
+    data: {
+      subcategory: {
+        ...sc.toJSON(),
+        categoryName: cat?.name || 'Unknown',
+      },
+    },
+  })
 })
 
 export const patchSubcategory = asyncHandler(async (req, res) => {
@@ -270,11 +257,10 @@ export const patchSubcategory = asyncHandler(async (req, res) => {
   if (!sc) {
     return sendError(res, { message: 'Subcategory not found', statusCode: HTTP_STATUS.NOT_FOUND, code: 'NOT_FOUND' })
   }
-  const { name, description, basePrice, estimatedDurationMins, isActive, iconUrl } = req.body
+  const { name, description, isActive, iconUrl } = req.body
   if (name != null) sc.name = String(name).trim()
   if (description != null) sc.description = String(description)
-  if (basePrice != null) sc.basePrice = Number(basePrice)
-  if (estimatedDurationMins != null) sc.estimatedDurationMins = Number(estimatedDurationMins)
+
   if (isActive != null) sc.isActive = Boolean(isActive)
   if (iconUrl !== undefined) {
     const normalized = normalizeImageUrl(iconUrl)
@@ -323,6 +309,22 @@ export const createService = asyncHandler(async (req, res) => {
     isActive: true,
   })
   return sendSuccess(res, { message: 'Service created', statusCode: HTTP_STATUS.CREATED, data: { service: s } })
+})
+
+export const getService = asyncHandler(async (req, res) => {
+  const s = await LabourService.findById(req.params.id)
+  if (!s) {
+    return sendError(res, { message: 'Service not found', statusCode: HTTP_STATUS.NOT_FOUND, code: 'NOT_FOUND' })
+  }
+  const subcat = await LabourSubcategory.findById(s.subcategoryId)
+  return sendSuccess(res, {
+    data: {
+      service: {
+        ...s.toJSON(),
+        subcategoryName: subcat?.name || 'Unknown',
+      },
+    },
+  })
 })
 
 export const patchService = asyncHandler(async (req, res) => {
