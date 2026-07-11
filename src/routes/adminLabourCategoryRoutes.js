@@ -84,4 +84,51 @@ router.patch(
   admin.patchSubcategory,
 )
 
+router.post(
+  '/labour-services',
+  [
+    body('subcategoryId').isMongoId().withMessage('Valid subcategory required'),
+    body('name').trim().notEmpty().withMessage('Name required'),
+    body('description').optional().trim(),
+    body('basePrice').optional().isNumeric().withMessage('Base price must be a number'),
+    body('estimatedDurationMins').optional().isInt({ min: 1 }),
+    body('iconUrl').optional().isString(),
+  ],
+  validateRequest,
+  admin.createService,
+)
+
+router.patch(
+  '/labour-services/:id',
+  [
+    param('id').isMongoId().withMessage('Invalid id'),
+    body('iconUrl').optional().isString(),
+  ],
+  validateRequest,
+  admin.patchService,
+)
+
+router.delete(
+  '/labour-categories/:id',
+  [param('id').isMongoId().withMessage('Invalid id')],
+  validateRequest,
+  admin.deleteCategory,
+)
+
+router.delete(
+  '/labour-subcategories/:id',
+  [param('id').isMongoId().withMessage('Invalid id')],
+  validateRequest,
+  admin.deleteSubcategory,
+)
+
+router.delete(
+  '/labour-services/:id',
+  [param('id').isMongoId().withMessage('Invalid id')],
+  validateRequest,
+  admin.deleteService,
+)
+
+router.get('/labour-services/search', admin.searchServices)
+
 export default router

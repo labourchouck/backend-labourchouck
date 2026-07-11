@@ -18,6 +18,12 @@ import reviewRoutes from './reviewRoutes.js'
 
 import adminZoneRoutes from './adminZoneRoutes.js'
 import locationRoutes from './locationRoutes.js'
+import adminWalletRoutes from './adminWalletRoutes.js'
+import complaintRoutes from './complaintRoutes.js'
+import adminComplaintRoutes from './adminComplaintRoutes.js'
+import adminDashboardRoutes from './adminDashboardRoutes.js'
+import bannerRoutes from './bannerRoutes.js'
+import adminBannerRoutes from './adminBannerRoutes.js'
 
 const router = Router()
 
@@ -34,9 +40,16 @@ router.use('/wallets', walletRoutes)
 router.use('/broadcasts', broadcastRoutes)
 router.use('/payments', paymentRoutes)
 router.use('/reviews', reviewRoutes)
+router.use('/complaints', complaintRoutes)
+router.use('/banners', bannerRoutes)
+
 router.use('/admin/settings', systemSettingRoutes)
 router.use('/admin/zones', adminZoneRoutes)
 router.use('/admin/workforce', adminWorkforceRoutes)
+router.use('/admin/wallets', adminWalletRoutes)
+router.use('/admin/complaints', adminComplaintRoutes)
+router.use('/admin/dashboard', adminDashboardRoutes)
+router.use('/admin/banners', adminBannerRoutes)
 router.use('/admin', adminLabourCategoryRoutes)
 router.use('/labour/location', locationRoutes)
 

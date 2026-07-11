@@ -1,6 +1,7 @@
 import { LabourCategoryGroup } from '../models/LabourCategoryGroup.js'
 import { LabourCategory } from '../models/LabourCategory.js'
 import { LabourSubcategory } from '../models/LabourSubcategory.js'
+import { LabourService } from '../models/LabourService.js'
 import { LABOUR_GROUP_KIND } from '../models/LabourCategoryGroup.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { HTTP_STATUS, sendError, sendSuccess } from '../utils/apiResponse.js'
@@ -18,9 +19,18 @@ export const listAllGroups = asyncHandler(async (_req, res) => {
   const groups = await LabourCategoryGroup.find().sort({ sortOrder: 1, name: 1 }).lean()
   const cats = await LabourCategory.find().sort({ sortOrder: 1, name: 1 }).lean()
   const subcats = await LabourSubcategory.find().sort({ name: 1 }).lean()
+  const services = await LabourService.find().sort({ name: 1 }).lean()
+
+  const servicesBySubcat = new Map()
+  for (const s of services) {
+    const k = String(s.subcategoryId)
+    if (!servicesBySubcat.has(k)) servicesBySubcat.set(k, [])
+    servicesBySubcat.get(k).push(s)
+  }
 
   const subcatsByCat = new Map()
   for (const sc of subcats) {
+    sc.services = servicesBySubcat.get(String(sc._id)) ?? []
     const k = String(sc.categoryId)
     if (!subcatsByCat.has(k)) subcatsByCat.set(k, [])
     subcatsByCat.get(k).push(sc)
@@ -239,4 +249,117 @@ export const patchSubcategory = asyncHandler(async (req, res) => {
   }
   await sc.save()
   return sendSuccess(res, { message: 'Subcategory updated', data: { subcategory: sc } })
+})
+
+export const createService = asyncHandler(async (req, res) => {
+  const { subcategoryId, name, description = '', basePrice = 0, estimatedDurationMins = 60, iconUrl } = req.body
+  const subcat = await LabourSubcategory.findById(subcategoryId)
+  if (!subcat) {
+    return sendError(res, { message: 'Subcategory not found', statusCode: HTTP_STATUS.NOT_FOUND, code: 'NOT_FOUND' })
+  }
+  const exists = await LabourService.findOne({ subcategoryId: subcat._id, name: name.trim() })
+  if (exists) {
+    return sendError(res, { message: 'Service name already exists in this subcategory', statusCode: HTTP_STATUS.CONFLICT, code: 'DUPLICATE' })
+  }
+  let image = ''
+  if (iconUrl != null) {
+    const normalized = normalizeImageUrl(iconUrl)
+    if (normalized === null) {
+      return sendError(res, {
+        message: 'iconUrl must be empty or a valid https:// URL',
+        statusCode: HTTP_STATUS.BAD_REQUEST,
+        code: 'VALIDATION',
+      })
+    }
+    image = normalized
+  }
+  const s = await LabourService.create({
+    subcategoryId: subcat._id,
+    name: name.trim(),
+    description,
+    basePrice: Number(basePrice),
+    estimatedDurationMins: Number(estimatedDurationMins),
+    iconUrl: image,
+    isActive: true,
+  })
+  return sendSuccess(res, { message: 'Service created', statusCode: HTTP_STATUS.CREATED, data: { service: s } })
+})
+
+export const patchService = asyncHandler(async (req, res) => {
+  const s = await LabourService.findById(req.params.id)
+  if (!s) {
+    return sendError(res, { message: 'Service not found', statusCode: HTTP_STATUS.NOT_FOUND, code: 'NOT_FOUND' })
+  }
+  const { name, description, basePrice, estimatedDurationMins, isActive, iconUrl } = req.body
+  if (name != null) s.name = String(name).trim()
+  if (description != null) s.description = String(description)
+  if (basePrice != null) s.basePrice = Number(basePrice)
+  if (estimatedDurationMins != null) s.estimatedDurationMins = Number(estimatedDurationMins)
+  if (isActive != null) s.isActive = Boolean(isActive)
+  if (iconUrl !== undefined) {
+    const normalized = normalizeImageUrl(iconUrl)
+    if (normalized === null) {
+      return sendError(res, {
+        message: 'iconUrl must be empty or a valid https:// URL',
+        statusCode: HTTP_STATUS.BAD_REQUEST,
+        code: 'VALIDATION',
+      })
+    }
+    s.iconUrl = normalized
+  }
+  await s.save()
+  return sendSuccess(res, { message: 'Service updated', data: { service: s } })
+})
+
+export const deleteCategory = asyncHandler(async (req, res) => {
+  const c = await LabourCategory.findByIdAndDelete(req.params.id)
+  if (!c) {
+    return sendError(res, { message: 'Category not found', statusCode: HTTP_STATUS.NOT_FOUND, code: 'NOT_FOUND' })
+  }
+  return sendSuccess(res, { message: 'Category deleted successfully' })
+})
+
+export const deleteSubcategory = asyncHandler(async (req, res) => {
+  const sc = await LabourSubcategory.findByIdAndDelete(req.params.id)
+  if (!sc) {
+    return sendError(res, { message: 'Subcategory not found', statusCode: HTTP_STATUS.NOT_FOUND, code: 'NOT_FOUND' })
+  }
+  return sendSuccess(res, { message: 'Subcategory deleted successfully' })
+})
+
+export const deleteService = asyncHandler(async (req, res) => {
+  const s = await LabourService.findByIdAndDelete(req.params.id)
+  if (!s) {
+    return sendError(res, { message: 'Service not found', statusCode: HTTP_STATUS.NOT_FOUND, code: 'NOT_FOUND' })
+  }
+  return sendSuccess(res, { message: 'Service deleted successfully' })
+})
+
+export const searchServices = asyncHandler(async (req, res) => {
+  const { q = '', page = 1, limit = 10 } = req.query
+  const query = {
+    name: { $regex: q, $options: 'i' }
+  }
+  const skip = (Number(page) - 1) * Number(limit)
+  
+  const services = await LabourService.find(query)
+    .populate('subcategoryId', 'name categoryId')
+    .sort({ name: 1 })
+    .skip(skip)
+    .limit(Number(limit))
+    .lean()
+
+  const total = await LabourService.countDocuments(query)
+
+  return sendSuccess(res, {
+    data: {
+      services,
+      pagination: {
+        total,
+        page: Number(page),
+        limit: Number(limit),
+        pages: Math.ceil(total / Number(limit))
+      }
+    }
+  })
 })

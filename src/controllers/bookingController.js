@@ -1,15 +1,16 @@
 import { Booking } from '../models/Booking.js'
 import { LabourSubcategory } from '../models/LabourSubcategory.js'
+import { LabourService } from '../models/LabourService.js'
 import { SystemSetting } from '../models/SystemSetting.js'
 import { Wallet } from '../models/Wallet.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { HTTP_STATUS, sendError, sendSuccess } from '../utils/apiResponse.js'
 
 export const calculateBill = asyncHandler(async (req, res) => {
-  const { subcategoryId, durationDays = 1 } = req.body
-  const subcategory = await LabourSubcategory.findById(subcategoryId)
-  if (!subcategory) {
-    return sendError(res, { message: 'Subcategory not found', statusCode: HTTP_STATUS.NOT_FOUND })
+  const { serviceId, durationDays = 1 } = req.body
+  const service = await LabourService.findById(serviceId)
+  if (!service) {
+    return sendError(res, { message: 'Service not found', statusCode: HTTP_STATUS.NOT_FOUND })
   }
 
   let settings = await SystemSetting.findOne({ configKey: 'master_config' })
@@ -17,7 +18,7 @@ export const calculateBill = asyncHandler(async (req, res) => {
     settings = await SystemSetting.create({ configKey: 'master_config' })
   }
 
-  const basePrice = subcategory.basePrice * durationDays
+  const basePrice = service.basePrice * durationDays
   let platformFee = 0
 
   if (settings.platformFee.isActive) {
@@ -56,9 +57,9 @@ export const calculateBill = asyncHandler(async (req, res) => {
 })
 
 export const createBooking = asyncHandler(async (req, res) => {
-  const { subcategoryId, type, scheduledAt, timeSlot, locationText, lat, lng, paymentMethod, notes, durationKind = 'full_day', durationDays = 1, imageNames = [] } = req.body
+  const { serviceId, type, scheduledAt, timeSlot, locationText, lat, lng, paymentMethod, notes, durationKind = 'full_day', durationDays = 1, imageNames = [] } = req.body
 
-  if (!subcategoryId || !type || !locationText || !paymentMethod) {
+  if (!serviceId || !type || !locationText || !paymentMethod) {
     return sendError(res, { message: 'Missing required fields', statusCode: HTTP_STATUS.BAD_REQUEST })
   }
 
@@ -70,14 +71,14 @@ export const createBooking = asyncHandler(async (req, res) => {
     return sendError(res, { message: 'scheduledAt date and timeSlot are required for SCHEDULED bookings', statusCode: HTTP_STATUS.BAD_REQUEST })
   }
 
-  const subcategory = await LabourSubcategory.findById(subcategoryId)
-  if (!subcategory || !subcategory.isActive) {
-    return sendError(res, { message: 'Valid and active Subcategory required', statusCode: HTTP_STATUS.BAD_REQUEST })
+  const service = await LabourService.findById(serviceId)
+  if (!service || !service.isActive) {
+    return sendError(res, { message: 'Valid and active Service required', statusCode: HTTP_STATUS.BAD_REQUEST })
   }
 
   let settings = await SystemSetting.findOne({ configKey: 'master_config' })
   
-  const basePrice = subcategory.basePrice
+  const basePrice = service.basePrice
   let platformFee = 0
   if (settings?.platformFee?.isActive) {
     platformFee = settings.platformFee.type === 'fixed' 
@@ -105,7 +106,8 @@ export const createBooking = asyncHandler(async (req, res) => {
 
   const booking = await Booking.create({
     userId: req.user._id,
-    subcategoryId,
+    subcategoryId: service.subcategoryId,
+    serviceId: service._id,
     type,
     scheduledAt: type === 'SCHEDULED' ? new Date(scheduledAt) : undefined,
     timeSlot: type === 'SCHEDULED' ? timeSlot : undefined,
@@ -144,6 +146,7 @@ export const createBooking = asyncHandler(async (req, res) => {
 export const getBookingStatus = asyncHandler(async (req, res) => {
   const booking = await Booking.findById(req.params.id)
     .populate('subcategoryId')
+    .populate('serviceId')
     .populate('laborId', 'name phone profilePic')
     .populate('userId', 'name phone')
     .lean()
@@ -177,6 +180,7 @@ export const getMyBookings = asyncHandler(async (req, res) => {
 
   const bookings = await Booking.find(query)
     .populate('subcategoryId')
+    .populate('serviceId')
     .populate('userId', 'name phone')
     .populate('laborId', 'name phone profilePic')
     .sort({ createdAt: -1 })
