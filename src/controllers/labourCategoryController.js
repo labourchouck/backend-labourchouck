@@ -5,12 +5,7 @@ import { sendSuccess } from '../utils/apiResponse.js'
 
 /** GET /labour-categories/grouped — active catalogue for worker UI & admin */
 export const listGrouped = asyncHandler(async (_req, res) => {
-  const groups = await LabourCategoryGroup.find({ isActive: true }).sort({ sortOrder: 1, name: 1 }).lean()
-  const groupIds = groups.map((g) => g._id)
-  const categories = await LabourCategory.find({
-    isActive: true,
-    group: { $in: groupIds },
-  })
+  const categories = await LabourCategory.find({ isActive: true })
     .sort({ sortOrder: 1, name: 1 })
     .lean()
 
@@ -29,38 +24,28 @@ export const listGrouped = asyncHandler(async (_req, res) => {
     sc.services = servicesBySubcat.get(String(sc._id)) ?? []
     const k = String(sc.categoryId)
     if (!subcatsByCat.has(k)) subcatsByCat.set(k, [])
-    subcatsByCat.get(k).push(sc)
-  }
-
-  const byGroup = new Map()
-  for (const g of groups) {
-    byGroup.set(String(g._id), [])
-  }
-  for (const c of categories) {
-    const key = String(c.group)
-    if (!byGroup.has(key)) continue
-    byGroup.get(key).push({
-      _id: c._id,
-      name: c.name,
-      slug: c.slug,
-      subtitle: c.subtitle,
-      imageUrl: c.imageUrl || '',
-      sortOrder: c.sortOrder,
-      subcategories: subcatsByCat.get(String(c._id)) || []
+    subcatsByCat.get(k).push({
+      _id: sc._id,
+      name: sc.name,
+      slug: sc.slug || sc.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+      subtitle: sc.description || '',
+      imageUrl: sc.iconUrl || '',
+      sortOrder: sc.sortOrder || 0,
+      services: sc.services
     })
   }
 
   const data = {
-    groups: groups.map((g) => ({
-      _id: g._id,
-      name: g.name,
-      slug: g.slug,
-      description: g.description,
-      helperText: g.helperText,
-      kind: g.kind,
-      sortOrder: g.sortOrder,
-      imageUrl: g.imageUrl || '',
-      categories: byGroup.get(String(g._id)) ?? [],
+    groups: categories.map((c) => ({
+      _id: c._id,
+      name: c.name,
+      slug: c.slug,
+      description: c.subtitle || '',
+      helperText: '',
+      kind: LABOUR_GROUP_KIND.TRADE, // Mock as trade so frontend picks it up
+      sortOrder: c.sortOrder,
+      imageUrl: c.imageUrl || '',
+      categories: subcatsByCat.get(String(c._id)) ?? [],
     })),
     meta: {
       profileKind: LABOUR_GROUP_KIND.PROFILE,
