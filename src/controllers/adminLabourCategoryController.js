@@ -310,3 +310,56 @@ export const patchService = asyncHandler(async (req, res) => {
   await s.save()
   return sendSuccess(res, { message: 'Service updated', data: { service: s } })
 })
+
+export const deleteCategory = asyncHandler(async (req, res) => {
+  const c = await LabourCategory.findByIdAndDelete(req.params.id)
+  if (!c) {
+    return sendError(res, { message: 'Category not found', statusCode: HTTP_STATUS.NOT_FOUND, code: 'NOT_FOUND' })
+  }
+  return sendSuccess(res, { message: 'Category deleted successfully' })
+})
+
+export const deleteSubcategory = asyncHandler(async (req, res) => {
+  const sc = await LabourSubcategory.findByIdAndDelete(req.params.id)
+  if (!sc) {
+    return sendError(res, { message: 'Subcategory not found', statusCode: HTTP_STATUS.NOT_FOUND, code: 'NOT_FOUND' })
+  }
+  return sendSuccess(res, { message: 'Subcategory deleted successfully' })
+})
+
+export const deleteService = asyncHandler(async (req, res) => {
+  const s = await LabourService.findByIdAndDelete(req.params.id)
+  if (!s) {
+    return sendError(res, { message: 'Service not found', statusCode: HTTP_STATUS.NOT_FOUND, code: 'NOT_FOUND' })
+  }
+  return sendSuccess(res, { message: 'Service deleted successfully' })
+})
+
+export const searchServices = asyncHandler(async (req, res) => {
+  const { q = '', page = 1, limit = 10 } = req.query
+  const query = {
+    name: { $regex: q, $options: 'i' }
+  }
+  const skip = (Number(page) - 1) * Number(limit)
+  
+  const services = await LabourService.find(query)
+    .populate('subcategoryId', 'name categoryId')
+    .sort({ name: 1 })
+    .skip(skip)
+    .limit(Number(limit))
+    .lean()
+
+  const total = await LabourService.countDocuments(query)
+
+  return sendSuccess(res, {
+    data: {
+      services,
+      pagination: {
+        total,
+        page: Number(page),
+        limit: Number(limit),
+        pages: Math.ceil(total / Number(limit))
+      }
+    }
+  })
+})

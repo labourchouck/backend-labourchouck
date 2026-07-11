@@ -108,4 +108,27 @@ router.patch(
   admin.patchService,
 )
 
+router.delete(
+  '/labour-categories/:id',
+  [param('id').isMongoId().withMessage('Invalid id')],
+  validateRequest,
+  admin.deleteCategory,
+)
+
+router.delete(
+  '/labour-subcategories/:id',
+  [param('id').isMongoId().withMessage('Invalid id')],
+  validateRequest,
+  admin.deleteSubcategory,
+)
+
+router.delete(
+  '/labour-services/:id',
+  [param('id').isMongoId().withMessage('Invalid id')],
+  validateRequest,
+  admin.deleteService,
+)
+
+router.get('/labour-services/search', admin.searchServices)
+
 export default router

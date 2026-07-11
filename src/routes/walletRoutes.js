@@ -22,4 +22,16 @@ router.post(
   wallet.clearAdminDues,
 )
 
+router.post(
+  '/withdraw',
+  restrictTo(USER_ROLES.LABOUR, USER_ROLES.CONTRACTOR),
+  wallet.requestWithdrawal,
+)
+
+router.get(
+  '/withdrawals',
+  restrictTo(USER_ROLES.LABOUR, USER_ROLES.CONTRACTOR),
+  wallet.getMyWithdrawals,
+)
+
 export default router

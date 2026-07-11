@@ -6,7 +6,6 @@ const labourServiceSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'LabourSubcategory',
       required: true,
-      index: true,
     },
     name: {
       type: String,
