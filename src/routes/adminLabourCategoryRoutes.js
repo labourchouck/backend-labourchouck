@@ -10,7 +10,7 @@ const router = Router()
 
 router.use(protect, restrictTo(USER_ROLES.ADMIN))
 
-router.get('/labour-category-groups', admin.listAllGroups)
+router.get('/labour-categories/tree', admin.listAllCategories)
 
 router.post(
   '/labour-category-groups',
@@ -40,7 +40,6 @@ router.patch(
 router.post(
   '/labour-categories',
   [
-    body('groupId').isMongoId().withMessage('Valid group required'),
     body('name').trim().notEmpty().withMessage('Name required'),
     body('subtitle').optional().trim(),
     body('imageUrl').optional().isString(),
@@ -83,12 +82,18 @@ router.post(
     body('categoryId').isMongoId().withMessage('Valid category required'),
     body('name').trim().notEmpty().withMessage('Name required'),
     body('description').optional().trim(),
-    body('basePrice').isNumeric().withMessage('Base price is required and must be a number'),
-    body('estimatedDurationMins').optional().isInt({ min: 1 }),
+
     body('iconUrl').optional().isString(),
   ],
   validateRequest,
   admin.createSubcategory,
+)
+
+router.get(
+  '/labour-subcategories/:id',
+  [param('id').isMongoId().withMessage('Invalid id')],
+  validateRequest,
+  admin.getSubcategory,
 )
 
 router.patch(
@@ -113,6 +118,13 @@ router.post(
   ],
   validateRequest,
   admin.createService,
+)
+
+router.get(
+  '/labour-services/:id',
+  [param('id').isMongoId().withMessage('Invalid id')],
+  validateRequest,
+  admin.getService,
 )
 
 router.patch(

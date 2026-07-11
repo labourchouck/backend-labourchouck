@@ -18,15 +18,7 @@ const labourSubcategorySchema = new mongoose.Schema(
       trim: true,
       maxlength: 1000,
     },
-    basePrice: {
-      type: Number,
-      required: true,
-      min: 0,
-    },
-    estimatedDurationMins: {
-      type: Number,
-      default: 60,
-    },
+
     isActive: {
       type: Boolean,
       default: true,
