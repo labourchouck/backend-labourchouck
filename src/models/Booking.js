@@ -18,6 +18,11 @@ const bookingSchema = new mongoose.Schema(
       ref: 'LabourSubcategory',
       required: true,
     },
+    serviceId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'LabourService',
+      required: true,
+    },
     type: {
       type: String,
       enum: ['INSTANT', 'SCHEDULED'],
