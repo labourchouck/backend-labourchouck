@@ -7,6 +7,19 @@ import * as settings from '../controllers/systemSettingController.js'
 
 const router = Router()
 
+// Public route — returns only the time slots (no auth required)
+router.get('/public', async (req, res) => {
+  try {
+    const { SystemSetting } = await import('../models/SystemSetting.js')
+    const { sendSuccess } = await import('../utils/apiResponse.js')
+    let settings = await SystemSetting.findOne({ configKey: 'master_config' })
+    const timeSlots = settings?.timeSlots || ['08:00 AM', '10:00 AM', '12:00 PM', '02:00 PM', '04:00 PM', '06:00 PM']
+    return sendSuccess(res, { data: { timeSlots } })
+  } catch (e) {
+    res.status(500).json({ success: false, message: 'Could not load time slots' })
+  }
+})
+
 // Only Admins can manage System Settings
 router.use(protect, restrictTo(USER_ROLES.ADMIN))
 
@@ -59,6 +72,16 @@ router.patch(
   ],
   validateRequest,
   settings.updateCancellationPenalty,
+)
+
+router.patch(
+  '/time-slots',
+  [
+    body('timeSlots').isArray({ min: 1 }).withMessage('timeSlots must be a non-empty array'),
+    body('timeSlots.*').isString().trim().notEmpty().withMessage('Each time slot must be a non-empty string'),
+  ],
+  validateRequest,
+  settings.updateTimeSlots,
 )
 
 export default router

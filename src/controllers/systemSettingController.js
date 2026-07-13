@@ -68,3 +68,16 @@ export const updateCancellationPenalty = asyncHandler(async (req, res) => {
   await settings.save()
   return sendSuccess(res, { message: 'Cancellation penalty updated', data: { settings } })
 })
+
+export const updateTimeSlots = asyncHandler(async (req, res) => {
+  const { timeSlots } = req.body
+  if (!Array.isArray(timeSlots)) {
+    return sendError(res, { message: 'timeSlots must be an array', statusCode: HTTP_STATUS.BAD_REQUEST })
+  }
+  let settings = await SystemSetting.findOne({ configKey: 'master_config' })
+  if (!settings) settings = new SystemSetting({ configKey: 'master_config' })
+  
+  settings.timeSlots = timeSlots
+  await settings.save()
+  return sendSuccess(res, { message: 'Time slots updated', data: { settings } })
+})

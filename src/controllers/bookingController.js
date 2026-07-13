@@ -140,6 +140,17 @@ export const createBooking = asyncHandler(async (req, res) => {
     startBroadcastCycle(booking._id).catch(err => console.error('Broadcast Error:', err))
   })
 
+  // Save the address for future use if requested
+  if (req.body.saveAddress) {
+    import('../models/User.js').then(({ User }) => {
+      User.findByIdAndUpdate(req.user._id, {
+        'savedAddress.text': locationText,
+        'savedAddress.lat': lat,
+        'savedAddress.lng': lng
+      }).catch(err => console.error('Update savedAddress error:', err))
+    })
+  }
+
   return sendSuccess(res, { message: 'Booking created successfully', statusCode: HTTP_STATUS.CREATED, data: { booking } })
 })
 

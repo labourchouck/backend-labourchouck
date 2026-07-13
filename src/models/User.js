@@ -148,6 +148,11 @@ const userSchema = new mongoose.Schema(
     isActive: { type: Boolean, default: true },
     isPhoneVerified: { type: Boolean, default: false },
     lastLoginAt: Date,
+    savedAddress: {
+      text: { type: String, trim: true, maxlength: 500 },
+      lat: Number,
+      lng: Number
+    },
     /** When labour is onboarded under a vendor/contractor */
     vendorId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', index: true },
     corporateProfile: corporateProfileSchema,
