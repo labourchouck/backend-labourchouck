@@ -5,7 +5,7 @@ import { SystemSetting } from '../models/SystemSetting.js'
 import { checkWalletEligibility } from '../controllers/walletController.js'
 import { getRoadDistances } from '../utils/googleMapsDistance.js'
 
-export const BROADCAST_TIMEOUT_MS = 60000 // 60 seconds flash broadcast timeout
+export const BROADCAST_TIMEOUT_MS = 300000 // 5 minutes flash broadcast timeout
 
 /**
  * Starts the flash broadcast for a new booking based on a radius zone.
@@ -50,14 +50,15 @@ export async function startBroadcastCycle(bookingId) {
   const potentialLaborers = await User.find({
     role: { $in: ['labour', 'contractor'] },
     'labourProfile.availabilityStatus': 'available',
-    'labourProfile.subcategoryIds': booking.subcategoryId,
     'labourProfile.currentLatitude': { $gte: bookingLat - bufferLatDiff, $lte: bookingLat + bufferLatDiff },
     'labourProfile.currentLongitude': { $gte: bookingLng - bufferLngDiff, $lte: bookingLng + bufferLngDiff },
-    'labourProfile.minAcceptedPrice': { $lte: booking.laborShare },
-    $or: [
-      { 'labourProfile.maxAcceptedPrice': { $gte: booking.laborShare } },
-      { 'labourProfile.maxAcceptedPrice': null },
-    ]
+    'labourProfile.servicePricing': {
+      $elemMatch: {
+        subcategoryId: booking.subcategoryId,
+        minPrice: { $lte: booking.laborShare },
+        maxPrice: { $gte: booking.laborShare }
+      }
+    }
   }).lean()
 
   if (potentialLaborers.length === 0) {

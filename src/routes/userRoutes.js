@@ -42,7 +42,12 @@ router.patch(
 
 router.patch(
   '/me/labour-categories',
-  [body('categoryIds').isArray({ min: 1 }).withMessage('Select at least one category'), body('categoryIds.*').isMongoId()],
+  [
+    body('services').isArray({ min: 1 }).withMessage('Select at least one category'),
+    body('services.*.subcategoryId').isMongoId().withMessage('Invalid subcategory ID'),
+    body('services.*.minPrice').optional().isNumeric(),
+    body('services.*.maxPrice').optional().isNumeric(),
+  ],
   validateRequest,
   user.updateLabourCategories,
 )

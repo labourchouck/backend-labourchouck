@@ -25,10 +25,6 @@ export const initSocket = (httpServer) => {
       if (!user) return next(new Error('Authentication error: User not found'))
       
       socket.user = user
-      
-      // Join a room specific to this user ID so we can emit directly to them
-      socket.join(user._id.toString())
-      
       next()
     } catch (error) {
       next(new Error('Authentication error: Invalid token'))
@@ -37,6 +33,9 @@ export const initSocket = (httpServer) => {
 
   io.on('connection', (socket) => {
     console.log(`Socket connected: ${socket.id} (User: ${socket.user._id})`)
+    
+    // Join a room specific to this user ID so we can emit directly to them
+    socket.join(socket.user._id.toString())
 
     socket.on('disconnect', () => {
       console.log(`Socket disconnected: ${socket.id}`)

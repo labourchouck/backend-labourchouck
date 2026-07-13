@@ -113,18 +113,34 @@ export const updateLabourCategories = asyncHandler(async (req, res) => {
     })
   }
 
-  const { categoryIds } = req.body // Frontend still sends this key
-  const unique = [...new Set(categoryIds.map((id) => String(id)))]
+  const { services } = req.body
+  const uniqueServices = []
+  const uniqueSubcategoryIds = []
+  
+  if (Array.isArray(services)) {
+    const seen = new Set()
+    for (const svc of services) {
+      if (svc.subcategoryId && !seen.has(String(svc.subcategoryId))) {
+        seen.add(String(svc.subcategoryId))
+        uniqueSubcategoryIds.push(String(svc.subcategoryId))
+        uniqueServices.push({
+          subcategoryId: String(svc.subcategoryId),
+          minPrice: Number(svc.minPrice) || 0,
+          maxPrice: Number(svc.maxPrice) || 0,
+        })
+      }
+    }
+  }
 
   // Dynamically import LabourSubcategory
   const { LabourSubcategory } = await import('../models/LabourSubcategory.js')
   
   const subcategories = await LabourSubcategory.find({
-    _id: { $in: unique },
+    _id: { $in: uniqueSubcategoryIds },
     isActive: true,
   }).populate('categoryId')
 
-  if (subcategories.length !== unique.length) {
+  if (subcategories.length !== uniqueSubcategoryIds.length) {
     return sendError(res, {
       message: 'One or more categories are invalid or inactive',
       statusCode: HTTP_STATUS.BAD_REQUEST,
@@ -145,8 +161,9 @@ export const updateLabourCategories = asyncHandler(async (req, res) => {
   const catIds = [...new Set(subcategories.map(s => String(s.categoryId?._id || s.categoryId)))]
 
   req.user.labourProfile = req.user.labourProfile || {}
-  req.user.labourProfile.subcategoryIds = unique
+  req.user.labourProfile.subcategoryIds = uniqueSubcategoryIds
   req.user.labourProfile.categoryIds = catIds
+  req.user.labourProfile.servicePricing = uniqueServices
   await req.user.save()
   await populateLabourCategories(req.user)
 
