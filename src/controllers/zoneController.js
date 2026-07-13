@@ -85,7 +85,7 @@ export const updateLabourLocation = asyncHandler(async (req, res) => {
   }
 
   const user = await User.findById(req.user._id)
-  if (!user || !['LABOUR', 'INDIVIDUAL'].includes(user.role)) {
+  if (!user || !['labour', 'contractor'].includes(String(user.role).toLowerCase())) {
     return sendError(res, { message: 'Unauthorized', statusCode: HTTP_STATUS.FORBIDDEN })
   }
 
@@ -110,7 +110,7 @@ export const updateLabourStatus = asyncHandler(async (req, res) => {
   }
 
   const user = await User.findById(req.user._id)
-  if (!user || !['LABOUR', 'INDIVIDUAL'].includes(user.role)) {
+  if (!user || !['labour', 'contractor'].includes(String(user.role).toLowerCase())) {
     return sendError(res, { message: 'Unauthorized', statusCode: HTTP_STATUS.FORBIDDEN })
   }
 

@@ -20,7 +20,7 @@ export const initSocket = (httpServer) => {
       if (!token) return next(new Error('Authentication error: Token missing'))
 
       const decoded = jwt.verify(token, process.env.JWT_SECRET)
-      const user = await User.findById(decoded.id)
+      const user = await User.findById(decoded.sub)
       
       if (!user) return next(new Error('Authentication error: User not found'))
       

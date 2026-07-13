@@ -4,6 +4,7 @@ const labourCategorySchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true },
     slug: { type: String, required: true, unique: true, trim: true, lowercase: true },
+    group: { type: mongoose.Schema.Types.ObjectId, ref: 'LabourCategoryGroup' },
     /** Short line for cards (optional) */
     subtitle: { type: String, trim: true, default: '' },
     /** Cloudinary or other HTTPS URL for homeowner home tiles */

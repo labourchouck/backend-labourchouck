@@ -39,6 +39,7 @@ export const protect = asyncHandler(async (req, res, next) => {
 })
 
 export function restrictTo(...roles) {
+  const lowerRoles = roles.map(r => String(r).toLowerCase())
   return (req, res, next) => {
     if (!req.user) {
       return sendError(res, {
@@ -47,7 +48,8 @@ export function restrictTo(...roles) {
         code: 'UNAUTHORIZED',
       })
     }
-    if (!roles.includes(req.user.role)) {
+    
+    if (!lowerRoles.includes(String(req.user.role).toLowerCase())) {
       return sendError(res, {
         message: 'You do not have permission for this action',
         statusCode: HTTP_STATUS.FORBIDDEN,

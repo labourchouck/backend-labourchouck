@@ -48,7 +48,7 @@ export async function startBroadcastCycle(bookingId) {
   const bufferLngDiff = lngDiff * 1.2
 
   const potentialLaborers = await User.find({
-    role: { $in: ['LABOUR', 'INDIVIDUAL'] },
+    role: { $in: ['labour', 'contractor'] },
     'labourProfile.availabilityStatus': 'available',
     'labourProfile.subcategoryIds': booking.subcategoryId,
     'labourProfile.currentLatitude': { $gte: bookingLat - bufferLatDiff, $lte: bookingLat + bufferLatDiff },

@@ -156,7 +156,7 @@ export const getBookingStatus = asyncHandler(async (req, res) => {
   }
 
   // Hide OTPs from labourer
-  if (['LABOUR', 'CONTRACTOR'].includes(req.user.role)) {
+  if (['labour', 'contractor'].includes(req.user.role)) {
     delete booking.startOtp
     delete booking.completionOtp
   }
@@ -167,12 +167,10 @@ export const getBookingStatus = asyncHandler(async (req, res) => {
 export const getMyBookings = asyncHandler(async (req, res) => {
   const { role, _id } = req.user
   
-  // If user is a customer, fetch bookings they created
-  // If user is a labor, fetch bookings assigned to them
   let query = {}
-  if (role === 'USER') {
+  if (role === 'individual' || role === 'corporate') {
     query = { userId: _id }
-  } else if (role === 'LABOUR' || role === 'CONTRACTOR') {
+  } else if (role === 'labour' || role === 'contractor') {
     query = { laborId: _id, status: { $in: ['ACCEPTED', 'ASSIGNED', 'EN_ROUTE', 'STARTED', 'COMPLETED', 'CANCELLED'] } }
   } else {
     return sendError(res, { message: 'Unauthorized role for fetching bookings', statusCode: HTTP_STATUS.FORBIDDEN })
@@ -186,7 +184,7 @@ export const getMyBookings = asyncHandler(async (req, res) => {
     .sort({ createdAt: -1 })
     .lean()
 
-  if (['LABOUR', 'CONTRACTOR'].includes(role)) {
+  if (['labour', 'contractor'].includes(role)) {
     bookings.forEach(b => {
       delete b.startOtp
       delete b.completionOtp
