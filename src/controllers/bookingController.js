@@ -9,8 +9,18 @@ import { HTTP_STATUS, sendError, sendSuccess } from '../utils/apiResponse.js'
 export const calculateBill = asyncHandler(async (req, res) => {
   const { serviceId, durationDays = 1 } = req.body
   const service = await LabourService.findById(serviceId)
-  if (!service) {
-    return sendError(res, { message: 'Service not found', statusCode: HTTP_STATUS.NOT_FOUND })
+  let basePrice = 0
+  
+  if (service) {
+    basePrice = service.basePrice * durationDays
+  } else {
+    const { LabourCategory } = await import('../models/LabourCategory.js')
+    const category = await LabourCategory.findById(serviceId)
+    if (category) {
+      basePrice = 800 * durationDays
+    } else {
+      return sendError(res, { message: 'Service or Category not found', statusCode: HTTP_STATUS.NOT_FOUND })
+    }
   }
 
   let settings = await SystemSetting.findOne({ configKey: 'master_config' })
@@ -18,7 +28,7 @@ export const calculateBill = asyncHandler(async (req, res) => {
     settings = await SystemSetting.create({ configKey: 'master_config' })
   }
 
-  const basePrice = service.basePrice * durationDays
+
   let platformFee = 0
 
   if (settings.platformFee.isActive) {
