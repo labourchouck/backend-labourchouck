@@ -9,7 +9,7 @@ import { asyncHandler } from '../utils/asyncHandler.js'
 import { HTTP_STATUS, sendError, sendSuccess } from '../utils/apiResponse.js'
 
 const IMAGE_MIMES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
-const VIDEO_MIMES = new Set(['video/mp4', 'video/webm', 'video/quicktime'])
+const ALLOWED_VIDEO_PREFIXES = ['video/mp4', 'video/webm', 'video/quicktime', 'video/x-m4v']
 
 const MEDIA_IMAGE_MAX = 8 * 1024 * 1024
 const MEDIA_VIDEO_MAX = 50 * 1024 * 1024
@@ -32,9 +32,13 @@ function assertFilePresent(req, res) {
   return true
 }
 
+function isAllowedVideo(mimetype) {
+  return mimetype.startsWith('video/') || mimetype === 'application/octet-stream' || mimetype === 'text/plain'
+}
+
 function validateMediaFile(file, folder) {
   if (folder === UPLOAD_FOLDERS.KYC_VIDEOS) {
-    if (!VIDEO_MIMES.has(file.mimetype)) {
+    if (!isAllowedVideo(file.mimetype)) {
       return 'KYC video folder accepts MP4, WebM, or MOV only'
     }
     if (file.size > MEDIA_VIDEO_MAX) {
@@ -59,7 +63,7 @@ function validateDocumentFile(file) {
 }
 
 function resourceTypeForMedia(folder, mimetype) {
-  if (folder === UPLOAD_FOLDERS.KYC_VIDEOS || VIDEO_MIMES.has(mimetype)) return 'video'
+  if (folder === UPLOAD_FOLDERS.KYC_VIDEOS || isAllowedVideo(mimetype)) return 'video'
   return 'image'
 }
 

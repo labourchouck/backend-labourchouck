@@ -21,7 +21,15 @@ const DOCUMENT_MIMES = new Set([
 
 function mediaFilter(_req, file, cb) {
   if (MEDIA_MIMES.has(file.mimetype)) return cb(null, true)
-  cb(new Error('Unsupported media type. Use JPEG, PNG, WebP, GIF, or MP4/WebM video.'))
+  if (file.mimetype && (
+    file.mimetype.startsWith('video/') || 
+    file.mimetype.startsWith('image/') || 
+    file.mimetype === 'application/octet-stream' || 
+    file.mimetype === 'text/plain'
+  )) {
+    return cb(null, true)
+  }
+  cb(new Error(`Unsupported media type (${file.mimetype || 'unknown'}). Use JPEG, PNG, WebP, GIF, or MP4/WebM video.`))
 }
 
 function documentFilter(_req, file, cb) {

@@ -247,16 +247,20 @@ export const submitLabourKycDocuments = asyncHandler(async (req, res) => {
     })
   }
 
-  req.user.labourProfile = req.user.labourProfile || {}
-  req.user.labourProfile.kycStatus = KYC_STATUS.PENDING
-  if (hasAadhaarInput) req.user.labourProfile.aadhaarMasked = maskAadhaarLast4(normalizedAadhaar)
-  if (hasPanInput) req.user.labourProfile.panMasked = maskPan(normalizedPan)
-  req.user.labourProfile.kycVideoUrl = videoUrl
-  req.user.labourProfile.kycVideoMeta = sanitizeKycVideoMeta(req.body.videoMeta)
-  req.user.labourProfile.kycSubmittedAt = new Date()
-  req.user.labourProfile.kycReviewNote = undefined
+  const updateData = {
+    'labourProfile.kycStatus': KYC_STATUS.PENDING,
+    'labourProfile.kycVideoUrl': videoUrl,
+    'labourProfile.kycVideoMeta': sanitizeKycVideoMeta(req.body.videoMeta),
+    'labourProfile.kycSubmittedAt': new Date(),
+  }
+  if (hasAadhaarInput) updateData['labourProfile.aadhaarMasked'] = maskAadhaarLast4(normalizedAadhaar)
+  if (hasPanInput) updateData['labourProfile.panMasked'] = maskPan(normalizedPan)
 
-  await req.user.save()
+  req.user = await User.findByIdAndUpdate(
+    req.user._id,
+    { $set: updateData, $unset: { 'labourProfile.kycReviewNote': 1 } },
+    { new: true, runValidators: false }
+  )
   await populateLabourCategories(req.user)
 
   return sendSuccess(res, {
