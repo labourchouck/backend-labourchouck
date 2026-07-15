@@ -40,6 +40,15 @@ export const initSocket = (httpServer) => {
     socket.on('disconnect', () => {
       console.log(`Socket disconnected: ${socket.id}`)
     })
+
+    // Listen for live location updates from labourer
+    socket.on('LABOUR_LOCATION_UPDATE', (data) => {
+      // data should contain { customerId, bookingId, lat, lng }
+      if (data && data.customerId) {
+        // Forward it to the customer
+        emitToUser(data.customerId, 'LABOUR_LOCATION_UPDATE', data)
+      }
+    })
   })
 
   return io
