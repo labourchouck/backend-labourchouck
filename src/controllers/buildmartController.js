@@ -1,4 +1,5 @@
 import { BuildMartLead } from '../models/BuildMartLead.js'
+import { BuildMartProduct } from '../models/BuildMartProduct.js'
 import { USER_ROLES } from '../constants/roles.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { HTTP_STATUS, sendError, sendSuccess } from '../utils/apiResponse.js'
@@ -129,3 +130,11 @@ export const buildWhatsAppLeadUrl = (lead) => {
   const digits = adminPhone.replace(/\D/g, '')
   return `https://wa.me/${digits}?text=${encodeURIComponent(text)}`
 }
+
+/** GET /buildmart/products — list all seeded products */
+export const getBuildMartProducts = asyncHandler(async (req, res) => {
+  const products = await BuildMartProduct.find().lean()
+  return sendSuccess(res, {
+    data: { products },
+  })
+})
