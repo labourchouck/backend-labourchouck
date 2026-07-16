@@ -55,8 +55,32 @@ export const acceptBroadcast = asyncHandler(async (req, res) => {
 
 export const rejectBroadcast = asyncHandler(async (req, res) => {
   const { bookingId } = req.params
+  const laborId = req.user._id
   
-  // In a flash broadcast system, "rejecting" just means ignoring it or removing it from the UI locally.
-  // We don't need to do anything on the backend unless we want to track rejection analytics.
-  return sendSuccess(res, { message: 'Booking removed from local queue' })
+  const booking = await Booking.findOneAndUpdate(
+    { _id: bookingId, status: 'BROADCASTING' },
+    { $addToSet: { rejectedBy: laborId } },
+    { new: true }
+  )
+
+  if (!booking) {
+    return sendSuccess(res, { message: 'Booking already handled or no longer broadcasting' })
+  }
+
+  // If everyone eligible has rejected it, fail it immediately to save customer wait time
+  if (booking.rejectedBy.length >= (booking.eligibleLabourCount || 0)) {
+    booking.status = 'FAILED'
+    await booking.save()
+
+    import('../socket.js').then(({ emitToUser, getSocketServer }) => {
+      emitToUser(booking.userId, 'BOOKING_FAILED', { bookingId: booking._id, reason: 'All available labourers declined' })
+      
+      const io = getSocketServer()
+      if (io) {
+        io.emit('BOOKING_EXPIRED', { bookingId: booking._id })
+      }
+    }).catch(err => console.error('Failed to notify sockets on reject:', err))
+  }
+
+  return sendSuccess(res, { message: 'Booking rejected successfully' })
 })
