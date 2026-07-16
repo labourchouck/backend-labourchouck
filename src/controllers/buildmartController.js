@@ -1,5 +1,7 @@
 import { BuildMartLead } from '../models/BuildMartLead.js'
 import { BuildMartProduct } from '../models/BuildMartProduct.js'
+import { BuildMartCategory } from '../models/BuildMartCategory.js'
+import { BuildMartBanner } from '../models/BuildMartBanner.js'
 import { USER_ROLES } from '../constants/roles.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { HTTP_STATUS, sendError, sendSuccess } from '../utils/apiResponse.js'
@@ -137,4 +139,76 @@ export const getBuildMartProducts = asyncHandler(async (req, res) => {
   return sendSuccess(res, {
     data: { products },
   })
+})
+
+// --- Categories ---
+
+export const getCategories = asyncHandler(async (req, res) => {
+  const categories = await BuildMartCategory.find().lean()
+  return sendSuccess(res, { data: categories })
+})
+
+export const createCategory = asyncHandler(async (req, res) => {
+  const category = await BuildMartCategory.create(req.body)
+  return sendSuccess(res, { data: category, statusCode: HTTP_STATUS.CREATED })
+})
+
+export const updateCategory = asyncHandler(async (req, res) => {
+  const category = await BuildMartCategory.findByIdAndUpdate(req.params.id, req.body, { new: true })
+  if (!category) return sendError(res, { message: 'Category not found', statusCode: HTTP_STATUS.NOT_FOUND })
+  return sendSuccess(res, { data: category })
+})
+
+export const deleteCategory = asyncHandler(async (req, res) => {
+  const category = await BuildMartCategory.findByIdAndDelete(req.params.id)
+  if (!category) return sendError(res, { message: 'Category not found', statusCode: HTTP_STATUS.NOT_FOUND })
+  return sendSuccess(res, { message: 'Category deleted successfully' })
+})
+
+// --- Products ---
+
+export const getProducts = asyncHandler(async (req, res) => {
+  const products = await BuildMartProduct.find().lean()
+  return sendSuccess(res, { data: products })
+})
+
+export const createProduct = asyncHandler(async (req, res) => {
+  const product = await BuildMartProduct.create(req.body)
+  return sendSuccess(res, { data: product, statusCode: HTTP_STATUS.CREATED })
+})
+
+export const updateProduct = asyncHandler(async (req, res) => {
+  const product = await BuildMartProduct.findByIdAndUpdate(req.params.id, req.body, { new: true })
+  if (!product) return sendError(res, { message: 'Product not found', statusCode: HTTP_STATUS.NOT_FOUND })
+  return sendSuccess(res, { data: product })
+})
+
+export const deleteProduct = asyncHandler(async (req, res) => {
+  const product = await BuildMartProduct.findByIdAndDelete(req.params.id)
+  if (!product) return sendError(res, { message: 'Product not found', statusCode: HTTP_STATUS.NOT_FOUND })
+  return sendSuccess(res, { message: 'Product deleted successfully' })
+})
+
+// --- Banners ---
+
+export const getBanners = asyncHandler(async (req, res) => {
+  const banners = await BuildMartBanner.find().lean()
+  return sendSuccess(res, { data: banners })
+})
+
+export const createBanner = asyncHandler(async (req, res) => {
+  const banner = await BuildMartBanner.create(req.body)
+  return sendSuccess(res, { data: banner, statusCode: HTTP_STATUS.CREATED })
+})
+
+export const updateBanner = asyncHandler(async (req, res) => {
+  const banner = await BuildMartBanner.findByIdAndUpdate(req.params.id, req.body, { new: true })
+  if (!banner) return sendError(res, { message: 'Banner not found', statusCode: HTTP_STATUS.NOT_FOUND })
+  return sendSuccess(res, { data: banner })
+})
+
+export const deleteBanner = asyncHandler(async (req, res) => {
+  const banner = await BuildMartBanner.findByIdAndDelete(req.params.id)
+  if (!banner) return sendError(res, { message: 'Banner not found', statusCode: HTTP_STATUS.NOT_FOUND })
+  return sendSuccess(res, { message: 'Banner deleted successfully' })
 })
