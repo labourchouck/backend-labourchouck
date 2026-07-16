@@ -5,6 +5,7 @@ import { SystemSetting } from '../models/SystemSetting.js'
 import { Wallet } from '../models/Wallet.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { HTTP_STATUS, sendError, sendSuccess } from '../utils/apiResponse.js'
+import { parseISTDateTime } from '../utils/dateHelper.js'
 
 export const calculateBill = asyncHandler(async (req, res) => {
   const { serviceId, durationDays = 1 } = req.body
@@ -119,7 +120,7 @@ export const createBooking = asyncHandler(async (req, res) => {
     subcategoryId: service.subcategoryId,
     serviceId: service._id,
     type,
-    scheduledAt: type === 'SCHEDULED' ? new Date(scheduledAt) : undefined,
+    scheduledAt: type === 'SCHEDULED' ? parseISTDateTime(scheduledAt, timeSlot) : undefined,
     timeSlot: type === 'SCHEDULED' ? timeSlot : undefined,
     images: Array.isArray(imageNames) ? imageNames : [],
     notes,
@@ -145,10 +146,18 @@ export const createBooking = asyncHandler(async (req, res) => {
   })
 
   // Phase 3: Trigger the Broadcast Engine asynchronously
-  // We use setImmediate or just fire and forget the async function
-  import('../services/broadcastService.js').then(({ startBroadcastCycle }) => {
-    startBroadcastCycle(booking._id).catch(err => console.error('Broadcast Error:', err))
-  })
+  // Only trigger immediately for INSTANT bookings.
+  // SCHEDULED bookings will be handled by the broadcastCron job 1 hour before the time.
+  if (type === 'INSTANT') {
+    import('../services/broadcastService.js').then(({ startBroadcastCycle }) => {
+      startBroadcastCycle(booking._id).catch(err => console.error('Broadcast Error:', err))
+    })
+  } else {
+    // For scheduled, we can emit a socket event to let the user know it is confirmed and queued
+    import('../socket.js').then(({ emitToUser }) => {
+      emitToUser(booking.userId, 'BOOKING_SCHEDULED_QUEUED', { bookingId: booking._id, scheduledAt: booking.scheduledAt })
+    }).catch(err => console.error(err))
+  }
 
   // Save the address for future use if requested
   if (req.body.saveAddress) {

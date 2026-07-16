@@ -17,7 +17,9 @@ import {
 import { protect, restrictTo } from '../middleware/auth.js'
 import { validateRequest } from '../middleware/validateRequest.js'
 import { submitQuoteValidators } from '../validators/buildmartValidators.js'
-import { APP_ROLES, ADMIN_ROLES } from '../constants/roles.js'
+import { APP_ROLES, USER_ROLES } from '../constants/roles.js'
+
+const ADMIN_ROLES = [USER_ROLES.ADMIN]
 
 const router = Router()
 

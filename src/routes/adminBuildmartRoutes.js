@@ -4,7 +4,9 @@ import {
   updateLeadStatusAdmin,
 } from '../controllers/buildmartController.js'
 import { protect, restrictTo } from '../middleware/auth.js'
-import { ADMIN_ROLES } from '../constants/roles.js'
+import { USER_ROLES } from '../constants/roles.js'
+
+const ADMIN_ROLES = [USER_ROLES.ADMIN]
 
 const router = Router()
 

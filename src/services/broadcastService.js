@@ -52,13 +52,7 @@ export async function startBroadcastCycle(bookingId) {
     'labourProfile.availabilityStatus': 'available',
     'labourProfile.currentLatitude': { $gte: bookingLat - bufferLatDiff, $lte: bookingLat + bufferLatDiff },
     'labourProfile.currentLongitude': { $gte: bookingLng - bufferLngDiff, $lte: bookingLng + bufferLngDiff },
-    'labourProfile.servicePricing': {
-      $elemMatch: {
-        subcategoryId: booking.subcategoryId,
-        minPrice: { $lte: booking.laborShare },
-        maxPrice: { $gte: booking.laborShare }
-      }
-    }
+    'labourProfile.subcategoryIds': booking.subcategoryId
   }).lean()
 
   if (potentialLaborers.length === 0) {
