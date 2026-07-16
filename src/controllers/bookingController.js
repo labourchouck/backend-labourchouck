@@ -168,8 +168,8 @@ export const getBookingStatus = asyncHandler(async (req, res) => {
   const booking = await Booking.findById(req.params.id)
     .populate('subcategoryId')
     .populate('serviceId')
-    .populate('laborId', 'name phone profilePic')
-    .populate('userId', 'name phone')
+    .populate('laborId', 'fullName phone profileImageUrl')
+    .populate('userId', 'fullName phone')
     .lean()
 
   if (!booking) {
@@ -200,8 +200,8 @@ export const getMyBookings = asyncHandler(async (req, res) => {
   const bookings = await Booking.find(query)
     .populate('subcategoryId')
     .populate('serviceId')
-    .populate('userId', 'name phone')
-    .populate('laborId', 'name phone profilePic')
+    .populate('userId', 'fullName phone')
+    .populate('laborId', 'fullName phone profileImageUrl')
     .sort({ createdAt: -1 })
     .lean()
 
@@ -213,6 +213,28 @@ export const getMyBookings = asyncHandler(async (req, res) => {
   }
 
   return sendSuccess(res, { data: { bookings } })
+})
+
+// @desc    Update booking payment method
+// @route   PATCH /api/v1/bookings/:id/payment-method
+// @access  Private (User)
+export const updatePaymentMethod = asyncHandler(async (req, res) => {
+  const { paymentMethod } = req.body
+  const booking = await Booking.findById(req.params.id)
+
+  if (!booking) {
+    return sendError(res, { message: 'Booking not found', statusCode: HTTP_STATUS.NOT_FOUND })
+  }
+
+  // Only allow updating if it belongs to the user
+  if (booking.userId.toString() !== req.user.id) {
+    return sendError(res, { message: 'Not authorized', statusCode: HTTP_STATUS.FORBIDDEN })
+  }
+
+  booking.paymentMethod = paymentMethod
+  await booking.save()
+
+  res.json({ success: true, paymentMethod })
 })
 
 export const updateBookingStatus = asyncHandler(async (req, res) => {

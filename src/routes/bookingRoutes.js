@@ -42,4 +42,13 @@ router.patch(
   booking.updateBookingStatus,
 )
 
+router.patch(
+  '/:id/payment-method',
+  [
+    body('paymentMethod').isIn(['ONLINE', 'CASH']).withMessage('Invalid payment method'),
+  ],
+  validateRequest,
+  booking.updatePaymentMethod,
+)
+
 export default router
