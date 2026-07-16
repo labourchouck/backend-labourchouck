@@ -20,8 +20,8 @@ const buildMartProductSchema = new mongoose.Schema(
     name: { type: String, required: true },
     brand: { type: String, required: true },
     categoryId: { type: String, required: true },
-    shortDescription: { type: String },
-    description: { type: String },
+    shortDescription: { type: String, default: '' },
+    description: { type: String, default: '' },
     images: [{ type: String }],
     specs: [
       {
@@ -29,20 +29,23 @@ const buildMartProductSchema = new mongoose.Schema(
         value: { type: String },
       },
     ],
-    deliveryInfo: { type: String },
+    deliveryInfo: { type: String, default: '' },
     availability: {
       type: String,
       enum: ['in_stock', 'limited', 'preorder'],
       default: 'in_stock',
     },
     supplier: {
-      name: { type: String },
-      rating: { type: Number },
-      city: { type: String },
+      type: new mongoose.Schema({
+        name: { type: String, default: '' },
+        rating: { type: Number, default: 0 },
+        city: { type: String, default: '' }
+      }, { _id: false }),
+      default: () => ({ name: '', rating: 0, city: '' })
     },
-    variants: [buildMartVariantSchema],
+    variants: { type: [buildMartVariantSchema], default: [] },
     variantCount: { type: Number, default: 0 },
-    priceLabel: { type: String },
+    priceLabel: { type: String, required: true },
     relatedIds: [{ type: String }],
   },
   { timestamps: true }

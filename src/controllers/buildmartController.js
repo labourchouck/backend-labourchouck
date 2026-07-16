@@ -173,23 +173,36 @@ export const deleteCategory = asyncHandler(async (req, res) => {
 // --- Products ---
 
 export const getProducts = asyncHandler(async (req, res) => {
-  const products = await BuildMartProduct.find().lean()
+  const products = await BuildMartProduct.find().select('-_id -__v -createdAt -updatedAt').lean()
   return sendSuccess(res, { data: products })
 })
 
 export const createProduct = asyncHandler(async (req, res) => {
-  const product = await BuildMartProduct.create(req.body)
-  return sendSuccess(res, { data: product, statusCode: HTTP_STATUS.CREATED })
+  const payload = { ...req.body }
+  if (!payload.id && payload.name) {
+    payload.id = payload.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
+  }
+  const product = await BuildMartProduct.create(payload)
+  const result = product.toObject()
+  delete result._id
+  delete result.__v
+  delete result.createdAt
+  delete result.updatedAt
+  return sendSuccess(res, { data: result, statusCode: HTTP_STATUS.CREATED })
 })
 
 export const updateProduct = asyncHandler(async (req, res) => {
-  const product = await BuildMartProduct.findByIdAndUpdate(req.params.id, req.body, { new: true })
+  const payload = { ...req.body }
+  if (!payload.id && payload.name) {
+    payload.id = payload.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
+  }
+  const product = await BuildMartProduct.findOneAndUpdate({ id: req.params.id }, payload, { new: true }).select('-_id -__v -createdAt -updatedAt').lean()
   if (!product) return sendError(res, { message: 'Product not found', statusCode: HTTP_STATUS.NOT_FOUND })
   return sendSuccess(res, { data: product })
 })
 
 export const deleteProduct = asyncHandler(async (req, res) => {
-  const product = await BuildMartProduct.findByIdAndDelete(req.params.id)
+  const product = await BuildMartProduct.findOneAndDelete({ id: req.params.id })
   if (!product) return sendError(res, { message: 'Product not found', statusCode: HTTP_STATUS.NOT_FOUND })
   return sendSuccess(res, { message: 'Product deleted successfully' })
 })
@@ -197,23 +210,28 @@ export const deleteProduct = asyncHandler(async (req, res) => {
 // --- Banners ---
 
 export const getBanners = asyncHandler(async (req, res) => {
-  const banners = await BuildMartBanner.find().lean()
+  const banners = await BuildMartBanner.find().select('-_id -__v -createdAt -updatedAt').lean()
   return sendSuccess(res, { data: banners })
 })
 
 export const createBanner = asyncHandler(async (req, res) => {
   const banner = await BuildMartBanner.create(req.body)
-  return sendSuccess(res, { data: banner, statusCode: HTTP_STATUS.CREATED })
+  const result = banner.toObject()
+  delete result._id
+  delete result.__v
+  delete result.createdAt
+  delete result.updatedAt
+  return sendSuccess(res, { data: result, statusCode: HTTP_STATUS.CREATED })
 })
 
 export const updateBanner = asyncHandler(async (req, res) => {
-  const banner = await BuildMartBanner.findByIdAndUpdate(req.params.id, req.body, { new: true })
+  const banner = await BuildMartBanner.findOneAndUpdate({ id: req.params.id }, req.body, { new: true }).select('-_id -__v -createdAt -updatedAt').lean()
   if (!banner) return sendError(res, { message: 'Banner not found', statusCode: HTTP_STATUS.NOT_FOUND })
   return sendSuccess(res, { data: banner })
 })
 
 export const deleteBanner = asyncHandler(async (req, res) => {
-  const banner = await BuildMartBanner.findByIdAndDelete(req.params.id)
+  const banner = await BuildMartBanner.findOneAndDelete({ id: req.params.id })
   if (!banner) return sendError(res, { message: 'Banner not found', statusCode: HTTP_STATUS.NOT_FOUND })
   return sendSuccess(res, { message: 'Banner deleted successfully' })
 })

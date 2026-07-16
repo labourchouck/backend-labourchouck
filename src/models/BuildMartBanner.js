@@ -4,14 +4,14 @@ const buildMartBannerSchema = new mongoose.Schema(
   {
     id: { type: String, required: true, unique: true },
     imageUrl: { type: String, required: true },
-    image: { type: String }, // fallback alias
-    title: { type: String },
-    subtitle: { type: String },
-    cta: { type: String },
-    categoryId: { type: String },
-    gradient: { type: String },
+    image: { type: String, default: '' }, // fallback alias
+    title: { type: String, default: '' },
+    subtitle: { type: String, default: '' },
+    cta: { type: String, default: '' },
+    categoryId: { type: String, default: '' },
+    gradient: { type: String, default: '' },
     active: { type: Boolean, default: true },
-    link: { type: String }
+    link: { type: String, default: '' }
   },
   { timestamps: true }
 )
