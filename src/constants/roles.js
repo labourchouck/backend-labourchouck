@@ -17,6 +17,10 @@ export const APP_ROLES = [
   USER_ROLES.CONTRACTOR,
 ]
 
+export const ADMIN_ROLES = [
+  USER_ROLES.ADMIN,
+]
+
 export const CORPORATE_STATUS = {
   PENDING: 'pending',
   APPROVED: 'approved',

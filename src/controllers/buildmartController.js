@@ -1,10 +1,7 @@
 import { BuildMartLead } from '../models/BuildMartLead.js'
 import { BuildMartProduct } from '../models/BuildMartProduct.js'
-<<<<<<< HEAD
-=======
 import { BuildMartCategory } from '../models/BuildMartCategory.js'
 import { BuildMartBanner } from '../models/BuildMartBanner.js'
->>>>>>> 985c4a76043a0e2324e1259fecd5a73426523ae2
 import { USER_ROLES } from '../constants/roles.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { HTTP_STATUS, sendError, sendSuccess } from '../utils/apiResponse.js'
@@ -143,29 +140,32 @@ export const getBuildMartProducts = asyncHandler(async (req, res) => {
     data: { products },
   })
 })
-<<<<<<< HEAD
-=======
 
 // --- Categories ---
 
 export const getCategories = asyncHandler(async (req, res) => {
-  const categories = await BuildMartCategory.find().lean()
+  const categories = await BuildMartCategory.find().select('-_id -__v -createdAt -updatedAt').lean()
   return sendSuccess(res, { data: categories })
 })
 
 export const createCategory = asyncHandler(async (req, res) => {
   const category = await BuildMartCategory.create(req.body)
-  return sendSuccess(res, { data: category, statusCode: HTTP_STATUS.CREATED })
+  const result = category.toObject()
+  delete result._id
+  delete result.__v
+  delete result.createdAt
+  delete result.updatedAt
+  return sendSuccess(res, { data: result, statusCode: HTTP_STATUS.CREATED })
 })
 
 export const updateCategory = asyncHandler(async (req, res) => {
-  const category = await BuildMartCategory.findByIdAndUpdate(req.params.id, req.body, { new: true })
+  const category = await BuildMartCategory.findOneAndUpdate({ id: req.params.id }, req.body, { new: true }).select('-_id -__v -createdAt -updatedAt').lean()
   if (!category) return sendError(res, { message: 'Category not found', statusCode: HTTP_STATUS.NOT_FOUND })
   return sendSuccess(res, { data: category })
 })
 
 export const deleteCategory = asyncHandler(async (req, res) => {
-  const category = await BuildMartCategory.findByIdAndDelete(req.params.id)
+  const category = await BuildMartCategory.findOneAndDelete({ id: req.params.id })
   if (!category) return sendError(res, { message: 'Category not found', statusCode: HTTP_STATUS.NOT_FOUND })
   return sendSuccess(res, { message: 'Category deleted successfully' })
 })
@@ -217,4 +217,3 @@ export const deleteBanner = asyncHandler(async (req, res) => {
   if (!banner) return sendError(res, { message: 'Banner not found', statusCode: HTTP_STATUS.NOT_FOUND })
   return sendSuccess(res, { message: 'Banner deleted successfully' })
 })
->>>>>>> 985c4a76043a0e2324e1259fecd5a73426523ae2
