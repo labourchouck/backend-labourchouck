@@ -89,7 +89,7 @@ export const createBooking = asyncHandler(async (req, res) => {
 
   let settings = await SystemSetting.findOne({ configKey: 'master_config' })
   
-  const basePrice = service.basePrice
+  const basePrice = service.basePrice * (durationKind === 'multi_day' ? durationDays : 1)
   let platformFee = 0
   if (settings?.platformFee?.isActive) {
     platformFee = settings.platformFee.type === 'fixed' 
@@ -147,7 +147,7 @@ export const createBooking = asyncHandler(async (req, res) => {
 
   // Phase 3: Trigger the Broadcast Engine asynchronously
   // Only trigger immediately for INSTANT bookings.
-  // SCHEDULED bookings will be handled by the broadcastCron job 1 hour before the time.
+  // SCHEDULED bookings will be handled by the broadcastCron job 30 mins before the time.
   if (type === 'INSTANT') {
     import('../services/broadcastService.js').then(({ startBroadcastCycle }) => {
       startBroadcastCycle(booking._id).catch(err => console.error('Broadcast Error:', err))

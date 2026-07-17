@@ -6,15 +6,26 @@ export function parseISTDateTime(dateString, timeSlot) {
   
   if (!timeSlot) return new Date(datePart); // Fallback to midnight UTC if no time
 
-  const timeMatch = timeSlot.match(/(\d+):(\d+)\s*(AM|PM)/i)
-  if (!timeMatch) return new Date(datePart) // Fallback
+  // Try to parse 12-hour AM/PM format
+  const timeMatch12 = timeSlot.match(/(\d+):(\d+)\s*(AM|PM)/i)
+  let h, m;
 
-  let [ , h, m, ampm ] = timeMatch
-  h = parseInt(h, 10)
-  m = parseInt(m, 10)
-
-  if (ampm.toUpperCase() === 'PM' && h < 12) h += 12
-  if (ampm.toUpperCase() === 'AM' && h === 12) h = 0
+  if (timeMatch12) {
+    const [ , hStr, mStr, ampm ] = timeMatch12
+    h = parseInt(hStr, 10)
+    m = parseInt(mStr, 10)
+    if (ampm.toUpperCase() === 'PM' && h < 12) h += 12
+    if (ampm.toUpperCase() === 'AM' && h === 12) h = 0
+  } else {
+    // Try to parse 24-hour format
+    const timeMatch24 = timeSlot.match(/(\d+):(\d+)/)
+    if (timeMatch24) {
+      h = parseInt(timeMatch24[1], 10)
+      m = parseInt(timeMatch24[2], 10)
+    } else {
+      return new Date(datePart) // Fallback
+    }
+  }
 
   const pad = (n) => n.toString().padStart(2, '0')
   
