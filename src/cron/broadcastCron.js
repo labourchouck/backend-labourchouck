@@ -7,20 +7,20 @@ export function initBroadcastCron() {
   cron.schedule('* * * * *', async () => {
     try {
       const now = new Date()
-      // 1 hour from now
-      const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000)
+      // 30 mins from now
+      const thirtyMinsFromNow = new Date(now.getTime() + 30 * 60 * 1000)
       
       // We also add a buffer of past few minutes in case the cron missed a beat
-      const oneHourAndFiveMinutesFromNow = new Date(now.getTime() + 65 * 60 * 1000)
+      const thirtyFiveMinsFromNow = new Date(now.getTime() + 35 * 60 * 1000)
 
       // Find all scheduled bookings that are in CREATED status
-      // where the scheduledAt is <= exactly 1 hour from now, but > now
-      // This means the job is supposed to start in 1 hour or less.
+      // where the scheduledAt is <= exactly 30 mins from now, but > now
+      // This means the job is supposed to start in 30 mins or less.
       const bookingsToBroadcast = await Booking.find({
         type: 'SCHEDULED',
         status: 'CREATED',
         scheduledAt: { 
-          $lte: oneHourAndFiveMinutesFromNow,
+          $lte: thirtyFiveMinsFromNow,
           $gt: now // Ensure we don't pick up severely outdated ones if they exist
         }
       })
