@@ -1,11 +1,10 @@
-import dotenv from 'dotenv';
-dotenv.config();
-import mongoose from 'mongoose';
-import { Booking } from './src/models/Booking.js';
-import { User } from './src/models/User.js';
-import { Wallet } from './src/models/Wallet.js';
-import { SystemSetting } from './src/models/SystemSetting.js';
-import { checkWalletEligibility } from './src/controllers/walletController.js';
+require('dotenv').config();
+const mongoose = require('mongoose');
+const Booking = require('./src/models/Booking.js').Booking;
+const User = require('./src/models/User.js').User;
+const Wallet = require('./src/models/Wallet.js').Wallet;
+const SystemSetting = require('./src/models/SystemSetting.js').SystemSetting;
+const { checkWalletEligibility } = require('./src/controllers/walletController.js');
 
 mongoose.connect(process.env.MONGODB_URI).then(async () => {
   const bookingId = '6a5b99a7458a3d14a4f249a2';

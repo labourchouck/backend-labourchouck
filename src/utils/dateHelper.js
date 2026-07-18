@@ -1,8 +1,18 @@
 export function parseISTDateTime(dateString, timeSlot) {
   if (!dateString) return new Date();
   
-  // Extract just the YYYY-MM-DD part if there's any extra stuff
-  const [datePart] = dateString.split('T')
+  // Clean up dateString to handle "18 Jul 2026" or "2026-07-18"
+  let datePart = dateString.split('T')[0]
+  
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(datePart)) {
+    const d = new Date(datePart)
+    if (!isNaN(d.getTime())) {
+      const pad = (n) => n.toString().padStart(2, '0')
+      datePart = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+    } else {
+      return new Date() // Fallback
+    }
+  }
   
   if (!timeSlot) return new Date(datePart); // Fallback to midnight UTC if no time
 
