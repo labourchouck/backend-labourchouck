@@ -68,8 +68,9 @@ export const checkWalletEligibility = async (userId) => {
 
   let settings = await SystemSetting.findOne({ configKey: 'master_config' })
   const limit = settings?.walletLimit ?? 100
+  const currentDues = wallet.adminBalance || 0
 
-  return wallet.adminBalance <= limit
+  return currentDues <= limit
 }
 
 export const requestWithdrawal = asyncHandler(async (req, res) => {

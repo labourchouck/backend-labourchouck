@@ -98,6 +98,8 @@ const bookingSchema = new mongoose.Schema(
     acceptedLabourId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     startOtp: { type: String },
     completionOtp: { type: String },
+    startWorkImage: { type: String },
+    endWorkImage: { type: String },
   },
   { timestamps: true }
 )

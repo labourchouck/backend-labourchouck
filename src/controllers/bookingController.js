@@ -248,7 +248,7 @@ export const updatePaymentMethod = asyncHandler(async (req, res) => {
 
 export const updateBookingStatus = asyncHandler(async (req, res) => {
   const { id } = req.params
-  const { status, otp } = req.body
+  const { status, otp, startWorkImage, endWorkImage, beforeImage, afterImage } = req.body
   const booking = await Booking.findById(id)
   
   if (!booking) return sendError(res, { message: 'Booking not found', statusCode: HTTP_STATUS.NOT_FOUND })
@@ -271,11 +271,15 @@ export const updateBookingStatus = asyncHandler(async (req, res) => {
   if (status === 'STARTED') {
     if (!otp) return sendError(res, { message: 'OTP is required to start the job', statusCode: HTTP_STATUS.BAD_REQUEST })
     if (otp !== booking.startOtp) return sendError(res, { message: 'Invalid Start OTP', statusCode: HTTP_STATUS.BAD_REQUEST })
+    const finalStartImg = startWorkImage || beforeImage
+    if (finalStartImg) booking.startWorkImage = finalStartImg
   }
 
   if (status === 'COMPLETED') {
     if (!otp) return sendError(res, { message: 'OTP is required to complete the job', statusCode: HTTP_STATUS.BAD_REQUEST })
     if (otp !== booking.completionOtp) return sendError(res, { message: 'Invalid Completion OTP', statusCode: HTTP_STATUS.BAD_REQUEST })
+    const finalEndImg = endWorkImage || afterImage
+    if (finalEndImg) booking.endWorkImage = finalEndImg
   }
 
   booking.status = status

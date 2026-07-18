@@ -121,3 +121,52 @@ export const assignLabourerManually = asyncHandler(async (req, res) => {
 
   return sendSuccess(res, { message: 'Labourer assigned manually successfully', data: { booking: updatedBooking } })
 })
+
+export const createBookingAdmin = asyncHandler(async (req, res) => {
+  const bookingData = req.body
+  
+  // Add some minimum validations based on what your Booking model expects
+  if (!bookingData.userId || !bookingData.serviceId || !bookingData.type) {
+    return sendError(res, { message: 'userId, serviceId, and type are required', statusCode: HTTP_STATUS.BAD_REQUEST })
+  }
+
+  const startOtp = Math.floor(1000 + Math.random() * 9000).toString()
+  const completionOtp = Math.floor(1000 + Math.random() * 9000).toString()
+
+  const booking = await Booking.create({
+    ...bookingData,
+    startOtp,
+    completionOtp
+  })
+  
+  return sendSuccess(res, { message: 'Booking created successfully', statusCode: HTTP_STATUS.CREATED, data: { booking } })
+})
+
+export const updateBookingAdmin = asyncHandler(async (req, res) => {
+  const { id } = req.params
+  const updates = req.body
+
+  const booking = await Booking.findByIdAndUpdate(id, updates, { new: true, runValidators: true })
+    .populate('userId', 'fullName phone email')
+    .populate('laborId', 'fullName phone email')
+    .populate('subcategoryId', 'name')
+    .populate('serviceId', 'name basePrice')
+
+  if (!booking) {
+    return sendError(res, { message: 'Booking not found', statusCode: HTTP_STATUS.NOT_FOUND })
+  }
+
+  return sendSuccess(res, { message: 'Booking updated successfully', data: { booking } })
+})
+
+export const deleteBookingAdmin = asyncHandler(async (req, res) => {
+  const { id } = req.params
+
+  const booking = await Booking.findByIdAndDelete(id)
+
+  if (!booking) {
+    return sendError(res, { message: 'Booking not found', statusCode: HTTP_STATUS.NOT_FOUND })
+  }
+
+  return sendSuccess(res, { message: 'Booking deleted successfully' })
+})

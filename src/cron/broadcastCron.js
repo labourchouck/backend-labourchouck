@@ -10,9 +10,6 @@ export function initBroadcastCron() {
       // 30 mins from now
       const thirtyMinsFromNow = new Date(now.getTime() + 30 * 60 * 1000)
       
-      // We also add a buffer of past few minutes in case the cron missed a beat
-      const thirtyFiveMinsFromNow = new Date(now.getTime() + 35 * 60 * 1000)
-
       // Find all scheduled bookings that are in CREATED status
       // where the scheduledAt is <= exactly 30 mins from now, but > now
       // This means the job is supposed to start in 30 mins or less.
@@ -20,7 +17,7 @@ export function initBroadcastCron() {
         type: 'SCHEDULED',
         status: 'CREATED',
         scheduledAt: { 
-          $lte: thirtyFiveMinsFromNow,
+          $lte: thirtyMinsFromNow,
           $gt: now // Ensure we don't pick up severely outdated ones if they exist
         }
       })
