@@ -1,238 +1,312 @@
-/**
- * Labour Chowk category catalogue — profile tags + trades.
- * Admins can add/edit via API; this seed bootstraps the baseline list.
- * Each item includes imageUrl (Unsplash) for homeowner discovery tiles.
- */
 import { LABOUR_CATEGORY_IMAGES as IMG } from './labourCategoryImages.js'
 
-/** @param {string} name @param {string} subtitle @param {number} sortOrder @param {keyof typeof IMG} imageKey */
-function cat(name, subtitle, sortOrder, imageKey) {
-  return {
-    name,
-    subtitle,
-    sortOrder,
-    imageUrl: IMG[imageKey] || '',
+export const LABOUR_CATEGORY_SEED_V2 = [
+  {
+    category: "Construction",
+    subtitle: "Building, masonry, and finishing experts",
+    subcategories: [
+      {
+        name: "Civil & Structural Work",
+        description: "Experts in structural construction, masonry, carpentry, and reinforcement work.",
+        image: IMG.mason,
+        services: [
+          { name: "Mason (Raj Mistri)", basePrice: 800, description: "Professional masonry, bricklaying, and plastering work." },
+          { name: "Carpenter", basePrice: 700, description: "Expert woodwork, furniture assembly, and repair." },
+          { name: "Shuttering Carpenter", basePrice: 750, description: "Formwork and shuttering for concrete pouring." },
+          { name: "Bar Bender (Steel Fixer)", basePrice: 700, description: "Steel reinforcement cutting, bending, and fixing." },
+          { name: "Tile Installer", basePrice: 800, description: "Floor and wall tiling with precision and finishing." },
+          { name: "POP Worker", basePrice: 600, description: "Plaster of Paris work, false ceilings, and cornices." },
+          { name: "Waterproofing Worker", basePrice: 750, description: "Surface treatments to prevent water leakage and damage." }
+        ]
+      },
+      {
+        name: "Plumbing & Electrical",
+        description: "Professionals for plumbing, electrical, HVAC, and utility installations.",
+        image: IMG.electrician,
+        services: [
+          { name: "Plumber", basePrice: 600, description: "Pipe installation, leak repair, and bathroom fittings." },
+          { name: "Electrician", basePrice: 650, description: "Wiring, switchboard installation, and fault repair." },
+          { name: "HVAC Technician", basePrice: 800, description: "Heating, ventilation, and AC ducting installation." },
+          { name: "Elevator Technician", basePrice: 1200, description: "Lift installation, maintenance, and troubleshooting." },
+          { name: "Solar Panel Technician", basePrice: 900, description: "Solar panel mounting and electrical integration." }
+        ]
+      },
+      {
+        name: "Metal & Fabrication",
+        description: "Skilled workers for welding, fabrication, and metal structure work.",
+        image: IMG.welder,
+        services: [
+          { name: "Welder", basePrice: 700, description: "Arc, MIG, and TIG welding for metal structures." },
+          { name: "Fabricator", basePrice: 800, description: "Metal cutting, shaping, and assembly work." }
+        ]
+      },
+      {
+        name: "Finishing Work",
+        description: "Specialists in painting and surface finishing.",
+        image: IMG.painter,
+        services: [
+          { name: "Painter", basePrice: 500, description: "Interior and exterior wall painting and texturing." }
+        ]
+      }
+    ]
+  },
+  {
+    category: "Site Labour",
+    subtitle: "Reliable helpers and site operations support",
+    subcategories: [
+      {
+        name: "General Labour",
+        description: "Reliable helpers for daily construction and manual tasks.",
+        image: IMG.generalHelper,
+        services: [
+          { name: "General Labor / Helper", basePrice: 400, description: "Assistance with general site tasks and manual work." },
+          { name: "Construction Helper", basePrice: 450, description: "Support for masons and specialized construction workers." },
+          { name: "Loader / Unloader", basePrice: 500, description: "Loading and unloading of construction materials." }
+        ]
+      },
+      {
+        name: "Site Operations",
+        description: "Workers supporting construction site operations and groundwork.",
+        image: IMG.scaffolding,
+        services: [
+          { name: "Scaffolding Worker", basePrice: 600, description: "Erecting and dismantling scaffolding structures safely." },
+          { name: "Demolition Worker", basePrice: 550, description: "Safe breaking and removal of old structures." },
+          { name: "Road Construction Worker", basePrice: 500, description: "Asphalt laying and road surface preparation." },
+          { name: "Asphalt Worker", basePrice: 550, description: "Specialized in applying and leveling asphalt." }
+        ]
+      },
+      {
+        name: "Equipment Support",
+        description: "Operators assisting with construction tools and machinery.",
+        image: IMG.concreteMixer,
+        services: [
+          { name: "Concrete Mixer Operator", basePrice: 600, description: "Operating and maintaining concrete mixing machines." },
+          { name: "Drill Machine Operator", basePrice: 600, description: "Heavy-duty drilling and surface breaking." }
+        ]
+      }
+    ]
+  },
+  {
+    category: "Machine Operators",
+    subtitle: "Certified operators for heavy equipment",
+    subcategories: [
+      {
+        name: "Earth Moving Equipment",
+        description: "Operators for excavation and earthmoving machinery.",
+        image: IMG.excavatorOperator,
+        services: [
+          { name: "JCB Operator", basePrice: 1000, description: "Experienced operator for JCB backhoe loaders." },
+          { name: "Excavator Operator", basePrice: 1200, description: "Operating heavy excavators for digging and trenching." },
+          { name: "Bulldozer Operator", basePrice: 1200, description: "Operating bulldozers for site clearing and grading." }
+        ]
+      },
+      {
+        name: "Lifting Equipment",
+        description: "Certified operators for cranes and material lifting equipment.",
+        image: IMG.craneOperator,
+        services: [
+          { name: "Crane Operator", basePrice: 1500, description: "Operating mobile and tower cranes for heavy lifting." },
+          { name: "Forklift Operator", basePrice: 800, description: "Operating forklifts for material handling." }
+        ]
+      },
+      {
+        name: "Transport Equipment",
+        description: "Operators for construction transport and heavy vehicles.",
+        image: IMG.dumperDriver,
+        services: [
+          { name: "Dumper Driver", basePrice: 900, description: "Driving dumper trucks for transporting loose materials." },
+          { name: "Tractor Operator", basePrice: 700, description: "Operating tractors for agricultural or site haulage." }
+        ]
+      }
+    ]
+  },
+  {
+    category: "Home Services",
+    subtitle: "Appliance repair, cooling, and security",
+    subcategories: [
+      {
+        name: "HVAC & Cooling",
+        description: "Installation and repair of air conditioning and cooling systems.",
+        image: IMG.acTechnician,
+        services: [
+          { name: "AC Technician", basePrice: 500, description: "Air conditioner servicing, repair, and gas refilling." },
+          { name: "Refrigerator Technician", basePrice: 450, description: "Fridge repair and compressor troubleshooting." }
+        ]
+      },
+      {
+        name: "Home Appliances",
+        description: "Repair and maintenance of household appliances.",
+        image: IMG.washingMachineTechnician,
+        services: [
+          { name: "Washing Machine Technician", basePrice: 400, description: "Repair and servicing for washing machines." },
+          { name: "RO Technician", basePrice: 350, description: "Water purifier filter replacement and repair." },
+          { name: "Home Appliance Repair Technician", basePrice: 400, description: "General repair for microwaves, geysers, and other appliances." }
+        ]
+      },
+      {
+        name: "Security & Automation",
+        description: "Installation of CCTV and home security systems.",
+        image: IMG.cctvInstaller,
+        services: [
+          { name: "CCTV Installer", basePrice: 600, description: "Security camera installation and DVR setup." }
+        ]
+      },
+      {
+        name: "Pest Control",
+        description: "Safe and effective pest management services.",
+        image: IMG.pestControl,
+        services: [
+          { name: "Pest Control Worker", basePrice: 700, description: "Treatment for termites, cockroaches, and rodents." }
+        ]
+      }
+    ]
+  },
+  {
+    category: "Automobile Services",
+    subtitle: "Vehicle repair and maintenance professionals",
+    subcategories: [
+      {
+        name: "Vehicle Repair",
+        description: "Professional repair services for two-wheelers and four-wheelers.",
+        image: IMG.mechanic4w,
+        services: [
+          { name: "Mechanic (2-Wheeler)", basePrice: 300, description: "Bike and scooter servicing and engine repair." },
+          { name: "Mechanic (4-Wheeler)", basePrice: 500, description: "Car servicing, diagnostics, and mechanical repairs." },
+          { name: "Diesel Mechanic", basePrice: 600, description: "Specialized repair for diesel engines and heavy vehicles." },
+          { name: "Auto Electrician", basePrice: 450, description: "Vehicle wiring, battery, and electrical troubleshooting." }
+        ]
+      },
+      {
+        name: "Vehicle Maintenance",
+        description: "Tyre repair, cleaning, and routine vehicle maintenance.",
+        image: IMG.carWasher,
+        services: [
+          { name: "Tyre Repair Worker", basePrice: 150, description: "Puncture repair, wheel balancing, and tyre changes." },
+          { name: "Car Washer", basePrice: 250, description: "Exterior washing and interior detailing for cars." }
+        ]
+      }
+    ]
+  },
+  {
+    category: "Cleaning Services",
+    subtitle: "Residential, commercial, and public cleaning",
+    subcategories: [
+      {
+        name: "Residential Cleaning",
+        description: "Cleaning services for homes and residential spaces.",
+        image: IMG.housekeeping,
+        services: [
+          { name: "Housekeeping Staff", basePrice: 300, description: "Daily sweeping, mopping, and home tidying." }
+        ]
+      },
+      {
+        name: "Commercial Cleaning",
+        description: "Cleaning solutions for offices, shops, and industries.",
+        image: IMG.officeCleaner,
+        services: [
+          { name: "Office Cleaner", basePrice: 350, description: "Maintenance and cleaning of office premises." },
+          { name: "Industrial Cleaner", basePrice: 500, description: "Deep cleaning for factories and industrial spaces." }
+        ]
+      },
+      {
+        name: "Public Cleaning",
+        description: "Public sanitation, waste collection, and area maintenance.",
+        image: IMG.garbageCollector,
+        services: [
+          { name: "Garbage Collector", basePrice: 200, description: "Waste collection and disposal services." },
+          { name: "Drain Cleaner", basePrice: 400, description: "Unclogging and cleaning of drainage systems." },
+          { name: "Sweeper", basePrice: 250, description: "Street and public area sweeping." }
+        ]
+      }
+    ]
+  },
+  {
+    category: "Hospitality",
+    subtitle: "Food services, restaurant staff, and delivery",
+    subcategories: [
+      {
+        name: "Food Services",
+        description: "Skilled professionals for cooking and kitchen assistance.",
+        image: IMG.cook,
+        services: [
+          { name: "Cook / Chef", basePrice: 600, description: "Preparation of meals for homes or events." },
+          { name: "Helper Cook", basePrice: 400, description: "Assisting chefs with chopping and prep work." }
+        ]
+      },
+      {
+        name: "Restaurant Staff",
+        description: "Staff for serving customers and restaurant operations.",
+        image: IMG.waiter,
+        services: [
+          { name: "Waiter", basePrice: 350, description: "Serving food and beverages to guests." },
+          { name: "Dishwasher", basePrice: 300, description: "Washing dishes and maintaining kitchen hygiene." }
+        ]
+      },
+      {
+        name: "Delivery",
+        description: "Fast and reliable delivery service professionals.",
+        image: IMG.deliveryBoy,
+        services: [
+          { name: "Delivery Boy", basePrice: 400, description: "Door-to-door delivery of goods and food." }
+        ]
+      }
+    ]
+  },
+  {
+    category: "Interior & Finishing",
+    subtitle: "Interior installation and finishing works",
+    subcategories: [
+      {
+        name: "Interior Installation",
+        description: "Experts in interior fixtures, ceilings, glass, and modular installations.",
+        image: IMG.modularKitchen,
+        services: [
+          { name: "Interior Designer Helper", basePrice: 500, description: "Assisting with interior design executions." },
+          { name: "Glass Installer", basePrice: 600, description: "Cutting and fitting glass panels and windows." },
+          { name: "Aluminium Worker", basePrice: 650, description: "Fabricating and installing aluminium frames and partitions." },
+          { name: "False Ceiling Worker", basePrice: 700, description: "Installation of gypsum and POP false ceilings." },
+          { name: "Modular Kitchen Installer", basePrice: 800, description: "Assembly and fitting of modular kitchen cabinets." }
+        ]
+      }
+    ]
+  },
+  {
+    category: "Outdoor Services",
+    subtitle: "Gardening, security, and transportation",
+    subcategories: [
+      {
+        name: "Gardening",
+        description: "Garden maintenance and landscaping services.",
+        image: IMG.gardener,
+        services: [
+          { name: "Gardener / Mali", basePrice: 350, description: "Plant care, pruning, and lawn maintenance." }
+        ]
+      },
+      {
+        name: "Security",
+        description: "Professional security and guarding services.",
+        image: IMG.securityGuard,
+        services: [
+          { name: "Security Guard", basePrice: 400, description: "Premises guarding and visitor logging." }
+        ]
+      },
+      {
+        name: "Transportation",
+        description: "Experienced drivers for personal and commercial transport.",
+        image: IMG.driverHeavy,
+        services: [
+          { name: "Driver (Light Vehicle)", basePrice: 500, description: "Driving cars and light commercial vehicles." },
+          { name: "Driver (Heavy Vehicle)", basePrice: 800, description: "Operating trucks and heavy transport vehicles." }
+        ]
+      },
+      {
+        name: "Packing & Moving",
+        description: "Safe packing, loading, and relocation assistance.",
+        image: IMG.moverPacker,
+        services: [
+          { name: "Mover & Packer Worker", basePrice: 500, description: "Careful packing and loading of household items." }
+        ]
+      }
+    ]
   }
-}
-
-export const LABOUR_CATEGORY_SEED = [
-  {
-    group: {
-      name: 'Construction workforce (skill band)',
-      slug: 'construction-workforce',
-      description: 'How you usually work on site — helps match the right crew.',
-      helperText: 'Pick what fits you best. You can choose more than one.',
-      kind: 'profile',
-      sortOrder: 0,
-    },
-    items: [
-      cat('Skilled labor', 'Electricians, plumbers, masons, trained trades', 0, 'skilledLabor'),
-      cat('Semi-skilled labor', 'Helpers with some training', 1, 'semiSkilledLabor'),
-      cat('Unskilled labor', 'General helpers, loaders', 2, 'unskilledLabor'),
-    ],
-  },
-  {
-    group: {
-      name: 'Government & legal (India)',
-      slug: 'govt-legal-india',
-      description: 'Useful for compliance-heavy sites and contractor reporting.',
-      helperText: 'Optional — choose if it applies to you.',
-      kind: 'profile',
-      sortOrder: 1,
-    },
-    items: [
-      cat('Organized sector worker', '', 0, 'organizedSector'),
-      cat('Unorganized sector worker', '', 1, 'unorganizedSector'),
-      cat('Contract labor', '', 2, 'contractLabor'),
-      cat('Migrant worker', '', 3, 'migrantWorker'),
-    ],
-  },
-  {
-    group: {
-      name: 'HR & corporate roles',
-      slug: 'hr-corporate-roles',
-      description: 'Broad role type — helps office vs field matching.',
-      helperText: 'Optional tags for how you see your role.',
-      kind: 'profile',
-      sortOrder: 2,
-    },
-    items: [
-      cat('Blue-collar worker', 'Manual / field labor', 0, 'blueCollar'),
-      cat('White-collar worker', 'Office / desk roles', 1, 'whiteCollar'),
-      cat('Grey-collar worker', 'Technical / hybrid roles', 2, 'greyCollar'),
-    ],
-  },
-  {
-    group: {
-      name: 'Construction & technical labor',
-      slug: 'construction-technical',
-      description: 'Core building trades — the jobs most sites hire for.',
-      helperText: 'Select every trade you can do professionally.',
-      kind: 'trade',
-      sortOrder: 10,
-    },
-    items: [
-      cat('Plumber', '', 0, 'plumber'),
-      cat('Electrician', '', 1, 'electrician'),
-      cat('Carpenter', '', 2, 'carpenter'),
-      cat('Mason (Raj Mistri)', '', 3, 'mason'),
-      cat('Tile installer', '', 4, 'tileInstaller'),
-      cat('Painter', '', 5, 'painter'),
-      cat('Welder', '', 6, 'welder'),
-      cat('Fabricator', '', 7, 'fabricator'),
-      cat('Bar bender (steel fixer)', '', 8, 'barBender'),
-      cat('Shuttering carpenter', '', 9, 'shutteringCarpenter'),
-      cat('POP worker (Plaster of Paris)', '', 10, 'popWorker'),
-      cat('Waterproofing worker', '', 11, 'waterproofing'),
-      cat('HVAC technician', '', 12, 'hvacTechnician'),
-      cat('Elevator technician', '', 13, 'elevatorTechnician'),
-      cat('Solar panel technician', '', 14, 'solarTechnician'),
-    ],
-  },
-  {
-    group: {
-      name: 'Heavy work & site labor',
-      slug: 'heavy-work-site',
-      description: 'High-effort site work and road crews.',
-      helperText: '',
-      kind: 'trade',
-      sortOrder: 20,
-    },
-    items: [
-      cat('General labor / helper', '', 0, 'generalHelper'),
-      cat('Construction helper', '', 1, 'constructionHelper'),
-      cat('Loader / unloader', '', 2, 'loader'),
-      cat('Scaffolding worker', '', 3, 'scaffolding'),
-      cat('Demolition worker', '', 4, 'demolition'),
-      cat('Road construction worker', '', 5, 'roadConstruction'),
-      cat('Asphalt worker', '', 6, 'asphalt'),
-      cat('Concrete mixer operator', '', 7, 'concreteMixer'),
-      cat('Drill machine operator', '', 8, 'drillOperator'),
-    ],
-  },
-  {
-    group: {
-      name: 'Machine operators',
-      slug: 'machine-operators',
-      description: 'Heavy equipment on site or yards.',
-      helperText: '',
-      kind: 'trade',
-      sortOrder: 30,
-    },
-    items: [
-      cat('JCB operator', '', 0, 'jcbOperator'),
-      cat('Crane operator', '', 1, 'craneOperator'),
-      cat('Forklift operator', '', 2, 'forkliftOperator'),
-      cat('Excavator operator', '', 3, 'excavatorOperator'),
-      cat('Bulldozer operator', '', 4, 'bulldozerOperator'),
-      cat('Dumper driver', '', 5, 'dumperDriver'),
-      cat('Tractor operator', '', 6, 'tractorOperator'),
-    ],
-  },
-  {
-    group: {
-      name: 'Home services labor',
-      slug: 'home-services',
-      description: 'Residential repair and install jobs.',
-      helperText: '',
-      kind: 'trade',
-      sortOrder: 40,
-    },
-    items: [
-      cat('AC technician', '', 0, 'acTechnician'),
-      cat('Refrigerator technician', '', 1, 'refrigeratorTechnician'),
-      cat('Washing machine technician', '', 2, 'washingMachineTechnician'),
-      cat('RO technician', '', 3, 'roTechnician'),
-      cat('CCTV installer', '', 4, 'cctvInstaller'),
-      cat('Home appliance repair technician', '', 5, 'applianceRepair'),
-      cat('Pest control worker', '', 6, 'pestControl'),
-    ],
-  },
-  {
-    group: {
-      name: 'Automobile & mechanical',
-      slug: 'automobile-mechanical',
-      description: 'Workshops and vehicle care.',
-      helperText: '',
-      kind: 'trade',
-      sortOrder: 50,
-    },
-    items: [
-      cat('Mechanic (2-wheeler)', '', 0, 'mechanic2w'),
-      cat('Mechanic (4-wheeler)', '', 1, 'mechanic4w'),
-      cat('Diesel mechanic', '', 2, 'dieselMechanic'),
-      cat('Auto electrician', '', 3, 'autoElectrician'),
-      cat('Tyre repair worker', '', 4, 'tyreRepair'),
-      cat('Car washer', '', 5, 'carWasher'),
-    ],
-  },
-  {
-    group: {
-      name: 'Cleaning & maintenance',
-      slug: 'cleaning-maintenance',
-      description: 'Hygiene and upkeep roles.',
-      helperText: '',
-      kind: 'trade',
-      sortOrder: 60,
-    },
-    items: [
-      cat('Housekeeping staff', '', 0, 'housekeeping'),
-      cat('Office cleaner', '', 1, 'officeCleaner'),
-      cat('Industrial cleaner', '', 2, 'industrialCleaner'),
-      cat('Garbage collector', '', 3, 'garbageCollector'),
-      cat('Drain cleaner', '', 4, 'drainCleaner'),
-      cat('Sweeper', '', 5, 'sweeper'),
-    ],
-  },
-  {
-    group: {
-      name: 'Hospitality & support',
-      slug: 'hospitality-support',
-      description: 'Food service and last-mile support.',
-      helperText: '',
-      kind: 'trade',
-      sortOrder: 70,
-    },
-    items: [
-      cat('Cook / chef', '', 0, 'cook'),
-      cat('Helper cook', '', 1, 'helperCook'),
-      cat('Waiter', '', 2, 'waiter'),
-      cat('Dishwasher', '', 3, 'dishwasher'),
-      cat('Delivery boy', '', 4, 'deliveryBoy'),
-    ],
-  },
-  {
-    group: {
-      name: 'Specialized & finishing work',
-      slug: 'specialized-finishing',
-      description: 'Fit-out and detail trades.',
-      helperText: '',
-      kind: 'trade',
-      sortOrder: 80,
-    },
-    items: [
-      cat('Interior designer helper', '', 0, 'interiorHelper'),
-      cat('Glass installer', '', 1, 'glassInstaller'),
-      cat('Aluminium worker', '', 2, 'aluminiumWorker'),
-      cat('False ceiling worker', '', 3, 'falseCeiling'),
-      cat('Modular kitchen installer', '', 4, 'modularKitchen'),
-    ],
-  },
-  {
-    group: {
-      name: 'Outdoor & miscellaneous',
-      slug: 'outdoor-miscellaneous',
-      description: 'Gardens, security, transport, and moves.',
-      helperText: '',
-      kind: 'trade',
-      sortOrder: 90,
-    },
-    items: [
-      cat('Gardener / mali', '', 0, 'gardener'),
-      cat('Security guard', '', 1, 'securityGuard'),
-      cat('Driver (light vehicle)', '', 2, 'driverLight'),
-      cat('Driver (heavy vehicle)', '', 3, 'driverHeavy'),
-      cat('Mover & packer worker', '', 4, 'moverPacker'),
-    ],
-  },
-]
+];
