@@ -52,7 +52,7 @@ export const calculateBill = asyncHandler(async (req, res) => {
   // Also pre-calculate commission to show to admin internally, but user doesn't necessarily need to see it
   let commissionAmount = 0
   if (settings.commission.isActive && settings.commission.type === 'global') {
-    commissionAmount = (totalAmount * settings.commission.globalPercentage) / 100
+    commissionAmount = (basePrice * settings.commission.globalPercentage) / 100
   }
 
   return sendSuccess(res, {
@@ -62,7 +62,7 @@ export const calculateBill = asyncHandler(async (req, res) => {
       taxes,
       totalAmount,
       commissionAmount, // Internal calculation preview
-      laborShare: baseAmount - commissionAmount
+      laborShare: basePrice - commissionAmount
     }
   })
 })
@@ -107,10 +107,10 @@ export const createBooking = asyncHandler(async (req, res) => {
 
   let commissionAmount = 0
   if (settings?.commission?.isActive && settings.commission.type === 'global') {
-    commissionAmount = (totalAmount * settings.commission.globalPercentage) / 100
+    commissionAmount = (basePrice * settings.commission.globalPercentage) / 100
   }
 
-  const laborShare = baseAmount - commissionAmount
+  const laborShare = basePrice - commissionAmount
 
   const startOtp = Math.floor(1000 + Math.random() * 9000).toString()
   const completionOtp = Math.floor(1000 + Math.random() * 9000).toString()
@@ -292,18 +292,19 @@ export const updateBookingStatus = asyncHandler(async (req, res) => {
 
     if (booking.paymentMethod === 'CASH') {
       // Increment labor's admin wallet liability
-      wallet.adminBalance += booking.commissionAmount
+      const adminDues = (booking.platformFee || 0) + (booking.taxes || 0) + (booking.commissionAmount || 0)
+      wallet.adminBalance += adminDues
       await wallet.save()
 
       import('../models/WalletTransaction.js').then(({ WalletTransaction }) => {
         WalletTransaction.create({
           walletId: wallet._id,
-          amount: booking.commissionAmount,
+          amount: adminDues,
           type: 'CREDIT',
           targetWallet: 'ADMIN',
           context: 'BOOKING',
           referenceId: booking._id,
-          description: 'Commission for Cash Booking'
+          description: 'Platform fees, taxes & commission for Cash Booking'
         }).catch(err => console.error('WalletTx error:', err))
       })
     } else if (booking.paymentMethod === 'ONLINE') {

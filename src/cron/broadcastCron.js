@@ -7,6 +7,14 @@ export function initBroadcastCron() {
   cron.schedule('* * * * *', async () => {
     try {
       const now = new Date()
+      // Clean up stuck BROADCASTING bookings
+      // If a booking has been BROADCASTING for more than 10 minutes, mark as FAILED
+      const tenMinsAgo = new Date(now.getTime() - 10 * 60 * 1000)
+      await Booking.updateMany(
+        { status: 'BROADCASTING', updatedAt: { $lt: tenMinsAgo } },
+        { $set: { status: 'FAILED' } }
+      )
+
       // 30 mins from now
       const thirtyMinsFromNow = new Date(now.getTime() + 30 * 60 * 1000)
       

@@ -11,7 +11,7 @@ export const BROADCAST_TIMEOUT_MS = 300000 // 5 minutes flash broadcast timeout
  * Starts the flash broadcast for a new booking based on a radius zone.
  */
 export async function startBroadcastCycle(bookingId) {
-  const booking = await Booking.findById(bookingId).populate('userId', 'name phone')
+  const booking = await Booking.findById(bookingId).populate('userId', 'fullName phone')
   if (!booking || booking.status !== 'CREATED') return
 
   // 1. Get Radius Setting
