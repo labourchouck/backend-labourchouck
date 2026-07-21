@@ -11,6 +11,7 @@ const allocationSchema = new mongoose.Schema(
     adminId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     vendorId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     vendorAcceptedAt: Date,
+    vendorRejectedAt: Date,
     deployedAt: Date,
     notes: { type: String, trim: true, maxlength: 500 },
   },

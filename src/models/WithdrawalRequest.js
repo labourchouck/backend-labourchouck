@@ -5,7 +5,11 @@ const withdrawalRequestSchema = new mongoose.Schema(
     labourId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: true,
+      index: true,
+    },
+    vendorId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
       index: true,
     },
     amount: {

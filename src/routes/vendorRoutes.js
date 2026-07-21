@@ -9,9 +9,16 @@ import {
   removeVendorDocument,
   listVendorCrew,
   linkVendorCrew,
+  verifyLinkVendorCrewOtp,
+  unlinkVendorCrew,
   getVendorDashboard,
   listVendorJobs,
+  getVendorJob,
   acceptVendorJob,
+  rejectVendorJob,
+  getVendorAnalytics,
+  listVendorWithdrawals,
+  requestVendorWithdrawal,
   listVendorSettlements,
 } from '../controllers/vendorController.js'
 
@@ -27,8 +34,15 @@ router.post('/verification/submit', submitVendorVerification)
 router.get('/dashboard', getVendorDashboard)
 router.get('/crew', listVendorCrew)
 router.post('/crew/link', linkVendorCrew)
+router.post('/crew/link/verify', verifyLinkVendorCrewOtp)
+router.delete('/crew/:workerId', unlinkVendorCrew)
 router.get('/jobs', listVendorJobs)
+router.get('/jobs/:id', getVendorJob)
 router.post('/jobs/:id/accept', acceptVendorJob)
+router.post('/jobs/:id/reject', rejectVendorJob)
+router.get('/analytics', getVendorAnalytics)
+router.get('/withdrawals', listVendorWithdrawals)
+router.post('/withdrawals/request', requestVendorWithdrawal)
 router.get('/settlements', listVendorSettlements)
 
 export default router
