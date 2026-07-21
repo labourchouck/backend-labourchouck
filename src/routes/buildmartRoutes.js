@@ -2,14 +2,17 @@ import { Router } from 'express'
 import {
   submitQuoteRequest,
   getCategories,
+  getAdminCategories,
   createCategory,
   updateCategory,
   deleteCategory,
   getProducts,
+  getAdminProducts,
   createProduct,
   updateProduct,
   deleteProduct,
   getBanners,
+  getAdminBanners,
   createBanner,
   updateBanner,
   deleteBanner,
@@ -34,17 +37,17 @@ router.post(
 
 // --- Admin Catalog Routes ---
 
-router.get('/admin/categories', protect, restrictTo(...ADMIN_ROLES), getCategories)
+router.get('/admin/categories', protect, restrictTo(...ADMIN_ROLES), getAdminCategories)
 router.post('/admin/categories', protect, restrictTo(...ADMIN_ROLES), createCategory)
 router.put('/admin/categories/:id', protect, restrictTo(...ADMIN_ROLES), updateCategory)
 router.delete('/admin/categories/:id', protect, restrictTo(...ADMIN_ROLES), deleteCategory)
 
-router.get('/admin/products', protect, restrictTo(...ADMIN_ROLES), getProducts)
+router.get('/admin/products', protect, restrictTo(...ADMIN_ROLES), getAdminProducts)
 router.post('/admin/products', protect, restrictTo(...ADMIN_ROLES), createProduct)
 router.put('/admin/products/:id', protect, restrictTo(...ADMIN_ROLES), updateProduct)
 router.delete('/admin/products/:id', protect, restrictTo(...ADMIN_ROLES), deleteProduct)
 
-router.get('/admin/banners', protect, restrictTo(...ADMIN_ROLES), getBanners)
+router.get('/admin/banners', protect, restrictTo(...ADMIN_ROLES), getAdminBanners)
 router.post('/admin/banners', protect, restrictTo(...ADMIN_ROLES), createBanner)
 router.put('/admin/banners/:id', protect, restrictTo(...ADMIN_ROLES), updateBanner)
 router.delete('/admin/banners/:id', protect, restrictTo(...ADMIN_ROLES), deleteBanner)

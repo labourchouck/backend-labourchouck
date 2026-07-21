@@ -148,6 +148,22 @@ export const getCategories = asyncHandler(async (req, res) => {
   return sendSuccess(res, { data: categories })
 })
 
+export const getAdminCategories = asyncHandler(async (req, res) => {
+  const page = Math.max(1, parseInt(req.query.page, 10) || 1)
+  const limit = Math.min(500, Math.max(5, parseInt(req.query.limit, 10) || 50))
+  const [items, total] = await Promise.all([
+    BuildMartCategory.find()
+      .select('-_id -__v -createdAt -updatedAt')
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .lean(),
+    BuildMartCategory.countDocuments(),
+  ])
+  return sendSuccess(res, {
+    data: { items, total, page, pages: Math.max(1, Math.ceil(total / limit)) },
+  })
+})
+
 export const createCategory = asyncHandler(async (req, res) => {
   const category = await BuildMartCategory.create(req.body)
   const result = category.toObject()
@@ -175,6 +191,22 @@ export const deleteCategory = asyncHandler(async (req, res) => {
 export const getProducts = asyncHandler(async (req, res) => {
   const products = await BuildMartProduct.find().select('-_id -__v -createdAt -updatedAt').lean()
   return sendSuccess(res, { data: products })
+})
+
+export const getAdminProducts = asyncHandler(async (req, res) => {
+  const page = Math.max(1, parseInt(req.query.page, 10) || 1)
+  const limit = Math.min(500, Math.max(5, parseInt(req.query.limit, 10) || 50))
+  const [items, total] = await Promise.all([
+    BuildMartProduct.find()
+      .select('-_id -__v -createdAt -updatedAt')
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .lean(),
+    BuildMartProduct.countDocuments(),
+  ])
+  return sendSuccess(res, {
+    data: { items, total, page, pages: Math.max(1, Math.ceil(total / limit)) },
+  })
 })
 
 export const createProduct = asyncHandler(async (req, res) => {
@@ -212,6 +244,22 @@ export const deleteProduct = asyncHandler(async (req, res) => {
 export const getBanners = asyncHandler(async (req, res) => {
   const banners = await BuildMartBanner.find().select('-_id -__v -createdAt -updatedAt').lean()
   return sendSuccess(res, { data: banners })
+})
+
+export const getAdminBanners = asyncHandler(async (req, res) => {
+  const page = Math.max(1, parseInt(req.query.page, 10) || 1)
+  const limit = Math.min(500, Math.max(5, parseInt(req.query.limit, 10) || 50))
+  const [items, total] = await Promise.all([
+    BuildMartBanner.find()
+      .select('-_id -__v -createdAt -updatedAt')
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .lean(),
+    BuildMartBanner.countDocuments(),
+  ])
+  return sendSuccess(res, {
+    data: { items, total, page, pages: Math.max(1, Math.ceil(total / limit)) },
+  })
 })
 
 export const createBanner = asyncHandler(async (req, res) => {
