@@ -1,15 +1,22 @@
 import { Complaint } from '../models/Complaint.js'
+import { User } from '../models/User.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { sendError, sendSuccess, HTTP_STATUS } from '../utils/apiResponse.js'
 
 export const getAllComplaints = asyncHandler(async (req, res) => {
-  const { status, page = 1, limit = 20 } = req.query
-  const query = status ? { status } : {}
+  const { status, role, page = 1, limit = 20 } = req.query
+  const query = status && status !== 'ALL' ? { status } : {}
+  
+  if (role && role !== 'ALL') {
+    const users = await User.find({ role }).select('_id')
+    query.complainantId = { $in: users.map(u => u._id) }
+  }
+
   const skip = (Number(page) - 1) * Number(limit)
 
   const complaints = await Complaint.find(query)
-    .populate('complainantId', 'name phone role')
-    .populate('complaineeId', 'name phone role')
+    .populate('complainantId', 'fullName phone role')
+    .populate('complaineeId', 'fullName phone role')
     .populate('bookingId', 'status type locationText')
     .sort({ createdAt: -1 })
     .skip(skip)

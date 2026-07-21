@@ -5,7 +5,7 @@ import { sendError, sendSuccess, HTTP_STATUS } from '../utils/apiResponse.js'
 export const submitComplaint = asyncHandler(async (req, res) => {
   const { bookingId, complaineeId, title, description } = req.body
 
-  if (req.user._id.toString() === complaineeId) {
+  if (complaineeId && req.user._id.toString() === complaineeId) {
     return sendError(res, { message: 'You cannot complain against yourself', statusCode: HTTP_STATUS.BAD_REQUEST })
   }
 
