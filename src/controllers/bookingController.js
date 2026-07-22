@@ -3,6 +3,7 @@ import { LabourSubcategory } from '../models/LabourSubcategory.js'
 import { LabourService } from '../models/LabourService.js'
 import { SystemSetting } from '../models/SystemSetting.js'
 import { Wallet } from '../models/Wallet.js'
+import { AdminWallet } from '../models/AdminWallet.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { HTTP_STATUS, sendError, sendSuccess } from '../utils/apiResponse.js'
 import { parseISTDateTime } from '../utils/dateHelper.js'
@@ -326,6 +327,16 @@ export const updateBookingStatus = asyncHandler(async (req, res) => {
             description: 'Payout for Online Booking'
           }).catch(err => console.error('WalletTx error:', err))
         })
+
+        // Log splits to AdminWallet for Platform Fee and Commission
+        if (booking.platformFee > 0 || booking.commissionAmount > 0) {
+          let adminWallet = await AdminWallet.findOne()
+          if (!adminWallet) adminWallet = new AdminWallet()
+          
+          adminWallet.totalPlatformFeesCollected += (booking.platformFee || 0)
+          adminWallet.totalCommissionsCollected += (booking.commissionAmount || 0)
+          await adminWallet.save()
+        }
       }
     }
   }
