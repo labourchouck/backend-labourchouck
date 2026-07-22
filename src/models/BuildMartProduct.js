@@ -47,6 +47,13 @@ const buildMartProductSchema = new mongoose.Schema(
     variantCount: { type: Number, default: 0 },
     priceLabel: { type: String, required: true },
     relatedIds: [{ type: String }],
+    vendorId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    status: {
+      type: String,
+      enum: ['PENDING', 'APPROVED', 'REJECTED'],
+      default: 'APPROVED', // Defaulting to APPROVED to not break existing admin products
+    },
+    rejectionReason: { type: String, trim: true, maxlength: 500 },
   },
   { timestamps: true }
 )

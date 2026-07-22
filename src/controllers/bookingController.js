@@ -328,13 +328,14 @@ export const updateBookingStatus = asyncHandler(async (req, res) => {
           }).catch(err => console.error('WalletTx error:', err))
         })
 
-        // Log splits to AdminWallet for Platform Fee and Commission
-        if (booking.platformFee > 0 || booking.commissionAmount > 0) {
+        // Log splits to AdminWallet for Platform Fee, Commission and total business
+        if (booking.platformFee > 0 || booking.commissionAmount > 0 || booking.basePrice > 0) {
           let adminWallet = await AdminWallet.findOne()
           if (!adminWallet) adminWallet = new AdminWallet()
           
           adminWallet.totalPlatformFeesCollected += (booking.platformFee || 0)
           adminWallet.totalCommissionsCollected += (booking.commissionAmount || 0)
+          adminWallet.totalServiceAmountCollected += (booking.basePrice || 0)
           await adminWallet.save()
         }
       }

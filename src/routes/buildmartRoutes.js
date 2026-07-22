@@ -16,6 +16,7 @@ import {
   createBanner,
   updateBanner,
   deleteBanner,
+  reviewProductAdmin,
 } from '../controllers/buildmartController.js'
 import { protect, restrictTo } from '../middleware/auth.js'
 import { validateRequest } from '../middleware/validateRequest.js'
@@ -46,6 +47,7 @@ router.get('/admin/products', protect, restrictTo(...ADMIN_ROLES), getAdminProdu
 router.post('/admin/products', protect, restrictTo(...ADMIN_ROLES), createProduct)
 router.put('/admin/products/:id', protect, restrictTo(...ADMIN_ROLES), updateProduct)
 router.delete('/admin/products/:id', protect, restrictTo(...ADMIN_ROLES), deleteProduct)
+router.patch('/admin/products/:id/review', protect, restrictTo(...ADMIN_ROLES), reviewProductAdmin)
 
 router.get('/admin/banners', protect, restrictTo(...ADMIN_ROLES), getAdminBanners)
 router.post('/admin/banners', protect, restrictTo(...ADMIN_ROLES), createBanner)

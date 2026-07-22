@@ -10,6 +10,10 @@ const adminWalletSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    totalServiceAmountCollected: {
+      type: Number,
+      default: 0,
+    },
   },
   { timestamps: true }
 )

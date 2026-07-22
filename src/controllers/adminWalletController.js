@@ -32,6 +32,27 @@ export const getAllWithdrawalRequests = asyncHandler(async (req, res) => {
   })
 })
 
+export const getCollectedCommissionAmount = asyncHandler(async (req, res) => {
+  const { AdminWallet } = await import('../models/AdminWallet.js')
+  let adminWallet = await AdminWallet.findOne().lean()
+
+  if (!adminWallet) {
+    adminWallet = {
+      totalCommissionsCollected: 0,
+      totalPlatformFeesCollected: 0,
+      totalServiceAmountCollected: 0,
+    }
+  }
+
+  sendSuccess(res, {
+    data: {
+      commissionAmount: adminWallet.totalCommissionsCollected,
+      platformFeesAmount: adminWallet.totalPlatformFeesCollected,
+      serviceAmount: adminWallet.totalServiceAmountCollected,
+    },
+  })
+})
+
 export const processWithdrawalRequest = asyncHandler(async (req, res) => {
   const { id } = req.params
   const { status, adminRemarks } = req.body

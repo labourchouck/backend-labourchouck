@@ -133,9 +133,9 @@ export const buildWhatsAppLeadUrl = (lead) => {
   return `https://wa.me/${digits}?text=${encodeURIComponent(text)}`
 }
 
-/** GET /buildmart/products — list all seeded products */
+/** GET /buildmart/products — list all seeded products (only APPROVED) */
 export const getBuildMartProducts = asyncHandler(async (req, res) => {
-  const products = await BuildMartProduct.find().lean()
+  const products = await BuildMartProduct.find({ status: { $ne: 'PENDING', $ne: 'REJECTED' } }).lean()
   return sendSuccess(res, {
     data: { products },
   })
@@ -189,20 +189,25 @@ export const deleteCategory = asyncHandler(async (req, res) => {
 // --- Products ---
 
 export const getProducts = asyncHandler(async (req, res) => {
-  const products = await BuildMartProduct.find().select('-_id -__v -createdAt -updatedAt').lean()
+  const products = await BuildMartProduct.find({ status: { $ne: 'PENDING', $ne: 'REJECTED' } }).select('-_id -__v -createdAt -updatedAt').lean()
   return sendSuccess(res, { data: products })
 })
 
 export const getAdminProducts = asyncHandler(async (req, res) => {
   const page = Math.max(1, parseInt(req.query.page, 10) || 1)
   const limit = Math.min(500, Math.max(5, parseInt(req.query.limit, 10) || 50))
+  
+  const filter = {}
+  if (req.query.status) filter.status = req.query.status
+
   const [items, total] = await Promise.all([
-    BuildMartProduct.find()
-      .select('-_id -__v -createdAt -updatedAt')
+    BuildMartProduct.find(filter)
+      .select('-__v -updatedAt')
+      .populate('vendorId', 'name phone email')
       .skip((page - 1) * limit)
       .limit(limit)
       .lean(),
-    BuildMartProduct.countDocuments(),
+    BuildMartProduct.countDocuments(filter),
   ])
   return sendSuccess(res, {
     data: { items, total, page, pages: Math.max(1, Math.ceil(total / limit)) },
@@ -237,6 +242,36 @@ export const deleteProduct = asyncHandler(async (req, res) => {
   const product = await BuildMartProduct.findOneAndDelete({ id: req.params.id })
   if (!product) return sendError(res, { message: 'Product not found', statusCode: HTTP_STATUS.NOT_FOUND })
   return sendSuccess(res, { message: 'Product deleted successfully' })
+})
+
+export const reviewProductAdmin = asyncHandler(async (req, res) => {
+  const { status, rejectionReason } = req.body
+
+  if (!['APPROVED', 'REJECTED'].includes(status)) {
+    return sendError(res, { message: 'Invalid status', statusCode: HTTP_STATUS.BAD_REQUEST })
+  }
+
+  if (status === 'REJECTED' && !rejectionReason) {
+    return sendError(res, { message: 'Rejection reason is required', statusCode: HTTP_STATUS.BAD_REQUEST })
+  }
+
+  const product = await BuildMartProduct.findOneAndUpdate(
+    { id: req.params.id },
+    { 
+      status, 
+      rejectionReason: status === 'REJECTED' ? rejectionReason : '' 
+    },
+    { new: true, runValidators: true }
+  ).select('-__v').lean()
+
+  if (!product) {
+    return sendError(res, { message: 'Product not found', statusCode: HTTP_STATUS.NOT_FOUND })
+  }
+
+  return sendSuccess(res, {
+    message: `Product has been ${status.toLowerCase()}`,
+    data: product
+  })
 })
 
 // --- Banners ---

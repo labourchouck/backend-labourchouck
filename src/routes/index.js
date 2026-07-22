@@ -7,6 +7,7 @@ import buildmartRoutes from './buildmartRoutes.js'
 import uploadRoutes from './uploadRoutes.js'
 import corporateRoutes from './corporateRoutes.js'
 import vendorRoutes from './vendorRoutes.js'
+import vendorBuildmartRoutes from './vendorBuildmartRoutes.js'
 import workforceRoutes from './workforceRoutes.js'
 import adminWorkforceRoutes from './adminWorkforceRoutes.js'
 import systemSettingRoutes from './systemSettingRoutes.js'
@@ -37,6 +38,7 @@ router.use('/labour-categories', labourCategoryRoutes)
 router.use('/buildmart', buildmartRoutes)
 router.use('/corporate', corporateRoutes)
 router.use('/vendor', vendorRoutes)
+router.use('/vendor/buildmart', vendorBuildmartRoutes)
 router.use('/workforce', workforceRoutes)
 router.use('/bookings', bookingRoutes)
 router.use('/wallets', walletRoutes)
@@ -58,5 +60,10 @@ router.use('/admin/buildmart', adminBuildmartRoutes)
 router.use('/admin/bookings', adminBookingRoutes)
 router.use('/admin', adminLabourCategoryRoutes)
 router.use('/labour/location', locationRoutes)
+
+import { getCollectedCommissionAmount } from '../controllers/adminWalletController.js'
+import { protect, restrictTo } from '../middleware/auth.js'
+import { USER_ROLES } from '../constants/roles.js'
+router.get('/admin/commission-fee', protect, restrictTo(USER_ROLES.ADMIN), getCollectedCommissionAmount)
 
 export default router
