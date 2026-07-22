@@ -459,7 +459,7 @@ export const requestVendorWithdrawal = asyncHandler(async (req, res) => {
   }
 
   // Bank details validation
-  const { accountNumber, ifscCode, accountHolderName, bankName } = bankDetails ?? {}
+  const { accountNumber, ifscCode, accountHolderName, bankName, qrCodeUrl } = bankDetails ?? {}
   if (!accountNumber || !ifscCode || !accountHolderName || !bankName) {
     return sendError(res, {
       message: 'Complete bank details required (accountNumber, ifscCode, accountHolderName, bankName)',
@@ -490,7 +490,7 @@ export const requestVendorWithdrawal = asyncHandler(async (req, res) => {
   const withdrawal = await WithdrawalRequest.create({
     vendorId: req.user._id,
     amount: parsedAmount,
-    bankDetails: { accountNumber, ifscCode, accountHolderName, bankName },
+    bankDetails: { accountNumber, ifscCode, accountHolderName, bankName, qrCodeUrl },
     status: 'PENDING',
   })
 

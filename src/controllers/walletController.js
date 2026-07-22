@@ -81,7 +81,9 @@ export const requestWithdrawal = asyncHandler(async (req, res) => {
     return sendError(res, { message: 'Valid positive amount is required', statusCode: HTTP_STATUS.BAD_REQUEST })
   }
 
-  if (!bankDetails || !bankDetails.accountNumber || !bankDetails.ifscCode) {
+  const { accountNumber, ifscCode, accountHolderName, bankName, qrCodeUrl } = bankDetails || {}
+
+  if (!accountNumber || !ifscCode || !accountHolderName || !bankName) {
     return sendError(res, { message: 'Incomplete bank details', statusCode: HTTP_STATUS.BAD_REQUEST })
   }
 
@@ -106,7 +108,7 @@ export const requestWithdrawal = asyncHandler(async (req, res) => {
     const request = await WithdrawalRequest.create([{
       labourId: req.user._id,
       amount: numAmount,
-      bankDetails,
+      bankDetails: { accountNumber, ifscCode, accountHolderName, bankName, qrCodeUrl },
       status: 'PENDING'
     }], { session })
 

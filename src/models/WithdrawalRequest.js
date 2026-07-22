@@ -32,6 +32,7 @@ const withdrawalRequestSchema = new mongoose.Schema(
       ifscCode: String,
       accountHolderName: String,
       bankName: String,
+      qrCodeUrl: String,
     },
   },
   { timestamps: true }
