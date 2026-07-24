@@ -49,15 +49,21 @@ export const patchVendorMe = asyncHandler(async (req, res) => {
   if (req.user.role !== USER_ROLES.CONTRACTOR) {
     return sendError(res, { message: 'Forbidden', statusCode: HTTP_STATUS.FORBIDDEN })
   }
-  if (req.user.contractorProfile?.verificationStatus === 'approved') {
+  if (req.user.contractorProfile?.verificationStatus === 'pending' && req.user.contractorProfile?.documentsSubmittedAt) {
     return sendError(res, {
-      message: 'Account verified — contact support to update business details',
+      message: 'Cannot update profile while verification is in review',
       statusCode: HTTP_STATUS.FORBIDDEN,
     })
   }
   const patch = normalizeVendorProfilePatch(req.body)
   if (!req.user.contractorProfile) req.user.contractorProfile = {}
   Object.assign(req.user.contractorProfile, patch)
+
+  // Sync personal details with User model
+  if (patch.contactPersonName) req.user.fullName = patch.contactPersonName
+  if (patch.contactEmail) req.user.email = patch.contactEmail
+  if (patch.contactPhone) req.user.phone = patch.contactPhone
+
   await req.user.save()
   const progress = getVendorVerificationProgress(req.user.contractorProfile)
   sendSuccess(res, {
@@ -77,9 +83,9 @@ export const addVendorDocument = asyncHandler(async (req, res) => {
   if (req.user.role !== USER_ROLES.CONTRACTOR) {
     return sendError(res, { message: 'Forbidden', statusCode: HTTP_STATUS.FORBIDDEN })
   }
-  if (req.user.contractorProfile?.verificationStatus === 'approved') {
+  if (req.user.contractorProfile?.verificationStatus === 'pending' && req.user.contractorProfile?.documentsSubmittedAt) {
     return sendError(res, {
-      message: 'Account already verified — contact support to update documents',
+      message: 'Cannot upload documents while verification is in review',
       statusCode: HTTP_STATUS.FORBIDDEN,
     })
   }
@@ -158,7 +164,7 @@ export const removeVendorDocument = asyncHandler(async (req, res) => {
   if (req.user.role !== USER_ROLES.CONTRACTOR) {
     return sendError(res, { message: 'Forbidden', statusCode: HTTP_STATUS.FORBIDDEN })
   }
-  if (req.user.contractorProfile?.documentsSubmittedAt) {
+  if (req.user.contractorProfile?.verificationStatus === 'pending' && req.user.contractorProfile?.documentsSubmittedAt) {
     return sendError(res, {
       message: 'Cannot remove documents while verification is in review',
       statusCode: HTTP_STATUS.FORBIDDEN,
