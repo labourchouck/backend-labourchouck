@@ -5,6 +5,23 @@ import { HTTP_STATUS, sendError, sendSuccess } from '../utils/apiResponse.js'
 export const createVendorProduct = asyncHandler(async (req, res) => {
   const payload = { ...req.body }
 
+  // Sanitize numeric fields from UI to prevent Mongoose CastErrors
+  if (payload.supplier && typeof payload.supplier.rating !== 'undefined') {
+    payload.supplier.rating = Number(payload.supplier.rating) || 0
+  }
+  if (Array.isArray(payload.variants)) {
+    payload.variants = payload.variants.map(v => ({
+      ...v,
+      retailPrice: v.retailPrice ? Number(v.retailPrice) : undefined,
+      contractorPrice: v.contractorPrice ? Number(v.contractorPrice) : undefined,
+      bulkPrice: v.bulkPrice ? Number(v.bulkPrice) : undefined,
+      moq: v.moq ? Number(v.moq) : undefined,
+    }))
+    payload.variantCount = payload.variants.length
+  } else {
+    payload.variantCount = 0
+  }
+
   // Set vendor ID and force status to PENDING
   payload.vendorId = req.user._id
   payload.status = 'PENDING'
@@ -25,6 +42,7 @@ export const createVendorProduct = asyncHandler(async (req, res) => {
   
   const result = product.toObject()
   delete result.__v
+  delete result.supplier
   
   return sendSuccess(res, { 
     data: result, 
@@ -39,7 +57,7 @@ export const getVendorProducts = asyncHandler(async (req, res) => {
   
   const [items, total] = await Promise.all([
     BuildMartProduct.find({ vendorId: req.user._id })
-      .select('-__v')
+      .select('-__v -supplier')
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit)
@@ -56,7 +74,7 @@ export const getVendorProductById = asyncHandler(async (req, res) => {
   const product = await BuildMartProduct.findOne({ 
     id: req.params.id, 
     vendorId: req.user._id 
-  }).select('-__v').lean()
+  }).select('-__v -supplier').lean()
 
   if (!product) {
     return sendError(res, { message: 'Product not found', statusCode: HTTP_STATUS.NOT_FOUND })
@@ -68,6 +86,23 @@ export const getVendorProductById = asyncHandler(async (req, res) => {
 export const updateVendorProduct = asyncHandler(async (req, res) => {
   const payload = { ...req.body }
   
+  // Sanitize numeric fields from UI to prevent Mongoose CastErrors
+  if (payload.supplier && typeof payload.supplier.rating !== 'undefined') {
+    payload.supplier.rating = Number(payload.supplier.rating) || 0
+  }
+  if (Array.isArray(payload.variants)) {
+    payload.variants = payload.variants.map(v => ({
+      ...v,
+      retailPrice: v.retailPrice ? Number(v.retailPrice) : undefined,
+      contractorPrice: v.contractorPrice ? Number(v.contractorPrice) : undefined,
+      bulkPrice: v.bulkPrice ? Number(v.bulkPrice) : undefined,
+      moq: v.moq ? Number(v.moq) : undefined,
+    }))
+    payload.variantCount = payload.variants.length
+  } else if (payload.variants !== undefined) {
+    payload.variantCount = 0
+  }
+
   // Prevent vendor from maliciously changing status, vendorId, or clearing rejection reason manually
   delete payload.vendorId
   delete payload.status
@@ -81,7 +116,7 @@ export const updateVendorProduct = asyncHandler(async (req, res) => {
     { id: req.params.id, vendorId: req.user._id }, 
     payload, 
     { new: true, runValidators: true }
-  ).select('-__v').lean()
+  ).select('-__v -supplier').lean()
 
   if (!product) {
     return sendError(res, { message: 'Product not found', statusCode: HTTP_STATUS.NOT_FOUND })

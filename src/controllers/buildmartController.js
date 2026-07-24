@@ -203,7 +203,7 @@ export const getAdminProducts = asyncHandler(async (req, res) => {
   const [items, total] = await Promise.all([
     BuildMartProduct.find(filter)
       .select('-__v -updatedAt')
-      .populate('vendorId', 'name phone email')
+      .populate('vendorId', 'fullName phone email')
       .skip((page - 1) * limit)
       .limit(limit)
       .lean(),
@@ -212,6 +212,19 @@ export const getAdminProducts = asyncHandler(async (req, res) => {
   return sendSuccess(res, {
     data: { items, total, page, pages: Math.max(1, Math.ceil(total / limit)) },
   })
+})
+
+export const getAdminProductById = asyncHandler(async (req, res) => {
+  const isObjectId = req.params.id.match(/^[0-9a-fA-F]{24}$/)
+  const query = isObjectId ? { _id: req.params.id } : { id: req.params.id }
+  
+  const product = await BuildMartProduct.findOne(query)
+    .select('-__v -updatedAt')
+    .populate('vendorId', 'fullName phone email')
+    .lean()
+    
+  if (!product) return sendError(res, { message: 'Product not found', statusCode: HTTP_STATUS.NOT_FOUND })
+  return sendSuccess(res, { data: product })
 })
 
 export const createProduct = asyncHandler(async (req, res) => {
@@ -255,14 +268,17 @@ export const reviewProductAdmin = asyncHandler(async (req, res) => {
     return sendError(res, { message: 'Rejection reason is required', statusCode: HTTP_STATUS.BAD_REQUEST })
   }
 
+  const isObjectId = req.params.id.match(/^[0-9a-fA-F]{24}$/)
+  const query = isObjectId ? { _id: req.params.id } : { id: req.params.id }
+
   const product = await BuildMartProduct.findOneAndUpdate(
-    { id: req.params.id },
+    query,
     { 
       status, 
       rejectionReason: status === 'REJECTED' ? rejectionReason : '' 
     },
     { new: true, runValidators: true }
-  ).select('-__v').lean()
+  ).select('-__v').populate('vendorId', 'fullName phone email').lean()
 
   if (!product) {
     return sendError(res, { message: 'Product not found', statusCode: HTTP_STATUS.NOT_FOUND })

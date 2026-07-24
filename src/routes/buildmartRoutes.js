@@ -8,6 +8,7 @@ import {
   deleteCategory,
   getProducts,
   getAdminProducts,
+  getAdminProductById,
   createProduct,
   updateProduct,
   deleteProduct,
@@ -17,7 +18,7 @@ import {
   updateBanner,
   deleteBanner,
   reviewProductAdmin,
-} from '../controllers/buildmartController.js'
+} from '../controllers/buildMartController.js'
 import { protect, restrictTo } from '../middleware/auth.js'
 import { validateRequest } from '../middleware/validateRequest.js'
 import { submitQuoteValidators } from '../validators/buildmartValidators.js'
@@ -44,6 +45,7 @@ router.put('/admin/categories/:id', protect, restrictTo(...ADMIN_ROLES), updateC
 router.delete('/admin/categories/:id', protect, restrictTo(...ADMIN_ROLES), deleteCategory)
 
 router.get('/admin/products', protect, restrictTo(...ADMIN_ROLES), getAdminProducts)
+router.get('/admin/products/:id', protect, restrictTo(...ADMIN_ROLES), getAdminProductById)
 router.post('/admin/products', protect, restrictTo(...ADMIN_ROLES), createProduct)
 router.put('/admin/products/:id', protect, restrictTo(...ADMIN_ROLES), updateProduct)
 router.delete('/admin/products/:id', protect, restrictTo(...ADMIN_ROLES), deleteProduct)

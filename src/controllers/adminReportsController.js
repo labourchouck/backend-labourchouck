@@ -7,10 +7,10 @@ import { USER_ROLES } from '../constants/roles.js'
 export const getDashboardStats = async (req, res) => {
   try {
     // 1. User Stats
-    const totalCustomers = await User.countDocuments({ role: USER_ROLES.CUSTOMER })
+    const totalCustomers = await User.countDocuments({ role: USER_ROLES.INDIVIDUAL })
     const totalLabour = await User.countDocuments({ role: USER_ROLES.LABOUR })
     const totalCorporate = await User.countDocuments({ role: USER_ROLES.CORPORATE })
-    const totalVendors = await User.countDocuments({ role: USER_ROLES.VENDOR })
+    const totalVendors = await User.countDocuments({ role: USER_ROLES.CONTRACTOR })
     const totalUsers = totalCustomers + totalLabour + totalCorporate + totalVendors
 
     // 2. Booking Stats

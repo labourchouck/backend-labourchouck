@@ -9,7 +9,7 @@ import {
 import { protect, restrictTo } from '../middleware/auth.js'
 import { USER_ROLES } from '../constants/roles.js'
 
-const VENDOR_ROLES = [USER_ROLES.VENDOR]
+const VENDOR_ROLES = [USER_ROLES.CONTRACTOR]
 
 const router = Router()
 
