@@ -1,4 +1,5 @@
 import { BuildMartProduct } from '../models/BuildMartProduct.js'
+import { BuildMartLead } from '../models/BuildMartLead.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { HTTP_STATUS, sendError, sendSuccess } from '../utils/apiResponse.js'
 
@@ -139,4 +140,69 @@ export const deleteVendorProduct = asyncHandler(async (req, res) => {
   }
   
   return sendSuccess(res, { message: 'Product deleted successfully' })
+})
+
+export const getVendorEnquiries = asyncHandler(async (req, res) => {
+  const page = Math.max(1, parseInt(req.query.page, 10) || 1)
+  const limit = Math.min(100, Math.max(5, parseInt(req.query.limit, 10) || 20))
+  const status = req.query.status?.trim()
+
+  const filter = { vendorId: req.user._id }
+  if (status && status !== 'all') filter.status = status
+
+  const [items, total] = await Promise.all([
+    BuildMartLead.find(filter)
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .lean(),
+    BuildMartLead.countDocuments(filter),
+  ])
+
+  // Inject whatsapp URL for frontend convenience
+  const itemsWithUrls = items.map(lead => {
+    const userPhone = lead.phone || ''
+    let whatsappUrl = null
+    if (userPhone) {
+      const text = [
+        'Hi, regarding your BuildMart enquiry',
+        `Product: ${lead.productName}`,
+        lead.quantity ? `Qty: ${lead.quantity}` : null,
+      ].filter(Boolean).join('\n')
+      const digits = userPhone.replace(/\D/g, '')
+      whatsappUrl = `https://wa.me/${digits}?text=${encodeURIComponent(text)}`
+    }
+    return { ...lead, whatsappUrl }
+  })
+
+  return sendSuccess(res, {
+    data: { items: itemsWithUrls, total, page, pages: Math.max(1, Math.ceil(total / limit)) },
+  })
+})
+
+export const updateVendorEnquiryStatus = asyncHandler(async (req, res) => {
+  const { status } = req.body
+  const allowed = ['new', 'contacted', 'quoted', 'won', 'lost']
+  
+  if (!allowed.includes(status)) {
+    return sendError(res, {
+      message: 'Invalid status',
+      statusCode: HTTP_STATUS.BAD_REQUEST,
+    })
+  }
+
+  const lead = await BuildMartLead.findOneAndUpdate(
+    { _id: req.params.id, vendorId: req.user._id },
+    { status },
+    { new: true, runValidators: true }
+  ).lean()
+
+  if (!lead) {
+    return sendError(res, { message: 'Enquiry not found', statusCode: HTTP_STATUS.NOT_FOUND })
+  }
+
+  return sendSuccess(res, {
+    message: 'Enquiry status updated',
+    data: { lead },
+  })
 })

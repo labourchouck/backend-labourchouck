@@ -19,6 +19,7 @@ const buildMartLeadSchema = new mongoose.Schema(
     },
     source: { type: String, default: 'buildmart_app', trim: true },
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    vendorId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
     userRole: { type: String, trim: true },
     userName: { type: String, trim: true },
   },
@@ -27,5 +28,6 @@ const buildMartLeadSchema = new mongoose.Schema(
 
 buildMartLeadSchema.index({ createdAt: -1 })
 buildMartLeadSchema.index({ status: 1, createdAt: -1 })
+buildMartLeadSchema.index({ vendorId: 1, createdAt: -1 })
 
 export const BuildMartLead = mongoose.model('BuildMartLead', buildMartLeadSchema)

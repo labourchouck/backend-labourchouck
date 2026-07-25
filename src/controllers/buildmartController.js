@@ -21,6 +21,16 @@ export const submitQuoteRequest = asyncHandler(async (req, res) => {
     notes,
   } = req.body
 
+  let vendorId = undefined
+  if (productId) {
+    const isObjectId = productId.match(/^[0-9a-fA-F]{24}$/)
+    const query = isObjectId ? { _id: productId } : { id: productId }
+    const product = await BuildMartProduct.findOne(query).select('vendorId').lean()
+    if (product && product.vendorId) {
+      vendorId = product.vendorId
+    }
+  }
+
   const lead = await BuildMartLead.create({
     productId,
     productName,
@@ -33,6 +43,7 @@ export const submitQuoteRequest = asyncHandler(async (req, res) => {
     deliveryDate: deliveryDate || undefined,
     notes: notes || undefined,
     userId: req.user._id,
+    vendorId,
     userRole: req.user.role,
     userName: req.user.fullName || name,
   })
@@ -66,6 +77,7 @@ export const listLeadsAdmin = asyncHandler(async (req, res) => {
   const [items, total] = await Promise.all([
     BuildMartLead.find(filter)
       .sort({ createdAt: -1 })
+      .populate('vendorId', 'fullName phone email')
       .skip((page - 1) * limit)
       .limit(limit)
       .lean(),

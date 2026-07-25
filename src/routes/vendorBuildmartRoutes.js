@@ -5,6 +5,8 @@ import {
   getVendorProductById,
   updateVendorProduct,
   deleteVendorProduct,
+  getVendorEnquiries,
+  updateVendorEnquiryStatus,
 } from '../controllers/vendorBuildmartController.js'
 import { protect, restrictTo } from '../middleware/auth.js'
 import { USER_ROLES } from '../constants/roles.js'
@@ -21,5 +23,8 @@ router.get('/products/:id', getVendorProductById)
 router.post('/products', createVendorProduct)
 router.put('/products/:id', updateVendorProduct)
 router.delete('/products/:id', deleteVendorProduct)
+
+router.get('/enquiries', getVendorEnquiries)
+router.patch('/enquiries/:id/status', updateVendorEnquiryStatus)
 
 export default router
