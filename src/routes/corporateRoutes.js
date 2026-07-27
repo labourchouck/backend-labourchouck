@@ -19,6 +19,7 @@ import {
   listCorporateComplaints,
   rateCorporateAssignment,
   getCorporateVendorAttendance,
+  searchVendors,
 } from '../controllers/corporateController.js'
 
 const router = Router()
@@ -42,5 +43,6 @@ router.get('/transactions', getCorporateTransactions)
 router.post('/complaints', createCorporateComplaint)
 router.get('/complaints', listCorporateComplaints)
 router.post('/assignments/:assignmentId/rate', rateCorporateAssignment)
+router.post('/vendors/search', searchVendors)
 
 export default router

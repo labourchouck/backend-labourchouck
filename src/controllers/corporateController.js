@@ -582,3 +582,88 @@ export const reviewContractorAdmin = asyncHandler(async (req, res) => {
     data: { user: user.toSafeObject() },
   })
 })
+
+export const searchVendors = asyncHandler(async (req, res) => {
+  const { lines } = req.body
+  if (!lines || !lines.length) {
+    return sendError(res, { message: 'Lines required', statusCode: HTTP_STATUS.BAD_REQUEST })
+  }
+
+  const vendorsMap = new Map()
+
+  // First, find all labours matching ANY of the requested categories/services
+  // To optimize, we could query for exactly what is needed, but an in-memory filter per vendor works for modest data sizes
+  const requiredCategories = lines.map(l => String(l.categoryId))
+  const requiredServices = lines.map(l => l.serviceId ? String(l.serviceId) : null).filter(Boolean)
+
+  const labours = await User.find({
+    role: USER_ROLES.LABOUR,
+    vendorId: { $exists: true, $ne: null },
+    isActive: true
+  }).lean()
+
+  // Group labours by vendorId
+  for (const labour of labours) {
+    const vId = String(labour.vendorId)
+    if (!vendorsMap.has(vId)) {
+      vendorsMap.set(vId, { labours: [] })
+    }
+    vendorsMap.get(vId).labours.push(labour)
+  }
+
+  const matchingVendors = []
+
+  for (const [vId, data] of vendorsMap.entries()) {
+    let matchesAll = true
+
+    for (const line of lines) {
+      const neededQty = Number(line.quantity) || 1
+      const catId = String(line.categoryId)
+      const sId = line.serviceId ? String(line.serviceId) : null
+
+      const availableForLine = data.labours.filter(l => {
+        // Labour must have the category
+        const hasCat = l.categoryIds && l.categoryIds.some(c => String(c) === catId)
+        if (!hasCat) return false
+        // If service is required, labour must have it
+        if (sId) {
+          return l.services && l.services.some(s => String(s.serviceId) === sId)
+        }
+        return true
+      })
+
+      if (availableForLine.length < neededQty) {
+        matchesAll = false
+        break
+      }
+    }
+
+    if (matchesAll) {
+      matchingVendors.push({
+        vendorId: vId,
+        matchingCrewSize: data.labours.length,
+      })
+    }
+  }
+
+  // Hydrate vendor details
+  const vendorIds = matchingVendors.map(v => v.vendorId)
+  const vendors = await User.find({ _id: { $in: vendorIds } }).lean()
+
+  const results = vendors.map(v => {
+    const matchData = matchingVendors.find(mv => mv.vendorId === String(v._id))
+    return {
+      _id: v._id,
+      fullName: v.fullName,
+      phone: v.phone,
+      businessName: v.contractorProfile?.businessName || v.fullName,
+      rating: v.contractorProfile?.rating || 0,
+      matchingCrewSize: matchData.matchingCrewSize
+    }
+  })
+
+  sendSuccess(res, {
+    message: 'Vendors found',
+    data: { vendors: results }
+  })
+})

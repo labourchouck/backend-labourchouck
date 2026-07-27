@@ -59,11 +59,22 @@ export const createRequest = asyncHandler(async (req, res) => {
     return sendError(res, { message: 'Start date required', statusCode: HTTP_STATUS.BAD_REQUEST })
   }
 
+  let finalProjectId = projectId && mongoose.Types.ObjectId.isValid(projectId) ? projectId : undefined
+  if (req.body.projectName && sourceType === REQUEST_SOURCE.CORPORATE) {
+    const Project = (await import('../models/Project.js')).Project
+    const pName = req.body.projectName.trim()
+    let proj = await Project.findOne({ corporateId: user._id, name: new RegExp(`^${pName}$`, 'i') })
+    if (!proj) {
+      proj = await Project.create({ corporateId: user._id, name: pName })
+    }
+    finalProjectId = proj._id
+  }
+
   const request = await WorkforceRequest.create({
     reference: generateRequestReference(sourceType === REQUEST_SOURCE.CORPORATE ? 'CR' : 'IR'),
     sourceType,
     clientId: user._id,
-    projectId: projectId && mongoose.Types.ObjectId.isValid(projectId) ? projectId : undefined,
+    projectId: finalProjectId,
     siteId: siteId && mongoose.Types.ObjectId.isValid(siteId) ? siteId : undefined,
     scheduleType: Object.values(SCHEDULE_TYPE).includes(scheduleType) ? scheduleType : SCHEDULE_TYPE.DAILY,
     startDate: new Date(startDate),
