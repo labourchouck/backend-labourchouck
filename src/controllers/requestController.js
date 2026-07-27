@@ -8,6 +8,8 @@ import {
 import { WorkforceRequest, generateRequestReference } from '../models/WorkforceRequest.js'
 import { Assignment } from '../models/Assignment.js'
 import { Allocation } from '../models/Allocation.js'
+import { checkVendorInventory } from '../services/vendorInventoryService.js'
+import { emitToUser } from '../socket.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { HTTP_STATUS, sendError, sendSuccess } from '../utils/apiResponse.js'
 
@@ -49,6 +51,7 @@ export const createRequest = asyncHandler(async (req, res) => {
     notes,
     billingMode,
     bookingType,
+    preferredVendorId,
   } = req.body
 
   const parsedLines = parseLines(lines)
@@ -70,6 +73,20 @@ export const createRequest = asyncHandler(async (req, res) => {
     finalProjectId = proj._id
   }
 
+  if (preferredVendorId && mongoose.Types.ObjectId.isValid(preferredVendorId)) {
+    const sDate = new Date(startDate)
+    const eDate = endDate ? new Date(endDate) : sDate
+    const inventory = await checkVendorInventory(preferredVendorId, parsedLines, sDate, eDate)
+
+    if (!inventory.hasInventory) {
+      return sendError(res, {
+        message: 'The selected vendor does not have enough available workers for the requested dates.',
+        statusCode: HTTP_STATUS.BAD_REQUEST,
+        data: { missing: inventory.missing }
+      })
+    }
+  }
+
   const request = await WorkforceRequest.create({
     reference: generateRequestReference(sourceType === REQUEST_SOURCE.CORPORATE ? 'CR' : 'IR'),
     sourceType,
@@ -86,8 +103,17 @@ export const createRequest = asyncHandler(async (req, res) => {
     notes,
     billingMode,
     bookingType,
-    status: REQUEST_STATUS.PENDING_REVIEW,
+    preferredVendorId: preferredVendorId && mongoose.Types.ObjectId.isValid(preferredVendorId) ? preferredVendorId : undefined,
+    status: (preferredVendorId && mongoose.Types.ObjectId.isValid(preferredVendorId)) ? REQUEST_STATUS.BROADCASTED : REQUEST_STATUS.PENDING_REVIEW,
   })
+
+  // Bypass admin and emit socket instantly if it's a direct request
+  if (request.status === REQUEST_STATUS.BROADCASTED && request.preferredVendorId) {
+    emitToUser(request.preferredVendorId, 'B2B_DIRECT_REQUEST', {
+      requestId: request._id,
+      clientId: request.clientId
+    })
+  }
 
   sendSuccess(res, { request }, HTTP_STATUS.CREATED)
 })
@@ -141,5 +167,14 @@ export const patchRequestStatusAdmin = asyncHandler(async (req, res) => {
   request.reviewedBy = req.user._id
   request.reviewedAt = new Date()
   await request.save()
+
+  // Notify vendor if it's a direct request and is being broadcasted/approved
+  if (status === REQUEST_STATUS.BROADCASTED && request.preferredVendorId) {
+    emitToUser(request.preferredVendorId, 'B2B_DIRECT_REQUEST', {
+      requestId: request._id,
+      clientId: request.clientId
+    })
+  }
+
   sendSuccess(res, { request })
 })

@@ -20,6 +20,8 @@ import {
   rateCorporateAssignment,
   getCorporateVendorAttendance,
   searchVendors,
+  listCorporateVendors,
+  getCorporateBanners,
 } from '../controllers/corporateController.js'
 
 const router = Router()
@@ -32,7 +34,9 @@ router.post('/documents', addCorporateDocument)
 router.delete('/documents/:docId', removeCorporateDocument)
 router.post('/verification/submit', submitCorporateVerification)
 router.get('/dashboard', getCorporateDashboard)
+router.get('/banners', getCorporateBanners)
 router.get('/vendor-attendance', getCorporateVendorAttendance)
+router.get('/vendors', listCorporateVendors)
 router.get('/projects', listCorporateProjects)
 router.post('/projects', createCorporateProject)
 router.get('/projects/:id', getCorporateProject)

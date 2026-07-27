@@ -21,6 +21,13 @@ const bannerSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    targetAudience: [
+      {
+        type: String,
+        enum: ['ALL', 'LABOUR', 'VENDOR', 'CORPORATE'],
+        default: 'ALL',
+      }
+    ],
   },
   { timestamps: true }
 )

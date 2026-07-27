@@ -9,6 +9,9 @@ import { Invoice } from '../models/Invoice.js'
 import { PaymentTransaction } from '../models/PaymentTransaction.js'
 import { Complaint } from '../models/Complaint.js'
 import { Review } from '../models/Review.js'
+import { Banner } from '../models/Banner.js'
+import { SystemSetting } from '../models/SystemSetting.js'
+import { checkVendorInventory } from '../services/vendorInventoryService.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { HTTP_STATUS, sendError, sendSuccess } from '../utils/apiResponse.js'
 import { normalizeStoredMediaUrl } from '../utils/mediaUrl.js'
@@ -499,6 +502,103 @@ export const getCorporateVendorAttendance = asyncHandler(async (req, res) => {
       vendors: Object.values(vendorGroups)
     }
   })
+})
+
+export const listCorporateVendors = asyncHandler(async (req, res) => {
+  const err = requireApprovedCorporate(req.user)
+  if (err) return sendError(res, { message: err, statusCode: HTTP_STATUS.FORBIDDEN })
+
+  // Parse lines from query or body
+  let parsedLines = []
+  if (req.query.lines) {
+    try {
+      parsedLines = JSON.parse(req.query.lines)
+    } catch(e) {}
+  }
+  
+  const sDate = req.query.startDate ? new Date(req.query.startDate) : null
+  const eDate = req.query.endDate ? new Date(req.query.endDate) : sDate
+
+  // Parse coordinates for radius filtering
+  const targetLat = req.query.lat ? parseFloat(req.query.lat) : null
+  const targetLng = req.query.lng ? parseFloat(req.query.lng) : null
+
+  // Fetch all verified vendors
+  let vendors = await User.find({
+    role: USER_ROLES.CONTRACTOR,
+    isActive: true,
+    'contractorProfile.verificationStatus': 'approved',
+    'contractorProfile.isAcceptingRequests': { $ne: false } // Only those accepting requests
+  })
+    .select('fullName phone contractorProfile')
+    .lean()
+
+  // 1. Radius Filtering
+  if (targetLat && targetLng) {
+    const settings = await SystemSetting.findOne({ configKey: 'master_config' })
+    const radiusKm = settings?.b2bBroadcastRadius || 50
+
+    vendors = vendors.filter(vendor => {
+      const vLat = vendor.contractorProfile?.currentLatitude
+      const vLng = vendor.contractorProfile?.currentLongitude
+      
+      // If vendor hasn't updated location, we can't measure distance, so we might exclude them or include them.
+      // Usually, if they are active, they should have a location. We'll exclude if no location.
+      if (!vLat || !vLng) return false
+
+      // Haversine formula
+      const R = 6371 // Radius of the earth in km
+      const dLat = (vLat - targetLat) * (Math.PI / 180)
+      const dLng = (vLng - targetLng) * (Math.PI / 180)
+      const a = 
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(targetLat * (Math.PI / 180)) * Math.cos(vLat * (Math.PI / 180)) * 
+        Math.sin(dLng / 2) * Math.sin(dLng / 2)
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)) 
+      const distance = R * c
+
+      return distance <= radiusKm
+    })
+  }
+
+  // 2. Inventory Filtering
+  if (parsedLines.length > 0 && sDate) {
+    const availableVendors = []
+    for (const vendor of vendors) {
+      const inventory = await checkVendorInventory(vendor._id, parsedLines, sDate, eDate)
+      if (inventory.hasInventory) {
+        availableVendors.push(vendor)
+      }
+    }
+    vendors = availableVendors
+  }
+
+  // Sanitize vendor object to just return safe fields
+  vendors = vendors.map(v => ({
+    _id: v._id,
+    fullName: v.fullName,
+    phone: v.phone,
+    businessName: v.contractorProfile?.businessName,
+    city: v.contractorProfile?.city,
+    state: v.contractorProfile?.state,
+  }))
+
+  sendSuccess(res, { data: { vendors } })
+})
+
+export const getCorporateBanners = asyncHandler(async (req, res) => {
+  const banners = await Banner.find({
+    isActive: true,
+    $or: [
+      { targetAudience: { $exists: false } },
+      { targetAudience: { $size: 0 } },
+      { targetAudience: { $in: ['ALL', 'CORPORATE'] } }
+    ]
+  })
+    .sort({ sortOrder: 1, createdAt: -1 })
+    .lean()
+
+  return sendSuccess(res, { data: { banners } })
 })
 
 export const reviewCorporateAdmin = asyncHandler(async (req, res) => {

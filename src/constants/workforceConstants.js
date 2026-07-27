@@ -5,6 +5,7 @@ export const REQUEST_SOURCE = {
 
 export const REQUEST_STATUS = {
   PENDING_REVIEW: 'pending_review',
+  BROADCASTED: 'broadcasted',
   CONFIRMED: 'confirmed',
   ALLOCATING: 'allocating',
   ASSIGNED: 'assigned',
