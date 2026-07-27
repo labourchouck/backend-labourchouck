@@ -8,6 +8,7 @@ import {
 import { WorkforceRequest, generateRequestReference } from '../models/WorkforceRequest.js'
 import { Assignment } from '../models/Assignment.js'
 import { Allocation } from '../models/Allocation.js'
+import { checkVendorInventory } from '../services/vendorInventoryService.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { HTTP_STATUS, sendError, sendSuccess } from '../utils/apiResponse.js'
 
@@ -58,6 +59,20 @@ export const createRequest = asyncHandler(async (req, res) => {
   }
   if (!startDate) {
     return sendError(res, { message: 'Start date required', statusCode: HTTP_STATUS.BAD_REQUEST })
+  }
+
+  if (preferredVendorId && mongoose.Types.ObjectId.isValid(preferredVendorId)) {
+    const sDate = new Date(startDate)
+    const eDate = endDate ? new Date(endDate) : sDate
+    const inventory = await checkVendorInventory(preferredVendorId, parsedLines, sDate, eDate)
+    
+    if (!inventory.hasInventory) {
+      return sendError(res, { 
+        message: 'The selected vendor does not have enough available workers for the requested dates.', 
+        statusCode: HTTP_STATUS.BAD_REQUEST,
+        data: { missing: inventory.missing }
+      })
+    }
   }
 
   const request = await WorkforceRequest.create({

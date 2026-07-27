@@ -21,6 +21,8 @@ import {
   requestVendorWithdrawal,
   listVendorSettlements,
   getVendorDirectRequests,
+  assignVendorCrew,
+  replaceVendorCrew,
 } from '../controllers/vendorController.js'
 
 const router = Router()
@@ -40,6 +42,8 @@ router.delete('/crew/:workerId', unlinkVendorCrew)
 router.get('/jobs', listVendorJobs)
 router.get('/jobs/:id', getVendorJob)
 router.post('/jobs/:id/accept', acceptVendorJob)
+router.post('/jobs/:id/assign-crew', assignVendorCrew)
+router.post('/jobs/:id/replace-crew', replaceVendorCrew)
 router.get('/direct-requests', getVendorDirectRequests)
 router.post('/jobs/:id/reject', rejectVendorJob)
 router.get('/analytics', getVendorAnalytics)

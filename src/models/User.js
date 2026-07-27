@@ -114,6 +114,8 @@ const contractorProfileSchema = new mongoose.Schema(
     contactPersonName: { type: String, trim: true },
     contactEmail: { type: String, trim: true, lowercase: true },
     contactPhone: { type: String, trim: true, maxlength: 10 },
+    currentLatitude: { type: Number },
+    currentLongitude: { type: Number },
     verificationStatus: {
       type: String,
       enum: ['pending', 'approved', 'rejected'],
