@@ -9,6 +9,7 @@ import { WorkforceRequest, generateRequestReference } from '../models/WorkforceR
 import { Assignment } from '../models/Assignment.js'
 import { Allocation } from '../models/Allocation.js'
 import { checkVendorInventory } from '../services/vendorInventoryService.js'
+import { emitToUser } from '../socket.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { HTTP_STATUS, sendError, sendSuccess } from '../utils/apiResponse.js'
 
@@ -92,8 +93,16 @@ export const createRequest = asyncHandler(async (req, res) => {
     billingMode,
     bookingType,
     preferredVendorId: preferredVendorId && mongoose.Types.ObjectId.isValid(preferredVendorId) ? preferredVendorId : undefined,
-    status: REQUEST_STATUS.PENDING_REVIEW,
+    status: (preferredVendorId && mongoose.Types.ObjectId.isValid(preferredVendorId)) ? REQUEST_STATUS.BROADCASTED : REQUEST_STATUS.PENDING_REVIEW,
   })
+
+  // Bypass admin and emit socket instantly if it's a direct request
+  if (request.status === REQUEST_STATUS.BROADCASTED && request.preferredVendorId) {
+    emitToUser(request.preferredVendorId, 'B2B_DIRECT_REQUEST', {
+      requestId: request._id,
+      clientId: request.clientId
+    })
+  }
 
   sendSuccess(res, { request }, HTTP_STATUS.CREATED)
 })
@@ -147,5 +156,14 @@ export const patchRequestStatusAdmin = asyncHandler(async (req, res) => {
   request.reviewedBy = req.user._id
   request.reviewedAt = new Date()
   await request.save()
+
+  // Notify vendor if it's a direct request and is being broadcasted/approved
+  if (status === REQUEST_STATUS.BROADCASTED && request.preferredVendorId) {
+    emitToUser(request.preferredVendorId, 'B2B_DIRECT_REQUEST', {
+      requestId: request._id,
+      clientId: request.clientId
+    })
+  }
+
   sendSuccess(res, { request })
 })

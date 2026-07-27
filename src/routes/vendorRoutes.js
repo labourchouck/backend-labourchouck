@@ -23,6 +23,7 @@ import {
   getVendorDirectRequests,
   assignVendorCrew,
   replaceVendorCrew,
+  toggleAcceptingRequests,
 } from '../controllers/vendorController.js'
 
 const router = Router()
@@ -44,6 +45,7 @@ router.get('/jobs/:id', getVendorJob)
 router.post('/jobs/:id/accept', acceptVendorJob)
 router.post('/jobs/:id/assign-crew', assignVendorCrew)
 router.post('/jobs/:id/replace-crew', replaceVendorCrew)
+router.patch('/toggle-availability', toggleAcceptingRequests)
 router.get('/direct-requests', getVendorDirectRequests)
 router.post('/jobs/:id/reject', rejectVendorJob)
 router.get('/analytics', getVendorAnalytics)

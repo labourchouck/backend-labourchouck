@@ -527,7 +527,8 @@ export const listCorporateVendors = asyncHandler(async (req, res) => {
   let vendors = await User.find({
     role: USER_ROLES.CONTRACTOR,
     isActive: true,
-    'contractorProfile.verificationStatus': 'approved'
+    'contractorProfile.verificationStatus': 'approved',
+    'contractorProfile.isAcceptingRequests': { $ne: false } // Only those accepting requests
   })
     .select('fullName phone contractorProfile')
     .lean()

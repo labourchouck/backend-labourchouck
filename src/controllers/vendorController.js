@@ -13,6 +13,7 @@ import { Wallet } from '../models/Wallet.js'
 import { WithdrawalRequest } from '../models/WithdrawalRequest.js'
 import { checkVendorInventory } from '../services/vendorInventoryService.js'
 import { createOtpChallenge, validateOtpChallenge, deleteOtpChallengeDoc } from '../services/otpService.js'
+import { emitToUser } from '../socket.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { HTTP_STATUS, sendError, sendSuccess } from '../utils/apiResponse.js'
 import { normalizeStoredMediaUrl } from '../utils/mediaUrl.js'
@@ -409,6 +410,13 @@ export const acceptVendorJob = asyncHandler(async (req, res) => {
     vendorAcceptedAt: new Date(),
   })
   
+  // Notify corporate
+  emitToUser(request.clientId, 'B2B_REQUEST_ACCEPTED', {
+    requestId: request._id,
+    vendorId: req.user._id,
+    allocationId: allocation._id
+  })
+
   sendSuccess(res, { data: { allocation } })
 })
 
@@ -496,6 +504,12 @@ export const assignVendorCrew = asyncHandler(async (req, res) => {
   allocation.deployedAt = new Date()
   await allocation.save()
 
+  // Notify corporate
+  emitToUser(request.clientId, 'B2B_CREW_ASSIGNED', {
+    allocationId: allocation._id,
+    requestId: request._id
+  })
+
   sendSuccess(res, { message: 'Crew assigned successfully' })
 })
 
@@ -564,7 +578,33 @@ export const replaceVendorCrew = asyncHandler(async (req, res) => {
     acceptedAt: new Date()
   })
 
+  // Notify corporate
+  emitToUser(request.clientId, 'B2B_CREW_REPLACED', {
+    allocationId: allocation._id,
+    requestId: request._id,
+    oldLabourId,
+    newLabourId
+  })
+
   sendSuccess(res, { message: 'Crew replaced successfully', data: { newAssignment } })
+})
+
+export const toggleAcceptingRequests = asyncHandler(async (req, res) => {
+  const err = requireApprovedVendor(req.user)
+  if (err) return sendError(res, { message: err, statusCode: HTTP_STATUS.FORBIDDEN })
+
+  const { isAccepting } = req.body
+  if (typeof isAccepting !== 'boolean') {
+    return sendError(res, { message: 'isAccepting must be a boolean', statusCode: HTTP_STATUS.BAD_REQUEST })
+  }
+
+  const user = await User.findById(req.user._id)
+  if (user.contractorProfile) {
+    user.contractorProfile.isAcceptingRequests = isAccepting
+    await user.save()
+  }
+
+  sendSuccess(res, { message: 'Availability toggled successfully', data: { isAccepting } })
 })
 
 export const getVendorAnalytics = asyncHandler(async (req, res) => {
