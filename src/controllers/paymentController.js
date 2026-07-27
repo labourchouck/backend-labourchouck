@@ -12,6 +12,9 @@ export const initPayment = asyncHandler(async (req, res) => {
   if (purpose === 'BOOKING' && !bookingId) {
     return sendError(res, { message: 'bookingId is required for BOOKING purpose', statusCode: HTTP_STATUS.BAD_REQUEST })
   }
+  if (purpose === 'INVOICE' && !req.body.invoiceId) {
+    return sendError(res, { message: 'invoiceId is required for INVOICE purpose', statusCode: HTTP_STATUS.BAD_REQUEST })
+  }
 
   // Generate Razorpay Order
   const receiptId = `rcpt_${req.user._id.toString().slice(-4)}_${Date.now().toString().slice(-4)}`
@@ -21,6 +24,7 @@ export const initPayment = asyncHandler(async (req, res) => {
   const pTx = await PaymentTransaction.create({
     userId: req.user._id,
     bookingId: purpose === 'BOOKING' ? bookingId : undefined,
+    invoiceId: purpose === 'INVOICE' ? req.body.invoiceId : undefined,
     razorpayOrderId: order.id,
     amount,
     purpose,
@@ -92,6 +96,14 @@ export const verifyPayment = asyncHandler(async (req, res) => {
         referenceId: pTx._id,
         description: 'Online Payment Clearance'
       })
+    }
+  } else if (pTx.purpose === 'INVOICE' && pTx.invoiceId) {
+    const Invoice = (await import('../models/Invoice.js')).Invoice
+    const invoice = await Invoice.findById(pTx.invoiceId)
+    if (invoice) {
+      invoice.status = 'paid'
+      invoice.paidAt = new Date()
+      await invoice.save()
     }
   }
 
