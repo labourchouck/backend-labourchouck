@@ -9,6 +9,7 @@ import { Invoice } from '../models/Invoice.js'
 import { PaymentTransaction } from '../models/PaymentTransaction.js'
 import { Complaint } from '../models/Complaint.js'
 import { Review } from '../models/Review.js'
+import { Banner } from '../models/Banner.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { HTTP_STATUS, sendError, sendSuccess } from '../utils/apiResponse.js'
 import { normalizeStoredMediaUrl } from '../utils/mediaUrl.js'
@@ -499,6 +500,36 @@ export const getCorporateVendorAttendance = asyncHandler(async (req, res) => {
       vendors: Object.values(vendorGroups)
     }
   })
+})
+
+export const listCorporateVendors = asyncHandler(async (req, res) => {
+  const err = requireApprovedCorporate(req.user)
+  if (err) return sendError(res, { message: err, statusCode: HTTP_STATUS.FORBIDDEN })
+
+  const vendors = await User.find({
+    role: USER_ROLES.CONTRACTOR,
+    isActive: true,
+    'contractorProfile.verificationStatus': 'approved'
+  })
+    .select('fullName phone contractorProfile.businessName contractorProfile.city contractorProfile.state')
+    .lean()
+
+  sendSuccess(res, { data: { vendors } })
+})
+
+export const getCorporateBanners = asyncHandler(async (req, res) => {
+  const banners = await Banner.find({
+    isActive: true,
+    $or: [
+      { targetAudience: { $exists: false } },
+      { targetAudience: { $size: 0 } },
+      { targetAudience: { $in: ['ALL', 'CORPORATE'] } }
+    ]
+  })
+    .sort({ sortOrder: 1, createdAt: -1 })
+    .lean()
+
+  return sendSuccess(res, { data: { banners } })
 })
 
 export const reviewCorporateAdmin = asyncHandler(async (req, res) => {

@@ -49,6 +49,7 @@ export const createRequest = asyncHandler(async (req, res) => {
     notes,
     billingMode,
     bookingType,
+    preferredVendorId,
   } = req.body
 
   const parsedLines = parseLines(lines)
@@ -75,6 +76,7 @@ export const createRequest = asyncHandler(async (req, res) => {
     notes,
     billingMode,
     bookingType,
+    preferredVendorId: preferredVendorId && mongoose.Types.ObjectId.isValid(preferredVendorId) ? preferredVendorId : undefined,
     status: REQUEST_STATUS.PENDING_REVIEW,
   })
 

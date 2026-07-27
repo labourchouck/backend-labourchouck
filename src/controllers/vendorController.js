@@ -282,6 +282,24 @@ export const unlinkVendorCrew = asyncHandler(async (req, res) => {
   sendSuccess(res, { message: 'Worker unlinked successfully' })
 })
 
+export const getVendorDirectRequests = asyncHandler(async (req, res) => {
+  const err = requireApprovedVendor(req.user)
+  if (err) return sendError(res, { message: err, statusCode: HTTP_STATUS.FORBIDDEN })
+
+  // Find requests specifically directed to this vendor which are still open/pending
+  const requests = await WorkforceRequest.find({
+    preferredVendorId: req.user._id,
+    status: { $in: [REQUEST_STATUS.BROADCASTED, REQUEST_STATUS.PENDING_REVIEW] }
+  })
+    .sort({ createdAt: -1 })
+    .populate('clientId', 'fullName corporateProfile.companyName corporateProfile.city')
+    .populate('projectId', 'name')
+    .populate('lines.categoryId', 'name')
+    .lean()
+
+  sendSuccess(res, { data: { requests } })
+})
+
 export const getVendorDashboard = asyncHandler(async (req, res) => {
   const err = requireApprovedVendor(req.user)
   if (err) return sendError(res, { message: err, statusCode: HTTP_STATUS.FORBIDDEN })

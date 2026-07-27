@@ -53,6 +53,7 @@ const workforceRequestSchema = new mongoose.Schema(
     adminNote: { type: String, trim: true, maxlength: 500 },
     reviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     reviewedAt: Date,
+    preferredVendorId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', index: true },
   },
   { timestamps: true },
 )
