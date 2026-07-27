@@ -229,3 +229,10 @@ export const getMe = asyncHandler(async (req, res) => {
   await populateLabourCategories(req.user)
   return sendSuccess(res, { data: { user: req.user.toSafeObject() } })
 })
+
+/** POST /auth/logout */
+export const logout = asyncHandler(async (req, res) => {
+  // Currently JWT is stateless, so we just return success.
+  // In the future, we could invalidate the token here (e.g., blocklist).
+  return sendSuccess(res, { message: 'Logged out successfully' })
+})
