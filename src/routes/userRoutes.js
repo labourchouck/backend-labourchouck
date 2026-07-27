@@ -29,10 +29,13 @@ router.get(
 router.use(protect)
 
 router.get('/me', user.getProfile)
+router.delete('/me', user.deleteMe)
 router.patch(
   '/me',
   [
     body('fullName').optional().trim().isLength({ min: 2, max: 120 }),
+    body('phone').optional().trim().matches(/^\d{10}$/).withMessage('Enter a valid 10-digit phone number'),
+    body('email').optional({ checkFalsy: true }).trim().isEmail().withMessage('Enter a valid email address'),
     body('labourProfile.skills').optional().isArray(),
     body('labourProfile.skills.*').optional().trim().isLength({ min: 1, max: 64 }),
   ],
