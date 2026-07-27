@@ -28,6 +28,7 @@ import adminBannerRoutes from './adminBannerRoutes.js'
 import adminReportsRoutes from './adminReportsRoutes.js'
 import adminBuildmartRoutes from './adminBuildmartRoutes.js'
 import adminBookingRoutes from './adminBookingRoutes.js'
+import adminVendorRoutes from './adminVendorRoutes.js'
 
 const router = Router()
 
@@ -59,6 +60,7 @@ router.use('/admin/reports', adminReportsRoutes)
 router.use('/admin/buildmart', adminBuildmartRoutes)
 router.use('/admin/bookings', adminBookingRoutes)
 router.use('/admin', adminLabourCategoryRoutes)
+router.use('/admin/vendors', adminVendorRoutes)
 router.use('/labour/location', locationRoutes)
 
 import { getCollectedCommissionAmount } from '../controllers/adminWalletController.js'

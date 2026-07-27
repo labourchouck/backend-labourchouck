@@ -115,16 +115,22 @@ export const updateLabourCategories = asyncHandler(async (req, res) => {
 
   const { services } = req.body
   const uniqueServices = []
-  const uniqueSubcategoryIds = []
+  const uniqueSubcategoryIds = new Set()
+  const uniqueServiceIds = []
   
   if (Array.isArray(services)) {
     const seen = new Set()
     for (const svc of services) {
-      if (svc.subcategoryId && !seen.has(String(svc.subcategoryId))) {
-        seen.add(String(svc.subcategoryId))
-        uniqueSubcategoryIds.push(String(svc.subcategoryId))
+      const sId = svc.serviceId || svc.subcategoryId // Fallback for backwards compatibility
+      if (sId && !seen.has(String(sId))) {
+        seen.add(String(sId))
+        
+        if (svc.serviceId) uniqueServiceIds.push(String(svc.serviceId))
+        if (svc.subcategoryId) uniqueSubcategoryIds.add(String(svc.subcategoryId))
+        
         uniqueServices.push({
-          subcategoryId: String(svc.subcategoryId),
+          serviceId: svc.serviceId ? String(svc.serviceId) : undefined,
+          subcategoryId: svc.subcategoryId ? String(svc.subcategoryId) : undefined,
           minPrice: Number(svc.minPrice) || 0,
           maxPrice: Number(svc.maxPrice) || 0,
         })
@@ -132,23 +138,38 @@ export const updateLabourCategories = asyncHandler(async (req, res) => {
     }
   }
 
-  // Dynamically import LabourSubcategory
+  // Dynamically import LabourSubcategory and LabourService
   const { LabourSubcategory } = await import('../models/LabourSubcategory.js')
+  const { LabourService } = await import('../models/LabourService.js')
   
+  const subcatIdArray = Array.from(uniqueSubcategoryIds)
   const subcategories = await LabourSubcategory.find({
-    _id: { $in: uniqueSubcategoryIds },
+    _id: { $in: subcatIdArray },
     isActive: true,
   }).populate('categoryId')
 
-  if (subcategories.length !== uniqueSubcategoryIds.length) {
+  if (subcategories.length !== subcatIdArray.length && subcatIdArray.length > 0) {
     return sendError(res, {
       message: 'One or more categories are invalid or inactive',
       statusCode: HTTP_STATUS.BAD_REQUEST,
       code: 'INVALID_CATEGORIES',
     })
   }
+  
+  const servicesInDb = await LabourService.find({
+    _id: { $in: uniqueServiceIds },
+    isActive: true,
+  })
+  
+  if (servicesInDb.length !== uniqueServiceIds.length && uniqueServiceIds.length > 0) {
+    return sendError(res, {
+      message: 'One or more services are invalid or inactive',
+      statusCode: HTTP_STATUS.BAD_REQUEST,
+      code: 'INVALID_SERVICES',
+    })
+  }
 
-  const hasTrade = subcategories.length > 0 // all subcategories act as trade now
+  const hasTrade = uniqueServices.length > 0
   if (!hasTrade) {
     return sendError(res, {
       message:
@@ -161,8 +182,9 @@ export const updateLabourCategories = asyncHandler(async (req, res) => {
   const catIds = [...new Set(subcategories.map(s => String(s.categoryId?._id || s.categoryId)))]
 
   req.user.labourProfile = req.user.labourProfile || {}
-  req.user.labourProfile.subcategoryIds = uniqueSubcategoryIds
+  req.user.labourProfile.subcategoryIds = subcatIdArray
   req.user.labourProfile.categoryIds = catIds
+  req.user.labourProfile.serviceIds = uniqueServiceIds
   req.user.labourProfile.servicePricing = uniqueServices
   await req.user.save()
   await populateLabourCategories(req.user)
@@ -622,4 +644,20 @@ export const getDiscoverLabour = asyncHandler(async (req, res) => {
   }
 
   return sendSuccess(res, { data: { labour: detail } })
+})
+export const deleteUser = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.params.id)
+  if (!user) {
+    return sendError(res, { message: 'User not found', statusCode: HTTP_STATUS.NOT_FOUND })
+  }
+
+  // Prevent admin from deleting themselves
+  if (String(user._id) === String(req.user._id)) {
+    return sendError(res, { message: 'Cannot delete your own admin account', statusCode: HTTP_STATUS.BAD_REQUEST })
+  }
+
+  // Delete associated records if needed (for now, simply delete the user document)
+  await User.deleteOne({ _id: user._id })
+
+  return sendSuccess(res, { message: 'User deleted successfully' })
 })

@@ -77,8 +77,10 @@ const labourProfileSchema = new mongoose.Schema(
     skills: [{ type: String, trim: true }],
     categoryIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'LabourCategory' }],
     subcategoryIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'LabourSubcategory' }],
+    serviceIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'LabourService' }],
     servicePricing: [
       {
+        serviceId: { type: mongoose.Schema.Types.ObjectId, ref: 'LabourService' },
         subcategoryId: { type: mongoose.Schema.Types.ObjectId, ref: 'LabourSubcategory' },
         minPrice: { type: Number, min: 0 },
         maxPrice: { type: Number, min: 0 },
