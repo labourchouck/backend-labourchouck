@@ -57,10 +57,12 @@ function sanitizeKycVideoMeta(meta) {
 
 /** PATCH /users/me — update basic profile fields (mobile-first parity with future app) */
 export const updateMe = asyncHandler(async (req, res) => {
-  const { fullName, profileImageUrl } = req.body
+  const { fullName, profileImageUrl, phone, email } = req.body
   const user = req.user
 
   if (fullName != null) user.fullName = String(fullName).trim()
+  if (phone != null) user.phone = String(phone).trim()
+  if (email != null) user.email = String(email).trim().toLowerCase() || undefined
 
   if (profileImageUrl !== undefined) {
     const raw = profileImageUrl == null ? '' : String(profileImageUrl).trim()
@@ -95,7 +97,20 @@ export const updateMe = asyncHandler(async (req, res) => {
     user.labourProfile.skills = req.body.labourProfile.skills
   }
 
-  await user.save()
+  try {
+    await user.save()
+  } catch (err) {
+    if (err.code === 11000) {
+      const field = Object.keys(err.keyPattern || {})[0]
+      return sendError(res, {
+        message: `This ${field} is already in use by another account`,
+        statusCode: HTTP_STATUS.CONFLICT,
+        code: 'DUPLICATE_FIELD',
+      })
+    }
+    throw err
+  }
+  
   await populateLabourCategories(user)
   return sendSuccess(res, {
     message: 'Profile updated',
@@ -660,4 +675,15 @@ export const deleteUser = asyncHandler(async (req, res) => {
   await User.deleteOne({ _id: user._id })
 
   return sendSuccess(res, { message: 'User deleted successfully' })
+})
+
+export const deleteMe = asyncHandler(async (req, res) => {
+  const user = req.user
+  if (!user) {
+    return sendError(res, { message: 'User not found', statusCode: HTTP_STATUS.NOT_FOUND })
+  }
+
+  await User.deleteOne({ _id: user._id })
+
+  return sendSuccess(res, { message: 'Account deleted successfully' })
 })
