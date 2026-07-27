@@ -645,3 +645,19 @@ export const getDiscoverLabour = asyncHandler(async (req, res) => {
 
   return sendSuccess(res, { data: { labour: detail } })
 })
+export const deleteUser = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.params.id)
+  if (!user) {
+    return sendError(res, { message: 'User not found', statusCode: HTTP_STATUS.NOT_FOUND })
+  }
+
+  // Prevent admin from deleting themselves
+  if (String(user._id) === String(req.user._id)) {
+    return sendError(res, { message: 'Cannot delete your own admin account', statusCode: HTTP_STATUS.BAD_REQUEST })
+  }
+
+  // Delete associated records if needed (for now, simply delete the user document)
+  await User.deleteOne({ _id: user._id })
+
+  return sendSuccess(res, { message: 'User deleted successfully' })
+})
