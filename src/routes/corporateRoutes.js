@@ -13,6 +13,12 @@ import {
   addCorporateSite,
   getCorporateDashboard,
   listCorporateInvoices,
+  getCorporateAnalytics,
+  getCorporateTransactions,
+  createCorporateComplaint,
+  listCorporateComplaints,
+  rateCorporateAssignment,
+  getCorporateVendorAttendance,
 } from '../controllers/corporateController.js'
 
 const router = Router()
@@ -25,10 +31,16 @@ router.post('/documents', addCorporateDocument)
 router.delete('/documents/:docId', removeCorporateDocument)
 router.post('/verification/submit', submitCorporateVerification)
 router.get('/dashboard', getCorporateDashboard)
+router.get('/vendor-attendance', getCorporateVendorAttendance)
 router.get('/projects', listCorporateProjects)
 router.post('/projects', createCorporateProject)
 router.get('/projects/:id', getCorporateProject)
 router.post('/projects/:projectId/sites', addCorporateSite)
 router.get('/invoices', listCorporateInvoices)
+router.get('/analytics', getCorporateAnalytics)
+router.get('/transactions', getCorporateTransactions)
+router.post('/complaints', createCorporateComplaint)
+router.get('/complaints', listCorporateComplaints)
+router.post('/assignments/:assignmentId/rate', rateCorporateAssignment)
 
 export default router

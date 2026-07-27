@@ -8,6 +8,18 @@ const complaintSchema = new mongoose.Schema(
       required: false,
       index: true,
     },
+    assignmentId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Assignment',
+      required: false,
+      index: true,
+    },
+    projectId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Project',
+      required: false,
+      index: true,
+    },
     complainantId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',

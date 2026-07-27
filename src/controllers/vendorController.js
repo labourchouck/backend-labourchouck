@@ -314,12 +314,30 @@ export const getVendorJob = asyncHandler(async (req, res) => {
   const allocation = await Allocation.findOne({ _id: req.params.id, vendorId: req.user._id })
     .populate({
       path: 'requestId',
-      select: 'reference status locationText startDate endDate lines description requirements clientName clientPhone',
+      populate: { path: 'clientId', select: 'fullName phone companyName' }
     })
     .lean()
     
   if (!allocation) {
     return sendError(res, { message: 'Job not found', statusCode: HTTP_STATUS.NOT_FOUND })
+  }
+
+  // Map the populated fields to match the exact JSON structure defined in JOB_ALLOCATIONS_API.md
+  if (allocation.requestId) {
+    const reqData = allocation.requestId
+    const client = reqData.clientId || {}
+    allocation.requestId = {
+      reference: reqData.reference,
+      status: reqData.status,
+      locationText: reqData.locationText,
+      startDate: reqData.startDate,
+      endDate: reqData.endDate,
+      description: reqData.notes,
+      requirements: reqData.notes, // Using notes as a fallback since requirements isn't in schema
+      clientName: client.companyName || client.fullName,
+      clientPhone: client.phone,
+      lines: reqData.lines
+    }
   }
   
   sendSuccess(res, { data: { allocation } })

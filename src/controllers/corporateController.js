@@ -6,6 +6,9 @@ import { WorkforceRequest } from '../models/WorkforceRequest.js'
 import { Assignment } from '../models/Assignment.js'
 import { AttendanceRecord } from '../models/AttendanceRecord.js'
 import { Invoice } from '../models/Invoice.js'
+import { PaymentTransaction } from '../models/PaymentTransaction.js'
+import { Complaint } from '../models/Complaint.js'
+import { Review } from '../models/Review.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { HTTP_STATUS, sendError, sendSuccess } from '../utils/apiResponse.js'
 import { normalizeStoredMediaUrl } from '../utils/mediaUrl.js'
@@ -289,11 +292,213 @@ export const getCorporateDashboard = asyncHandler(async (req, res) => {
   })
 })
 
+export const getCorporateAnalytics = asyncHandler(async (req, res) => {
+  const err = requireApprovedCorporate(req.user)
+  if (err) return sendError(res, { message: err, statusCode: HTTP_STATUS.FORBIDDEN })
+  
+  const corporateId = req.user._id
+  
+  // Basic analytics for now: last 7 days attendance
+  const last7Days = Array.from({length: 7}).map((_, i) => {
+    const d = new Date()
+    d.setDate(d.getDate() - i)
+    return {
+      date: d.toISOString().split('T')[0],
+      present: 0,
+      absent: 0
+    }
+  }).reverse()
+  
+  const attendanceRecords = await AttendanceRecord.find({
+    requestId: {
+      $in: await WorkforceRequest.find({ clientId: corporateId }).distinct('_id'),
+    },
+    shiftDate: {
+      $gte: new Date(new Date().setDate(new Date().getDate() - 7))
+    }
+  }).lean()
+
+  attendanceRecords.forEach(record => {
+    const dateStr = new Date(record.shiftDate).toISOString().split('T')[0]
+    const dayStat = last7Days.find(d => d.date === dateStr)
+    if (dayStat) {
+      if (record.status === 'present') dayStat.present++
+      else dayStat.absent++
+    }
+  })
+
+  // Basic Spend Analytics (sum of invoices in last 6 months)
+  const invoices = await Invoice.find({ 
+    corporateId,
+    status: { $in: ['paid', 'partially_paid'] }
+  }).lean()
+  
+  const totalSpend = invoices.reduce((sum, inv) => sum + (inv.amountPaid || 0), 0)
+
+  sendSuccess(res, {
+    data: {
+      attendanceTrends: last7Days,
+      totalSpend
+    }
+  })
+})
+
 export const listCorporateInvoices = asyncHandler(async (req, res) => {
   const err = requireApprovedCorporate(req.user)
   if (err) return sendError(res, { message: err, statusCode: HTTP_STATUS.FORBIDDEN })
   const invoices = await Invoice.find({ corporateId: req.user._id }).sort({ createdAt: -1 }).lean()
   sendSuccess(res, { data: { invoices } })
+})
+
+export const getCorporateTransactions = asyncHandler(async (req, res) => {
+  const err = requireApprovedCorporate(req.user)
+  if (err) return sendError(res, { message: err, statusCode: HTTP_STATUS.FORBIDDEN })
+  
+  const transactions = await PaymentTransaction.find({
+    userId: req.user._id,
+    purpose: 'INVOICE'
+  })
+    .populate('invoiceId')
+    .sort({ createdAt: -1 })
+    .lean()
+
+  sendSuccess(res, { data: { transactions } })
+})
+
+export const createCorporateComplaint = asyncHandler(async (req, res) => {
+  const err = requireApprovedCorporate(req.user)
+  if (err) return sendError(res, { message: err, statusCode: HTTP_STATUS.FORBIDDEN })
+
+  const { title, description, assignmentId, projectId, complaineeId } = req.body
+  if (!title || !description) {
+    return sendError(res, { message: 'Title and description are required', statusCode: HTTP_STATUS.BAD_REQUEST })
+  }
+
+  const complaint = await Complaint.create({
+    complainantId: req.user._id,
+    title,
+    description,
+    assignmentId,
+    projectId,
+    complaineeId
+  })
+
+  sendSuccess(res, { data: { complaint }, message: 'Complaint registered successfully' })
+})
+
+export const listCorporateComplaints = asyncHandler(async (req, res) => {
+  const err = requireApprovedCorporate(req.user)
+  if (err) return sendError(res, { message: err, statusCode: HTTP_STATUS.FORBIDDEN })
+
+  const complaints = await Complaint.find({ complainantId: req.user._id })
+    .populate('assignmentId')
+    .populate('projectId', 'name')
+    .populate('complaineeId', 'name')
+    .sort({ createdAt: -1 })
+    .lean()
+
+  sendSuccess(res, { data: { complaints } })
+})
+
+export const rateCorporateAssignment = asyncHandler(async (req, res) => {
+  const err = requireApprovedCorporate(req.user)
+  if (err) return sendError(res, { message: err, statusCode: HTTP_STATUS.FORBIDDEN })
+
+  const { assignmentId } = req.params
+  const { rating, comment } = req.body
+
+  if (!rating || rating < 1 || rating > 5) {
+    return sendError(res, { message: 'Valid rating (1-5) is required', statusCode: HTTP_STATUS.BAD_REQUEST })
+  }
+
+  const assignment = await Assignment.findById(assignmentId)
+  if (!assignment) {
+    return sendError(res, { message: 'Assignment not found', statusCode: HTTP_STATUS.NOT_FOUND })
+  }
+
+  // Ensure they haven't already reviewed this assignment
+  const existingReview = await Review.findOne({ reviewerId: req.user._id, assignmentId })
+  if (existingReview) {
+    return sendError(res, { message: 'You have already rated this assignment', statusCode: HTTP_STATUS.BAD_REQUEST })
+  }
+
+  const review = await Review.create({
+    assignmentId,
+    reviewerId: req.user._id,
+    revieweeId: assignment.laborId || assignment.vendorId, // Depending on who is assigned
+    rating,
+    comment
+  })
+
+  sendSuccess(res, { data: { review }, message: 'Rating submitted successfully' })
+})
+
+export const getCorporateVendorAttendance = asyncHandler(async (req, res) => {
+  const err = requireApprovedCorporate(req.user)
+  if (err) return sendError(res, { message: err, statusCode: HTTP_STATUS.FORBIDDEN })
+
+  // Find all requests for this corporate
+  const requestIds = await WorkforceRequest.find({ clientId: req.user._id }).distinct('_id')
+
+  // Find attendance for today (or filter by date if passed)
+  const d = req.query.date ? new Date(req.query.date) : new Date()
+  d.setHours(0, 0, 0, 0)
+  const end = new Date(d)
+  end.setDate(end.getDate() + 1)
+
+  const records = await AttendanceRecord.find({
+    requestId: { $in: requestIds },
+    shiftDate: { $gte: d, $lt: end }
+  })
+    .populate({
+      path: 'labourId',
+      select: 'fullName phone vendorId',
+      populate: {
+        path: 'vendorId',
+        select: 'fullName phone contractorProfile.businessName'
+      }
+    })
+    .populate('projectId', 'name')
+    .lean()
+
+  // Filter out direct labours (no vendor) and group by vendor
+  const vendorGroups = {}
+
+  for (const record of records) {
+    if (!record.labourId || !record.labourId.vendorId) continue
+
+    const vendor = record.labourId.vendorId
+    const vId = vendor._id.toString()
+    
+    if (!vendorGroups[vId]) {
+      vendorGroups[vId] = {
+        vendor: {
+          _id: vId,
+          fullName: vendor.fullName,
+          phone: vendor.phone,
+          businessName: vendor.contractorProfile?.businessName || ''
+        },
+        summary: {
+          totalCrew: 0,
+          present: 0,
+          absent: 0
+        },
+        attendanceRecords: []
+      }
+    }
+
+    vendorGroups[vId].summary.totalCrew++
+    if (record.status === 'present') vendorGroups[vId].summary.present++
+    else vendorGroups[vId].summary.absent++
+    
+    vendorGroups[vId].attendanceRecords.push(record)
+  }
+
+  sendSuccess(res, {
+    data: {
+      vendors: Object.values(vendorGroups)
+    }
+  })
 })
 
 export const reviewCorporateAdmin = asyncHandler(async (req, res) => {
