@@ -660,6 +660,48 @@ export const getDiscoverLabour = asyncHandler(async (req, res) => {
 
   return sendSuccess(res, { data: { labour: detail } })
 })
+/** PATCH /users/me/labour/schedule — worker updates their weekly time schedule */
+export const updateLabourSchedule = asyncHandler(async (req, res) => {
+  if (req.user.role !== USER_ROLES.LABOUR) {
+    return sendError(res, {
+      message: 'Only worker accounts can update their schedule',
+      statusCode: HTTP_STATUS.FORBIDDEN,
+      code: 'FORBIDDEN',
+    })
+  }
+
+  const { schedule } = req.body
+  if (!Array.isArray(schedule) || schedule.length !== 7) {
+    return sendError(res, {
+      message: 'Schedule must be an array of 7 days',
+      statusCode: HTTP_STATUS.BAD_REQUEST,
+      code: 'INVALID_SCHEDULE',
+    })
+  }
+
+  const validDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+  
+  for (const day of schedule) {
+    if (!validDays.includes(day.day)) {
+      return sendError(res, {
+        message: 'Invalid day in schedule',
+        statusCode: HTTP_STATUS.BAD_REQUEST,
+        code: 'INVALID_SCHEDULE',
+      })
+    }
+  }
+
+  req.user.labourProfile = req.user.labourProfile || {}
+  req.user.labourProfile.schedule = schedule
+
+  await req.user.save()
+  
+  return sendSuccess(res, {
+    message: 'Time schedule saved successfully',
+    data: { user: req.user.toSafeObject() },
+  })
+})
+
 export const deleteUser = asyncHandler(async (req, res) => {
   const user = await User.findById(req.params.id)
   if (!user) {

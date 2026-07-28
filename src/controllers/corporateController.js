@@ -589,11 +589,7 @@ export const listCorporateVendors = asyncHandler(async (req, res) => {
 export const getCorporateBanners = asyncHandler(async (req, res) => {
   const banners = await Banner.find({
     isActive: true,
-    $or: [
-      { targetAudience: { $exists: false } },
-      { targetAudience: { $size: 0 } },
-      { targetAudience: { $in: ['ALL', 'CORPORATE'] } }
-    ]
+    panel: 'CORPORATE'
   })
     .sort({ sortOrder: 1, createdAt: -1 })
     .lean()

@@ -21,6 +21,11 @@ const bannerSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    panel: {
+      type: String,
+      enum: ['APP', 'CORPORATE'],
+      default: 'APP',
+    },
     targetAudience: [
       {
         type: String,

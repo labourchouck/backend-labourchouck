@@ -56,6 +56,20 @@ router.patch(
   user.updateLabourCategories,
 )
 
+router.patch(
+  '/me/labour/schedule',
+  restrictTo(USER_ROLES.LABOUR),
+  [
+    body('schedule').isArray({ min: 7, max: 7 }).withMessage('Schedule must contain exactly 7 days'),
+    body('schedule.*.day').isIn(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']).withMessage('Invalid day'),
+    body('schedule.*.startTime').isString().matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/).withMessage('Invalid start time format (HH:mm)'),
+    body('schedule.*.endTime').isString().matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/).withMessage('Invalid end time format (HH:mm)'),
+    body('schedule.*.isAvailable').isBoolean().withMessage('isAvailable must be boolean'),
+  ],
+  validateRequest,
+  user.updateLabourSchedule,
+)
+
 router.post(
   '/me/labour/kyc/submit',
   restrictTo(USER_ROLES.LABOUR),

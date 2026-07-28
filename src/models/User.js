@@ -93,6 +93,25 @@ const labourProfileSchema = new mongoose.Schema(
       enum: ['available', 'busy', 'offline'],
       default: 'available',
     },
+    schedule: {
+      type: [
+        {
+          day: { type: String, enum: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'], required: true },
+          startTime: { type: String, default: '09:00' },
+          endTime: { type: String, default: '17:00' },
+          isAvailable: { type: Boolean, default: true }
+        }
+      ],
+      default: [
+        { day: 'Monday', startTime: '09:00', endTime: '17:00', isAvailable: true },
+        { day: 'Tuesday', startTime: '09:00', endTime: '17:00', isAvailable: true },
+        { day: 'Wednesday', startTime: '09:00', endTime: '17:00', isAvailable: true },
+        { day: 'Thursday', startTime: '09:00', endTime: '17:00', isAvailable: true },
+        { day: 'Friday', startTime: '09:00', endTime: '17:00', isAvailable: true },
+        { day: 'Saturday', startTime: '09:00', endTime: '17:00', isAvailable: true },
+        { day: 'Sunday', startTime: '09:00', endTime: '17:00', isAvailable: false },
+      ]
+    },
     currentLatitude: { type: Number },
     currentLongitude: { type: Number },
     lastLocationUpdatedAt: { type: Date },
