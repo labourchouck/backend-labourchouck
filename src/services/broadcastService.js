@@ -47,13 +47,75 @@ export async function startBroadcastCycle(bookingId) {
   const bufferLatDiff = latDiff * 1.2
   const bufferLngDiff = lngDiff * 1.2
 
-  const potentialLaborers = await User.find({
+  // EXCLUDE labourers who are already busy with an active job
+  const busyBookings = await Booking.find({
+    status: { $in: ['ACCEPTED', 'ASSIGNED', 'EN_ROUTE', 'STARTED'] },
+    acceptedLabourId: { $exists: true, $ne: null }
+  }).select('acceptedLabourId').lean()
+  const busyLabourIds = busyBookings.map(b => b.acceptedLabourId)
+
+  const potentialLaborersRaw = await User.find({
+    _id: { $nin: busyLabourIds },
     role: { $in: ['labour', 'contractor'] },
     'labourProfile.availabilityStatus': 'available',
     'labourProfile.currentLatitude': { $gte: bookingLat - bufferLatDiff, $lte: bookingLat + bufferLatDiff },
     'labourProfile.currentLongitude': { $gte: bookingLng - bufferLngDiff, $lte: bookingLng + bufferLngDiff },
     'labourProfile.subcategoryIds': booking.subcategoryId
   }).lean()
+
+  const to24Hour = (timeStr) => {
+    if (!timeStr) return ''
+    const match = timeStr.match(/(\d+):(\d+)\s?(AM|PM)?/i)
+    if (!match) return timeStr
+    let [ , h, m, ampm ] = match
+    h = parseInt(h, 10)
+    if (ampm) {
+      if (ampm.toUpperCase() === 'PM' && h < 12) h += 12
+      if (ampm.toUpperCase() === 'AM' && h === 12) h = 0
+    }
+    return `${String(h).padStart(2, '0')}:${m}`
+  }
+
+  const getIstDayAndTime = (dateObj) => {
+    const options = { timeZone: 'Asia/Kolkata', weekday: 'long', hour: '2-digit', minute: '2-digit', hour12: false }
+    const formatter = new Intl.DateTimeFormat('en-US', options)
+    const parts = formatter.formatToParts(dateObj)
+    let day = '', hour = '', minute = ''
+    for (const part of parts) {
+      if (part.type === 'weekday') day = part.value
+      if (part.type === 'hour') hour = part.value
+      if (part.type === 'minute') minute = part.value
+    }
+    if (hour === '24') hour = '00'
+    return { day, timeStr: `${hour}:${minute}` }
+  }
+
+  const targetDate = (booking.type === 'SCHEDULED' && booking.scheduledAt) ? new Date(booking.scheduledAt) : new Date()
+  const { day: targetDayName, timeStr: currentIstTimeStr } = getIstDayAndTime(targetDate)
+  const targetStartTimeStr = to24Hour(booking.timeSlot) || currentIstTimeStr
+  const targetEndTimeStr = to24Hour(booking.endTime)
+
+  const potentialLaborers = potentialLaborersRaw.filter(labor => {
+    const schedule = labor.labourProfile?.schedule || []
+    const dayEntry = schedule.find(s => s.day === targetDayName)
+    if (!dayEntry || !dayEntry.isAvailable) return false
+    
+    const sTime = to24Hour(dayEntry.startTime || '00:00')
+    const eTime = to24Hour(dayEntry.endTime || '23:59')
+    
+    if (targetStartTimeStr < sTime || targetStartTimeStr > eTime) return false
+
+    if (targetEndTimeStr) {
+      if (targetEndTimeStr > eTime) return false
+    } else {
+      let [h, m] = targetStartTimeStr.split(':')
+      h = parseInt(h, 10) + 1
+      const bufferEndTime = `${String(h).padStart(2, '0')}:${m}`
+      if (bufferEndTime <= '23:59' && bufferEndTime > eTime) return false
+    }
+
+    return true
+  })
 
   if (potentialLaborers.length === 0) {
     await markBookingFailed(booking, 'No laborers in area')

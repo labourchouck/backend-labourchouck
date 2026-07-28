@@ -11,7 +11,7 @@ import {
 import { protect, restrictTo } from '../middleware/auth.js'
 import { USER_ROLES } from '../constants/roles.js'
 
-const VENDOR_ROLES = [USER_ROLES.CONTRACTOR]
+const VENDOR_ROLES = [USER_ROLES.CONTRACTOR, USER_ROLES.ADMIN]
 
 const router = Router()
 

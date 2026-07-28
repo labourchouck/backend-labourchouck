@@ -24,11 +24,19 @@ import {
   assignVendorCrew,
   replaceVendorCrew,
   toggleAcceptingRequests,
+  getVendorBanners,
+  getSubscriptionPlans,
+  subscribeToPlan,
 } from '../controllers/vendorController.js'
 
 const router = Router()
 
-router.use(protect, restrictTo(USER_ROLES.CONTRACTOR))
+router.use(protect)
+
+router.get('/subscriptions/plans', getSubscriptionPlans)
+router.post('/subscriptions/subscribe', subscribeToPlan)
+
+router.use(restrictTo(USER_ROLES.CONTRACTOR, USER_ROLES.ADMIN))
 
 router.get('/me', getVendorMe)
 router.patch('/me', patchVendorMe)
@@ -52,5 +60,7 @@ router.get('/analytics', getVendorAnalytics)
 router.get('/withdrawals', listVendorWithdrawals)
 router.post('/withdrawals/request', requestVendorWithdrawal)
 router.get('/settlements', listVendorSettlements)
+router.get('/banners', getVendorBanners)
+
 
 export default router

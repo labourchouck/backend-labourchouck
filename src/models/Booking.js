@@ -34,6 +34,9 @@ const bookingSchema = new mongoose.Schema(
     timeSlot: {
       type: String,
     },
+    endTime: {
+      type: String,
+    },
     images: {
       type: [String],
       default: []

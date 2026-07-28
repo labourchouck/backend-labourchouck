@@ -11,6 +11,9 @@ import { Invoice } from '../models/Invoice.js'
 import { AttendanceRecord } from '../models/AttendanceRecord.js'
 import { Wallet } from '../models/Wallet.js'
 import { WithdrawalRequest } from '../models/WithdrawalRequest.js'
+import { Banner } from '../models/Banner.js'
+import { SubscriptionPlan } from '../models/SubscriptionPlan.js'
+import { VendorSubscription } from '../models/VendorSubscription.js'
 import { checkVendorInventory } from '../services/vendorInventoryService.js'
 import { createOtpChallenge, validateOtpChallenge, deleteOtpChallengeDoc } from '../services/otpService.js'
 import { emitToUser } from '../socket.js'
@@ -755,4 +758,37 @@ export const listVendorSettlements = asyncHandler(async (req, res) => {
   if (err) return sendError(res, { message: err, statusCode: HTTP_STATUS.FORBIDDEN })
   const invoices = await Invoice.find({ vendorId: req.user._id }).sort({ createdAt: -1 }).lean()
   sendSuccess(res, { data: { invoices } })
+})
+
+export const getVendorBanners = asyncHandler(async (req, res) => {
+  const banners = await Banner.find({ panel: 'VENDOR', isActive: true }).sort({ sortOrder: 1, createdAt: -1 }).lean()
+  sendSuccess(res, { data: { banners } })
+})
+
+// --- Subscriptions ---
+
+export const getSubscriptionPlans = asyncHandler(async (req, res) => {
+  const plans = await SubscriptionPlan.find({ isActive: true }).sort({ price: 1 })
+  sendSuccess(res, { data: { plans } })
+})
+
+export const subscribeToPlan = asyncHandler(async (req, res) => {
+  const { planId } = req.body
+  const plan = await SubscriptionPlan.findById(planId)
+  
+  if (!plan || !plan.isActive) {
+    return sendError(res, { message: 'Invalid or inactive plan', statusCode: 400 })
+  }
+
+  // Create active subscription mock
+  const subscription = await VendorSubscription.create({
+    vendor: req.user._id,
+    plan: plan._id,
+    status: 'active',
+    startDate: new Date(),
+    // mock 1 month end date if duration contains month, etc. (simplistic approach for now)
+    endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+  })
+
+  sendSuccess(res, { data: { subscription, message: `Successfully subscribed to ${plan.name}` } })
 })

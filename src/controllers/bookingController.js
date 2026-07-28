@@ -69,7 +69,7 @@ export const calculateBill = asyncHandler(async (req, res) => {
 })
 
 export const createBooking = asyncHandler(async (req, res) => {
-  const { serviceId, type, scheduledAt, timeSlot, locationText, lat, lng, paymentMethod, notes, durationKind = 'full_day', durationDays = 1, imageNames = [] } = req.body
+  const { serviceId, type, scheduledAt, timeSlot, endTime, locationText, lat, lng, paymentMethod, notes, durationKind = 'full_day', durationDays = 1, imageNames = [] } = req.body
 
   if (!serviceId || !type || !locationText || !paymentMethod) {
     return sendError(res, { message: 'Missing required fields', statusCode: HTTP_STATUS.BAD_REQUEST })
@@ -79,8 +79,8 @@ export const createBooking = asyncHandler(async (req, res) => {
     return sendError(res, { message: 'Latitude and Longitude are required for accurate matching', statusCode: HTTP_STATUS.BAD_REQUEST })
   }
 
-  if (type === 'SCHEDULED' && (!scheduledAt || !timeSlot)) {
-    return sendError(res, { message: 'scheduledAt date and timeSlot are required for SCHEDULED bookings', statusCode: HTTP_STATUS.BAD_REQUEST })
+  if (type === 'SCHEDULED' && (!scheduledAt || !timeSlot || !endTime)) {
+    return sendError(res, { message: 'scheduledAt date, timeSlot (startTime), and endTime are required for SCHEDULED bookings', statusCode: HTTP_STATUS.BAD_REQUEST })
   }
 
   const service = await LabourService.findById(serviceId)
@@ -122,7 +122,8 @@ export const createBooking = asyncHandler(async (req, res) => {
     serviceId: service._id,
     type,
     scheduledAt: type === 'SCHEDULED' ? parseISTDateTime(scheduledAt, timeSlot) : undefined,
-    timeSlot: type === 'SCHEDULED' ? timeSlot : undefined,
+    timeSlot: type === 'SCHEDULED' ? timeSlot : (type === 'INSTANT' ? timeSlot : undefined),
+    endTime: type === 'SCHEDULED' ? endTime : undefined,
     images: Array.isArray(imageNames) ? imageNames : [],
     notes,
     durationKind,
