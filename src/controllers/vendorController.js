@@ -37,6 +37,12 @@ function requireApprovedVendor(user) {
 
 export const getVendorMe = asyncHandler(async (req, res) => {
   const progress = getVendorVerificationProgress(req.user.contractorProfile || {})
+  
+  const activeSubscription = await VendorSubscription.findOne({
+    vendor: req.user._id,
+    status: 'active'
+  }).populate('plan').lean()
+
   sendSuccess(res, {
     data: {
       user: req.user.toSafeObject(),
@@ -46,6 +52,7 @@ export const getVendorMe = asyncHandler(async (req, res) => {
         requiredTotal: progress.requiredTotal,
         readyToSubmit: progress.readyToSubmit,
       },
+      activeSubscription,
     },
   })
 })
@@ -315,9 +322,16 @@ export const getVendorDashboard = asyncHandler(async (req, res) => {
     vendorId,
     status: { $in: ['accepted', 'on_site'] },
   })
+  
+  const activeSubscription = await VendorSubscription.findOne({
+    vendor: vendorId,
+    status: 'active'
+  }).populate('plan').lean()
+
   sendSuccess(res, {
     data: {
       stats: { crewCount, openJobs, activeAssignments },
+      activeSubscription,
     },
   })
 })

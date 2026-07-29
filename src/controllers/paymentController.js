@@ -15,6 +15,9 @@ export const initPayment = asyncHandler(async (req, res) => {
   if (purpose === 'INVOICE' && !req.body.invoiceId) {
     return sendError(res, { message: 'invoiceId is required for INVOICE purpose', statusCode: HTTP_STATUS.BAD_REQUEST })
   }
+  if (purpose === 'SUBSCRIPTION' && !req.body.planId) {
+    return sendError(res, { message: 'planId is required for SUBSCRIPTION purpose', statusCode: HTTP_STATUS.BAD_REQUEST })
+  }
 
   // Generate Razorpay Order
   const receiptId = `rcpt_${req.user._id.toString().slice(-4)}_${Date.now().toString().slice(-4)}`
@@ -25,6 +28,7 @@ export const initPayment = asyncHandler(async (req, res) => {
     userId: req.user._id,
     bookingId: purpose === 'BOOKING' ? bookingId : undefined,
     invoiceId: purpose === 'INVOICE' ? req.body.invoiceId : undefined,
+    planId: purpose === 'SUBSCRIPTION' ? req.body.planId : undefined,
     razorpayOrderId: order.id,
     amount,
     purpose,
@@ -104,6 +108,24 @@ export const verifyPayment = asyncHandler(async (req, res) => {
       invoice.status = 'paid'
       invoice.paidAt = new Date()
       await invoice.save()
+    }
+  } else if (pTx.purpose === 'SUBSCRIPTION' && pTx.planId) {
+    const VendorSubscription = (await import('../models/VendorSubscription.js')).VendorSubscription
+    const SubscriptionPlan = (await import('../models/SubscriptionPlan.js')).SubscriptionPlan
+    const plan = await SubscriptionPlan.findById(pTx.planId)
+    if (plan) {
+      const durationLower = plan.duration?.toLowerCase() || ''
+      let days = 30
+      if (durationLower.includes('year')) days = 365
+      else if (durationLower.includes('quarter')) days = 90
+      
+      await VendorSubscription.create({
+        vendor: req.user._id,
+        plan: plan._id,
+        status: 'active',
+        startDate: new Date(),
+        endDate: new Date(Date.now() + days * 24 * 60 * 60 * 1000)
+      })
     }
   }
 

@@ -18,6 +18,11 @@ const paymentTransactionSchema = new mongoose.Schema(
       ref: 'Invoice',
       index: true,
     },
+    planId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'SubscriptionPlan',
+      index: true,
+    },
     razorpayOrderId: {
       type: String,
       required: true,
@@ -44,7 +49,7 @@ const paymentTransactionSchema = new mongoose.Schema(
     },
     purpose: {
       type: String,
-      enum: ['BOOKING', 'WALLET_CLEARANCE', 'INVOICE'],
+      enum: ['BOOKING', 'WALLET_CLEARANCE', 'INVOICE', 'SUBSCRIPTION'],
       required: true,
     },
   },
