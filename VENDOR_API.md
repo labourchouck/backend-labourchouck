@@ -2,7 +2,7 @@
 
 Base URL: `/vendor`
 
-All routes require:
+All routes require:c
 - `Authorization: Bearer <token>` header
 - User role must be `contractor`
 

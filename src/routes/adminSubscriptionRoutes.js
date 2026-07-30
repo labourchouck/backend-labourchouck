@@ -7,7 +7,8 @@ import {
   getSubscriptionPlanById,
   updateSubscriptionPlan,
   deleteSubscriptionPlan,
-  getVendorSubscriptions
+  getVendorSubscriptions,
+  getUserSubscriptions
 } from '../controllers/adminSubscriptionController.js'
 
 const router = Router()
@@ -26,5 +27,8 @@ router.route('/plans/:id')
 
 router.route('/vendors')
   .get(getVendorSubscriptions)
+
+router.route('/users')
+  .get(getUserSubscriptions)
 
 export default router

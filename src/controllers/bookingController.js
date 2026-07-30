@@ -90,6 +90,19 @@ export const createBooking = asyncHandler(async (req, res) => {
 
   let settings = await SystemSetting.findOne({ configKey: 'master_config' })
   
+  let activeSub = null
+  if (settings?.isUserSubscriptionEnabled) {
+    const { UserSubscription } = await import('../models/UserSubscription.js')
+    activeSub = await UserSubscription.findOne({ user: req.user._id, status: 'active' }).populate('plan')
+    
+    if (!activeSub) {
+      return sendError(res, { message: 'You must have an active subscription to create a booking.', statusCode: HTTP_STATUS.FORBIDDEN })
+    }
+    if (activeSub.bookingsUsed >= (activeSub.snapshotPlanDetails?.allowedBookings || 0)) {
+      return sendError(res, { message: 'You have reached the maximum number of bookings allowed for your current subscription plan.', statusCode: HTTP_STATUS.FORBIDDEN })
+    }
+  }
+
   const basePrice = service.basePrice * (durationKind === 'multi_day' ? durationDays : 1)
   let platformFee = 0
   if (settings?.platformFee?.isActive) {
@@ -146,6 +159,11 @@ export const createBooking = asyncHandler(async (req, res) => {
     startOtp,
     completionOtp
   })
+
+  if (activeSub) {
+    const { UserSubscription } = await import('../models/UserSubscription.js')
+    await UserSubscription.findByIdAndUpdate(activeSub._id, { $inc: { bookingsUsed: 1 } })
+  }
 
   // Phase 3: Trigger the Broadcast Engine asynchronously
   // Only trigger immediately for INSTANT bookings.

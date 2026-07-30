@@ -81,3 +81,16 @@ export const updateTimeSlots = asyncHandler(async (req, res) => {
   await settings.save()
   return sendSuccess(res, { message: 'Time slots updated', data: { settings } })
 })
+
+export const updateUserSubscriptionToggle = asyncHandler(async (req, res) => {
+  const { isUserSubscriptionEnabled } = req.body
+  let settings = await SystemSetting.findOne({ configKey: 'master_config' })
+  if (!settings) settings = new SystemSetting({ configKey: 'master_config' })
+  
+  if (isUserSubscriptionEnabled !== undefined) {
+    settings.isUserSubscriptionEnabled = Boolean(isUserSubscriptionEnabled)
+  }
+  
+  await settings.save()
+  return sendSuccess(res, { message: 'User subscription toggle updated', data: { settings } })
+})

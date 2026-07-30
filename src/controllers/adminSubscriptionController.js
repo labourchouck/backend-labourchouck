@@ -3,7 +3,7 @@ import { VendorSubscription } from '../models/VendorSubscription.js'
 
 export const createSubscriptionPlan = async (req, res, next) => {
   try {
-    const { name, price, duration, description, features, buttonText, recommended, gradient, shadow } = req.body
+    const { name, price, description, features, buttonText, recommended, gradient, shadow, planType, allowedBookings } = req.body
     
     let parsedFeatures = []
     if (Array.isArray(features)) {
@@ -15,13 +15,14 @@ export const createSubscriptionPlan = async (req, res, next) => {
     const plan = await SubscriptionPlan.create({
       name,
       price,
-      duration,
       description,
       features: parsedFeatures,
       buttonText,
       recommended,
       gradient: gradient || 'from-[#7a280e] to-[#c45c26]',
-      shadow: shadow || 'shadow-orange-500/20'
+      shadow: shadow || 'shadow-orange-500/20',
+      planType: planType || 'vendor',
+      allowedBookings: allowedBookings || 0
     })
 
     res.status(201).json({ success: true, plan })
@@ -51,7 +52,7 @@ export const getSubscriptionPlanById = async (req, res, next) => {
 
 export const updateSubscriptionPlan = async (req, res, next) => {
   try {
-    const { name, price, duration, description, features, buttonText, recommended, gradient, shadow } = req.body
+    const { name, price, description, features, buttonText, recommended, gradient, shadow, planType, allowedBookings } = req.body
     
     let parsedFeatures = []
     if (Array.isArray(features)) {
@@ -61,7 +62,7 @@ export const updateSubscriptionPlan = async (req, res, next) => {
     }
 
     const updateData = {
-      name, price, duration, description, features: parsedFeatures, buttonText, recommended, gradient, shadow
+      name, price, description, features: parsedFeatures, buttonText, recommended, gradient, shadow, planType, allowedBookings
     }
 
     const plan = await SubscriptionPlan.findByIdAndUpdate(req.params.id, updateData, { new: true })
@@ -90,7 +91,22 @@ export const getVendorSubscriptions = async (req, res, next) => {
   try {
     const subscriptions = await VendorSubscription.find()
       .populate('vendor', 'fullName phone contractorProfile')
-      .populate('plan', 'name price duration')
+      .populate('plan', 'name price')
+      .sort({ createdAt: -1 })
+    
+    res.status(200).json({ success: true, subscriptions })
+  } catch (error) {
+    next(error)
+  }
+}
+
+export const getUserSubscriptions = async (req, res, next) => {
+  try {
+    // Need to dynamically import UserSubscription if not imported at top
+    const { UserSubscription } = await import('../models/UserSubscription.js')
+    const subscriptions = await UserSubscription.find()
+      .populate('user', 'fullName phone')
+      .populate('plan', 'name price allowedBookings')
       .sort({ createdAt: -1 })
     
     res.status(200).json({ success: true, subscriptions })

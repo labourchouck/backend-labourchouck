@@ -16,6 +16,7 @@ import walletRoutes from './walletRoutes.js'
 import broadcastRoutes from './broadcastRoutes.js'
 import paymentRoutes from './paymentRoutes.js'
 import reviewRoutes from './reviewRoutes.js'
+import userSubscriptionRoutes from './userSubscriptionRoutes.js'
 
 import adminZoneRoutes from './adminZoneRoutes.js'
 import locationRoutes from './locationRoutes.js'
@@ -49,6 +50,7 @@ router.use('/payments', paymentRoutes)
 router.use('/reviews', reviewRoutes)
 router.use('/complaints', complaintRoutes)
 router.use('/banners', bannerRoutes)
+router.use('/user-subscriptions', userSubscriptionRoutes)
 
 router.use('/admin/settings', systemSettingRoutes)
 router.use('/admin/zones', adminZoneRoutes)

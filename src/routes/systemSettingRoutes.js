@@ -84,4 +84,13 @@ router.patch(
   settings.updateTimeSlots,
 )
 
+router.patch(
+  '/user-subscription-toggle',
+  [
+    body('isUserSubscriptionEnabled').isBoolean().withMessage('isUserSubscriptionEnabled must be a boolean'),
+  ],
+  validateRequest,
+  settings.updateUserSubscriptionToggle,
+)
+
 export default router
