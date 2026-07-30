@@ -11,6 +11,7 @@ import { Complaint } from '../models/Complaint.js'
 import { Review } from '../models/Review.js'
 import { Banner } from '../models/Banner.js'
 import { SystemSetting } from '../models/SystemSetting.js'
+import { PricingRate } from '../models/PricingRate.js'
 import { checkVendorInventory } from '../services/vendorInventoryService.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { HTTP_STATUS, sendError, sendSuccess } from '../utils/apiResponse.js'
@@ -680,86 +681,91 @@ export const reviewContractorAdmin = asyncHandler(async (req, res) => {
 })
 
 export const searchVendors = asyncHandler(async (req, res) => {
-  const { lines } = req.body
+  const { lines, startDate, endDate, lat, lng } = req.body
+  
   if (!lines || !lines.length) {
     return sendError(res, { message: 'Lines required', statusCode: HTTP_STATUS.BAD_REQUEST })
   }
+  
+  const sDate = startDate ? new Date(startDate) : new Date()
+  const eDate = endDate ? new Date(endDate) : sDate
+  
+  // Total days calculation (inclusive)
+  const totalDays = Math.max(1, Math.ceil((eDate - sDate) / (1000 * 60 * 60 * 24)) + 1)
+  
+  const targetLat = lat ? parseFloat(lat) : null
+  const targetLng = lng ? parseFloat(lng) : null
 
-  const vendorsMap = new Map()
+  // Calculate pricing first (it's global per category)
+  let perDayCost = 0
+  for (const line of lines) {
+    const rateDoc = await PricingRate.findOne({ categoryId: line.categoryId, isActive: true })
+    const baseRate = rateDoc ? rateDoc.ratePerShift : 500 // fallback rate if not found
+    const gstPercent = rateDoc ? rateDoc.gstPercent : 18
+    const rateWithGst = baseRate + (baseRate * (gstPercent / 100))
+    perDayCost += rateWithGst * Number(line.quantity)
+  }
 
-  // First, find all labours matching ANY of the requested categories/services
-  // To optimize, we could query for exactly what is needed, but an in-memory filter per vendor works for modest data sizes
-  const requiredCategories = lines.map(l => String(l.categoryId))
-  const requiredServices = lines.map(l => l.serviceId ? String(l.serviceId) : null).filter(Boolean)
+  const estimatedTotal = perDayCost * totalDays
 
-  const labours = await User.find({
-    role: USER_ROLES.LABOUR,
-    vendorId: { $exists: true, $ne: null },
-    isActive: true
+  // Fetch all accepting contractors
+  let vendors = await User.find({
+    role: USER_ROLES.CONTRACTOR,
+    isActive: true,
+    'contractorProfile.verificationStatus': 'approved',
+    'contractorProfile.isAcceptingRequests': { $ne: false }
   }).lean()
 
-  // Group labours by vendorId
-  for (const labour of labours) {
-    const vId = String(labour.vendorId)
-    if (!vendorsMap.has(vId)) {
-      vendorsMap.set(vId, { labours: [] })
-    }
-    vendorsMap.get(vId).labours.push(labour)
+  // 1. Radius Filtering
+  if (targetLat && targetLng) {
+    const settings = await SystemSetting.findOne({ configKey: 'master_config' })
+    const radiusKm = settings?.b2bBroadcastRadius || 50
+
+    vendors = vendors.filter(vendor => {
+      const vLat = vendor.contractorProfile?.currentLatitude
+      const vLng = vendor.contractorProfile?.currentLongitude
+      
+      if (!vLat || !vLng) return false
+
+      const R = 6371
+      const dLat = (vLat - targetLat) * (Math.PI / 180)
+      const dLng = (vLng - targetLng) * (Math.PI / 180)
+      const a = 
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(targetLat * (Math.PI / 180)) * Math.cos(vLat * (Math.PI / 180)) * 
+        Math.sin(dLng / 2) * Math.sin(dLng / 2)
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)) 
+      const distance = R * c
+
+      vendor.distance = distance
+      return distance <= radiusKm
+    })
   }
 
-  const matchingVendors = []
-
-  for (const [vId, data] of vendorsMap.entries()) {
-    let matchesAll = true
-
-    for (const line of lines) {
-      const neededQty = Number(line.quantity) || 1
-      const catId = String(line.categoryId)
-      const sId = line.serviceId ? String(line.serviceId) : null
-
-      const availableForLine = data.labours.filter(l => {
-        // Labour must have the category
-        const hasCat = l.categoryIds && l.categoryIds.some(c => String(c) === catId)
-        if (!hasCat) return false
-        // If service is required, labour must have it
-        if (sId) {
-          return l.services && l.services.some(s => String(s.serviceId) === sId)
+  // 2. Inventory Filtering
+  const availableVendors = []
+  for (const vendor of vendors) {
+    const inventory = await checkVendorInventory(vendor._id, lines, sDate, eDate)
+    if (inventory.hasInventory) {
+      availableVendors.push({
+        _id: vendor._id,
+        fullName: vendor.fullName,
+        phone: vendor.phone,
+        businessName: vendor.contractorProfile?.businessName || vendor.fullName,
+        rating: vendor.contractorProfile?.rating || 0,
+        distance: vendor.distance || 0,
+        availableCrewSize: inventory.details.reduce((sum, d) => sum + d.available, 0),
+        priceDetails: {
+          perDayCost: Math.round(perDayCost),
+          totalDays,
+          estimatedTotal: Math.round(estimatedTotal)
         }
-        return true
-      })
-
-      if (availableForLine.length < neededQty) {
-        matchesAll = false
-        break
-      }
-    }
-
-    if (matchesAll) {
-      matchingVendors.push({
-        vendorId: vId,
-        matchingCrewSize: data.labours.length,
       })
     }
   }
-
-  // Hydrate vendor details
-  const vendorIds = matchingVendors.map(v => v.vendorId)
-  const vendors = await User.find({ _id: { $in: vendorIds } }).lean()
-
-  const results = vendors.map(v => {
-    const matchData = matchingVendors.find(mv => mv.vendorId === String(v._id))
-    return {
-      _id: v._id,
-      fullName: v.fullName,
-      phone: v.phone,
-      businessName: v.contractorProfile?.businessName || v.fullName,
-      rating: v.contractorProfile?.rating || 0,
-      matchingCrewSize: matchData.matchingCrewSize
-    }
-  })
 
   sendSuccess(res, {
     message: 'Vendors found',
-    data: { vendors: results }
+    data: { vendors: availableVendors }
   })
 })
