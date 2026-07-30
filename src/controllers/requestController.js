@@ -51,6 +51,8 @@ export const createRequest = asyncHandler(async (req, res) => {
     notes,
     billingMode,
     bookingType,
+    bookingMode,
+    scheduleTime,
     preferredVendorId,
   } = req.body
 
@@ -58,8 +60,17 @@ export const createRequest = asyncHandler(async (req, res) => {
   if (!parsedLines?.length) {
     return sendError(res, { message: 'At least one skill line required', statusCode: HTTP_STATUS.BAD_REQUEST })
   }
-  if (!startDate) {
-    return sendError(res, { message: 'Start date required', statusCode: HTTP_STATUS.BAD_REQUEST })
+  
+  let finalStartDate = startDate ? new Date(startDate) : new Date()
+  let finalShiftStart = shiftStart
+
+  if (bookingMode === 'instant') {
+    finalStartDate = new Date()
+    // Add 1 hour buffer
+    const bufferTime = new Date(finalStartDate.getTime() + 60 * 60 * 1000)
+    finalShiftStart = `${bufferTime.getHours().toString().padStart(2, '0')}:${bufferTime.getMinutes().toString().padStart(2, '0')}`
+  } else if (!startDate) {
+    return sendError(res, { message: 'Start date required for scheduled requests', statusCode: HTTP_STATUS.BAD_REQUEST })
   }
 
   let finalProjectId = projectId && mongoose.Types.ObjectId.isValid(projectId) ? projectId : undefined
@@ -94,15 +105,17 @@ export const createRequest = asyncHandler(async (req, res) => {
     projectId: finalProjectId,
     siteId: siteId && mongoose.Types.ObjectId.isValid(siteId) ? siteId : undefined,
     scheduleType: Object.values(SCHEDULE_TYPE).includes(scheduleType) ? scheduleType : SCHEDULE_TYPE.DAILY,
-    startDate: new Date(startDate),
+    startDate: finalStartDate,
     endDate: endDate ? new Date(endDate) : undefined,
-    shiftStart,
+    shiftStart: finalShiftStart,
     shiftEnd,
     lines: parsedLines,
     locationText,
     notes,
     billingMode,
     bookingType,
+    bookingMode,
+    scheduleTime,
     preferredVendorId: preferredVendorId && mongoose.Types.ObjectId.isValid(preferredVendorId) ? preferredVendorId : undefined,
     status: (preferredVendorId && mongoose.Types.ObjectId.isValid(preferredVendorId)) ? REQUEST_STATUS.BROADCASTED : REQUEST_STATUS.PENDING_REVIEW,
   })

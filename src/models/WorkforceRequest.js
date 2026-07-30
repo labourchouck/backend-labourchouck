@@ -50,6 +50,12 @@ const workforceRequestSchema = new mongoose.Schema(
       index: true,
     },
     bookingType: { type: String, trim: true },
+    bookingMode: {
+      type: String,
+      enum: ['instant', 'schedule'],
+      default: 'schedule'
+    },
+    scheduleTime: { type: String, trim: true },
     adminNote: { type: String, trim: true, maxlength: 500 },
     reviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     reviewedAt: Date,
