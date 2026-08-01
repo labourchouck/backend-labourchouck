@@ -1,4 +1,5 @@
 import { User } from '../models/User.js'
+import VendorCrewLabour from '../models/VendorCrewLabour.js'
 import { USER_ROLES } from '../constants/roles.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { sendSuccess } from '../utils/apiResponse.js'
@@ -17,17 +18,9 @@ export const listVendorsAndCrew = asyncHandler(async (req, res) => {
   // 2. Fetch all crew for all vendors in one go
   const vendorIds = vendors.map(v => v._id)
   
-  const allCrew = await User.find({
-    role: USER_ROLES.LABOUR,
+  const allCrew = await VendorCrewLabour.find({
     vendorId: { $in: vendorIds }
-  })
-    .select('fullName phone email vendorId labourProfile.kycStatus labourProfile.categoryIds labourProfile.subcategoryIds labourProfile.serviceIds labourProfile.servicePricing')
-    .populate('labourProfile.categoryIds', 'name')
-    .populate('labourProfile.subcategoryIds', 'name')
-    .populate('labourProfile.serviceIds', 'name')
-    .populate('labourProfile.servicePricing.subcategoryId', 'name')
-    .populate('labourProfile.servicePricing.serviceId', 'name')
-    .lean()
+  }).lean()
 
   // 3. Group crew members by vendorId
   const crewByVendor = new Map()
@@ -48,5 +41,57 @@ export const listVendorsAndCrew = asyncHandler(async (req, res) => {
   return sendSuccess(res, {
     message: 'Vendors and crew fetched successfully',
     data: { vendors: formattedVendors }
+  })
+})
+
+export const updateVendorCrewVerification = asyncHandler(async (req, res) => {
+  const { id } = req.params
+  const { status, rejectMessage, adminPrices } = req.body
+
+  if (!['approved', 'rejected', 'pending'].includes(status)) {
+    return sendError(res, { message: 'Invalid status', statusCode: 400 })
+  }
+
+  const crew = await VendorCrewLabour.findById(id)
+  if (!crew) {
+    return sendError(res, { message: 'Crew request not found', statusCode: 404 })
+  }
+
+  crew.verificationStatus = status
+  
+  if (status === 'rejected') {
+    crew.rejectMessage = rejectMessage || ''
+  } else {
+    crew.rejectMessage = ''
+  }
+
+  // Update admin prices if provided
+  if (adminPrices && Array.isArray(adminPrices)) {
+    crew.services.forEach(service => {
+      const match = adminPrices.find(p => p.name === service.name)
+      if (match && typeof match.adminPrice === 'number') {
+        service.adminPrice = match.adminPrice
+      }
+    })
+  }
+
+  await crew.save()
+
+  return sendSuccess(res, {
+    message: `Crew request ${status} successfully`,
+    data: { crew }
+  })
+})
+
+export const deleteVendorCrew = asyncHandler(async (req, res) => {
+  const { id } = req.params
+
+  const crew = await VendorCrewLabour.findByIdAndDelete(id)
+  if (!crew) {
+    return sendError(res, { message: 'Crew request not found', statusCode: 404 })
+  }
+
+  return sendSuccess(res, {
+    message: 'Crew request deleted successfully'
   })
 })

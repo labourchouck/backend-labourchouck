@@ -9,14 +9,23 @@ export const getZoneSettings = asyncHandler(async (req, res) => {
   if (!settings) {
     settings = await SystemSetting.create({ configKey: 'master_config' })
   }
-  return sendSuccess(res, { data: { bookingBroadcastRadius: settings.bookingBroadcastRadius } })
+  return sendSuccess(res, { 
+    data: { 
+      bookingBroadcastRadius: settings.bookingBroadcastRadius,
+      b2bBroadcastRadius: settings.b2bBroadcastRadius
+    } 
+  })
 })
 
 export const updateZoneSettings = asyncHandler(async (req, res) => {
-  const { bookingBroadcastRadius } = req.body
+  const { bookingBroadcastRadius, b2bBroadcastRadius } = req.body
 
-  if (typeof bookingBroadcastRadius !== 'number' || bookingBroadcastRadius < 1) {
-    return sendError(res, { message: 'Invalid radius', statusCode: HTTP_STATUS.BAD_REQUEST })
+  if (bookingBroadcastRadius !== undefined && (typeof bookingBroadcastRadius !== 'number' || bookingBroadcastRadius < 1)) {
+    return sendError(res, { message: 'Invalid booking radius', statusCode: HTTP_STATUS.BAD_REQUEST })
+  }
+  
+  if (b2bBroadcastRadius !== undefined && (typeof b2bBroadcastRadius !== 'number' || b2bBroadcastRadius < 1)) {
+    return sendError(res, { message: 'Invalid B2B radius', statusCode: HTTP_STATUS.BAD_REQUEST })
   }
 
   let settings = await SystemSetting.findOne({ configKey: 'master_config' })
@@ -24,11 +33,19 @@ export const updateZoneSettings = asyncHandler(async (req, res) => {
     settings = new SystemSetting({ configKey: 'master_config' })
   }
 
-  settings.bookingBroadcastRadius = bookingBroadcastRadius
+  if (bookingBroadcastRadius !== undefined) settings.bookingBroadcastRadius = bookingBroadcastRadius
+  if (b2bBroadcastRadius !== undefined) settings.b2bBroadcastRadius = b2bBroadcastRadius
+
   settings.updatedBy = req.user._id
   await settings.save()
 
-  return sendSuccess(res, { message: 'Radius updated successfully', data: { bookingBroadcastRadius: settings.bookingBroadcastRadius } })
+  return sendSuccess(res, { 
+    message: 'Radius updated successfully', 
+    data: { 
+      bookingBroadcastRadius: settings.bookingBroadcastRadius,
+      b2bBroadcastRadius: settings.b2bBroadcastRadius
+    } 
+  })
 })
 
 export const getZoneStatistics = asyncHandler(async (req, res) => {

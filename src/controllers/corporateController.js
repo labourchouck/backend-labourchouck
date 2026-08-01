@@ -43,12 +43,6 @@ export const patchCorporateMe = asyncHandler(async (req, res) => {
   if (req.user.role !== USER_ROLES.CORPORATE) {
     return sendError(res, { message: 'Forbidden', statusCode: HTTP_STATUS.FORBIDDEN })
   }
-  if (req.user.corporateProfile?.status === CORPORATE_STATUS.APPROVED) {
-    return sendError(res, {
-      message: 'Account approved — contact support to update company details',
-      statusCode: HTTP_STATUS.FORBIDDEN,
-    })
-  }
   const patch = normalizeCorporateProfilePatch(req.body)
   if (!req.user.corporateProfile) req.user.corporateProfile = {}
   Object.assign(req.user.corporateProfile, patch)

@@ -28,6 +28,16 @@ import {
   getSubscriptionPlans,
   subscribeToPlan,
 } from '../controllers/vendorController.js'
+import {
+  requestOtp,
+  verifyOtp,
+  createCrewLabour,
+  getAllCrewLabour,
+  getCrewLabourById,
+  updateCrewLabour,
+  patchCrewLabour,
+  deleteCrewLabour
+} from '../controllers/vendorCrewLabourController.js'
 
 const router = Router()
 
@@ -44,10 +54,23 @@ router.post('/documents', addVendorDocument)
 router.delete('/documents/:docId', removeVendorDocument)
 router.post('/verification/submit', submitVendorVerification)
 router.get('/dashboard', getVendorDashboard)
+
+// Original link crew routes (deprecated/unused by frontend now, or could be kept if needed for other places)
 router.get('/crew', listVendorCrew)
 router.post('/crew/link', linkVendorCrew)
 router.post('/crew/link/verify', verifyLinkVendorCrewOtp)
 router.delete('/crew/:workerId', unlinkVendorCrew)
+
+// New Vendor Crew Labour CRUD routes
+router.post('/crew-labour/request-otp', requestOtp)
+router.post('/crew-labour/verify-otp', verifyOtp)
+router.post('/crew-labour', createCrewLabour)
+router.get('/crew-labour', getAllCrewLabour)
+router.get('/crew-labour/:id', getCrewLabourById)
+router.put('/crew-labour/:id', updateCrewLabour)
+router.patch('/crew-labour/:id', patchCrewLabour)
+router.delete('/crew-labour/:id', deleteCrewLabour)
+
 router.get('/jobs', listVendorJobs)
 router.get('/jobs/:id', getVendorJob)
 router.post('/jobs/:id/accept', acceptVendorJob)

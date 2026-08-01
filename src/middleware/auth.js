@@ -6,6 +6,7 @@ import { HTTP_STATUS, sendError } from '../utils/apiResponse.js'
 export const protect = asyncHandler(async (req, res, next) => {
   const header = req.headers.authorization
   if (!header?.startsWith('Bearer ')) {
+    console.log(`[Auth Error] Missing or invalid header. Request URL: ${req.originalUrl}, Header: ${header}`)
     return sendError(res, {
       message: 'Authentication required',
       statusCode: HTTP_STATUS.UNAUTHORIZED,
