@@ -39,6 +39,7 @@ const vendorCrewLabourSchema = new mongoose.Schema(
         name: { type: String, trim: true },
         price: { type: Number },
         adminPrice: { type: Number },
+        priceDifference: { type: Number },
       }
     ],
     verificationStatus: {

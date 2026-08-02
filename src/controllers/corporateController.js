@@ -691,16 +691,7 @@ export const searchVendors = asyncHandler(async (req, res) => {
   const targetLng = lng ? parseFloat(lng) : null
 
   // Calculate pricing first (it's global per category)
-  let perDayCost = 0
-  for (const line of lines) {
-    const rateDoc = await PricingRate.findOne({ categoryId: line.categoryId, isActive: true })
-    const baseRate = rateDoc ? rateDoc.ratePerShift : 500 // fallback rate if not found
-    const gstPercent = rateDoc ? rateDoc.gstPercent : 18
-    const rateWithGst = baseRate + (baseRate * (gstPercent / 100))
-    perDayCost += rateWithGst * Number(line.quantity)
-  }
-
-  const estimatedTotal = perDayCost * totalDays
+  // We will now compute this PER VENDOR based on their actual crew's adminPrice
 
   // Fetch all accepting contractors
   let vendors = await User.find({
@@ -719,7 +710,10 @@ export const searchVendors = asyncHandler(async (req, res) => {
       const vLat = vendor.contractorProfile?.currentLatitude
       const vLng = vendor.contractorProfile?.currentLongitude
       
-      if (!vLat || !vLng) return false
+      if (!vLat || !vLng) {
+        vendor.distance = 0
+        return true // Include vendors without location for now
+      }
 
       const R = 6371
       const dLat = (vLat - targetLat) * (Math.PI / 180)
@@ -741,6 +735,22 @@ export const searchVendors = asyncHandler(async (req, res) => {
   for (const vendor of vendors) {
     const inventory = await checkVendorInventory(vendor._id, lines, sDate, eDate)
     if (inventory.hasInventory) {
+      
+      // Calculate this specific vendor's pricing
+      const breakdown = inventory.billingBreakdown || []
+      const perDayCost = breakdown.reduce((sum, item) => sum + item.adminPriceTotal, 0)
+      const estimatedTotal = perDayCost * totalDays
+
+      const requestedCategoryNames = breakdown.map(b => b.categoryName)
+      const matchingCrew = (inventory.availableCrew || [])
+        .filter(c => requestedCategoryNames.includes(c.category))
+        .map(c => ({
+          _id: c._id,
+          fullName: c.fullName,
+          category: c.category,
+          adminPrice: c.services?.[0]?.adminPrice || 0
+        }))
+
       availableVendors.push({
         _id: vendor._id,
         fullName: vendor.fullName,
@@ -748,18 +758,23 @@ export const searchVendors = asyncHandler(async (req, res) => {
         businessName: vendor.contractorProfile?.businessName || vendor.fullName,
         rating: vendor.contractorProfile?.rating || 0,
         distance: vendor.distance || 0,
-        availableCrewSize: inventory.details.reduce((sum, d) => sum + d.available, 0),
+        availableCrew: matchingCrew,
+        availableCrewSize: lines.reduce((sum, l) => sum + (Number(l.quantity) || 1), 0),
         priceDetails: {
           perDayCost: Math.round(perDayCost),
           totalDays,
-          estimatedTotal: Math.round(estimatedTotal)
+          estimatedTotal: Math.round(estimatedTotal),
+          breakdown
         }
       })
     }
   }
 
+  const globalSettings = await SystemSetting.findOne({ configKey: 'master_config' })
+  const platformFeeConfig = globalSettings?.platformFee?.isActive ? globalSettings.platformFee : null
+
   sendSuccess(res, {
     message: 'Vendors found',
-    data: { vendors: availableVendors }
+    data: { vendors: availableVendors, platformFeeConfig }
   })
 })

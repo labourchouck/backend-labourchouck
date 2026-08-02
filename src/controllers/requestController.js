@@ -54,6 +54,7 @@ export const createRequest = asyncHandler(async (req, res) => {
     bookingMode,
     scheduleTime,
     preferredVendorId,
+    selectedCrewIds,
   } = req.body
 
   const parsedLines = parseLines(lines)
@@ -98,6 +99,11 @@ export const createRequest = asyncHandler(async (req, res) => {
     }
   }
 
+  let validCrewIds = []
+  if (Array.isArray(selectedCrewIds)) {
+    validCrewIds = selectedCrewIds.filter(id => mongoose.Types.ObjectId.isValid(id))
+  }
+
   const request = await WorkforceRequest.create({
     reference: generateRequestReference(sourceType === REQUEST_SOURCE.CORPORATE ? 'CR' : 'IR'),
     sourceType,
@@ -117,6 +123,7 @@ export const createRequest = asyncHandler(async (req, res) => {
     bookingMode,
     scheduleTime,
     preferredVendorId: preferredVendorId && mongoose.Types.ObjectId.isValid(preferredVendorId) ? preferredVendorId : undefined,
+    preferredCrewIds: validCrewIds.length ? validCrewIds : undefined,
     status: (preferredVendorId && mongoose.Types.ObjectId.isValid(preferredVendorId)) ? REQUEST_STATUS.BROADCASTED : REQUEST_STATUS.PENDING_REVIEW,
   })
 
@@ -128,18 +135,26 @@ export const createRequest = asyncHandler(async (req, res) => {
     })
   }
 
-  sendSuccess(res, { request }, HTTP_STATUS.CREATED)
+  sendSuccess(res, { data: { request }, statusCode: HTTP_STATUS.CREATED })
 })
 
 export const listMyRequests = asyncHandler(async (req, res) => {
   const filter = { clientId: req.user._id }
   if (req.query.status) filter.status = req.query.status
-  const requests = await WorkforceRequest.find(filter).sort({ createdAt: -1 }).limit(100).lean()
-  sendSuccess(res, { requests })
+  const requests = await WorkforceRequest.find(filter)
+    .sort({ createdAt: -1 })
+    .limit(100)
+    .populate('preferredVendorId', 'fullName contractorProfile.businessName')
+    .lean()
+  sendSuccess(res, { data: { requests } })
 })
 
 export const getRequest = asyncHandler(async (req, res) => {
-  const request = await WorkforceRequest.findById(req.params.id).lean()
+  const request = await WorkforceRequest.findById(req.params.id)
+    .populate('preferredVendorId', 'fullName contractorProfile.businessName')
+    .populate('lines.categoryId', 'name adminPrice vendorPrice')
+    .populate('preferredCrewIds', 'fullName phone profileImageUrl labourProfile.kycStatus')
+    .lean()
   if (!request) return sendError(res, { message: 'Not found', statusCode: HTTP_STATUS.NOT_FOUND })
 
   const isOwner = String(request.clientId) === String(req.user._id)
@@ -153,7 +168,11 @@ export const getRequest = asyncHandler(async (req, res) => {
     .populate('labourId', 'fullName phone profileImageUrl labourProfile.kycStatus')
     .lean()
 
-  sendSuccess(res, { request, allocation, assignments })
+  const SystemSetting = (await import('../models/SystemSetting.js')).SystemSetting
+  const globalSettings = await SystemSetting.findOne({ configKey: 'master_config' }).lean()
+  const platformFeeConfig = globalSettings?.platformFee?.isActive ? globalSettings.platformFee : null
+
+  sendSuccess(res, { data: { request, allocation, assignments, platformFeeConfig } })
 })
 
 export const listAdminRequests = asyncHandler(async (req, res) => {
@@ -165,7 +184,7 @@ export const listAdminRequests = asyncHandler(async (req, res) => {
     .limit(200)
     .populate('clientId', 'fullName phone role corporateProfile companyName')
     .lean()
-  sendSuccess(res, { requests })
+  sendSuccess(res, { data: { requests } })
 })
 
 export const patchRequestStatusAdmin = asyncHandler(async (req, res) => {
@@ -189,5 +208,5 @@ export const patchRequestStatusAdmin = asyncHandler(async (req, res) => {
     })
   }
 
-  sendSuccess(res, { request })
+  sendSuccess(res, { data: { request } })
 })

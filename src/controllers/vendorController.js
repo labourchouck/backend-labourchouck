@@ -4,8 +4,10 @@ import {
   VENDOR_DOCUMENT_TYPE_LIST,
   VENDOR_DOCUMENT_TYPES,
 } from '../constants/vendorVerification.js'
+import { REQUEST_STATUS, ASSIGNMENT_STATUS } from '../constants/workforceConstants.js'
 import { User } from '../models/User.js'
 import { Allocation } from '../models/Allocation.js'
+import { WorkforceRequest } from '../models/WorkforceRequest.js'
 import { Assignment } from '../models/Assignment.js'
 import { Invoice } from '../models/Invoice.js'
 import { AttendanceRecord } from '../models/AttendanceRecord.js'
@@ -339,14 +341,44 @@ export const getVendorDashboard = asyncHandler(async (req, res) => {
 export const listVendorJobs = asyncHandler(async (req, res) => {
   const err = requireApprovedVendor(req.user)
   if (err) return sendError(res, { message: err, statusCode: HTTP_STATUS.FORBIDDEN })
+  
+  // 1. Fetch real allocations
   const allocations = await Allocation.find({ vendorId: req.user._id })
     .sort({ createdAt: -1 })
     .populate({
       path: 'requestId',
-      select: 'reference status locationText startDate endDate lines',
+      select: 'reference status locationText startDate endDate lines clientId preferredCrewIds',
+      populate: [
+        { path: 'clientId', select: 'fullName phone corporateProfile.companyName' },
+        { path: 'preferredCrewIds', select: 'fullName category services' }
+      ]
     })
     .lean()
-  sendSuccess(res, { data: { allocations } })
+
+  // 2. Fetch pending direct requests that don't have an allocation yet
+  const pendingRequests = await WorkforceRequest.find({
+    preferredVendorId: req.user._id,
+    status: { $in: [REQUEST_STATUS.BROADCASTED, REQUEST_STATUS.PENDING_REVIEW] }
+  })
+    .sort({ createdAt: -1 })
+    .populate('clientId', 'fullName phone corporateProfile.companyName')
+    .populate('preferredCrewIds', 'fullName category services')
+    .lean()
+
+  // 3. Map pending requests to pseudo-allocations
+  const pseudoAllocations = pendingRequests.map(reqData => ({
+    _id: reqData._id, // Use requestId as _id so handleAccept passes requestId
+    vendorId: req.user._id,
+    vendorAcceptedAt: null, // Marks it as pending
+    vendorRejectedAt: null,
+    requestId: reqData,
+    createdAt: reqData.createdAt,
+    isDirectRequest: true
+  }))
+
+  const combined = [...pseudoAllocations, ...allocations].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+
+  sendSuccess(res, { data: { allocations: combined } })
 })
 
 export const getVendorJob = asyncHandler(async (req, res) => {
@@ -398,7 +430,7 @@ export const acceptVendorJob = asyncHandler(async (req, res) => {
       status: { $in: [REQUEST_STATUS.BROADCASTED, REQUEST_STATUS.PENDING_REVIEW] },
       $or: [{ preferredVendorId: req.user._id }, { preferredVendorId: { $exists: false } }]
     },
-    { $set: { status: REQUEST_STATUS.ACCEPTED } },
+    { $set: { status: REQUEST_STATUS.CONFIRMED } },
     { new: true }
   )
 
@@ -427,6 +459,18 @@ export const acceptVendorJob = asyncHandler(async (req, res) => {
     vendorAcceptedAt: new Date(),
   })
   
+  if (request.preferredCrewIds && request.preferredCrewIds.length > 0) {
+    const assignmentsToCreate = request.preferredCrewIds.map(labourId => ({
+      allocationId: allocation._id,
+      requestId: request._id,
+      vendorId: req.user._id,
+      labourId: labourId,
+      status: ASSIGNMENT_STATUS.ACCEPTED,
+      acceptedAt: new Date()
+    }))
+    await Assignment.insertMany(assignmentsToCreate)
+  }
+  
   // Notify corporate
   emitToUser(request.clientId, 'B2B_REQUEST_ACCEPTED', {
     requestId: request._id,
@@ -441,23 +485,41 @@ export const rejectVendorJob = asyncHandler(async (req, res) => {
   const err = requireApprovedVendor(req.user)
   if (err) return sendError(res, { message: err, statusCode: HTTP_STATUS.FORBIDDEN })
   
-  const allocation = await Allocation.findOne({ _id: req.params.id, vendorId: req.user._id })
-  if (!allocation) {
-    return sendError(res, { message: 'Job not found', statusCode: HTTP_STATUS.NOT_FOUND })
-  }
+  const requestId = req.params.id
+
+  // 1. Try to find an existing Allocation
+  let allocation = await Allocation.findOne({ _id: requestId, vendorId: req.user._id })
   
-  if (allocation.vendorAcceptedAt) {
-    return sendError(res, { message: 'Job has already been accepted', statusCode: HTTP_STATUS.BAD_REQUEST })
-  }
-  
-  if (allocation.vendorRejectedAt) {
-    return sendError(res, { message: 'Job has already been rejected', statusCode: HTTP_STATUS.BAD_REQUEST })
+  if (allocation) {
+    if (allocation.vendorAcceptedAt) {
+      return sendError(res, { message: 'Job has already been accepted', statusCode: HTTP_STATUS.BAD_REQUEST })
+    }
+    if (allocation.vendorRejectedAt) {
+      return sendError(res, { message: 'Job has already been rejected', statusCode: HTTP_STATUS.BAD_REQUEST })
+    }
+    allocation.vendorRejectedAt = new Date()
+    await allocation.save()
+    return sendSuccess(res, { message: 'Job rejected successfully', data: { allocation } })
   }
 
-  allocation.vendorRejectedAt = new Date()
-  await allocation.save()
-  
-  sendSuccess(res, { message: 'Job rejected successfully', data: { allocation } })
+  // 2. If no Allocation, check if it's a pending direct WorkforceRequest
+  const request = await WorkforceRequest.findOne({
+    _id: requestId,
+    preferredVendorId: req.user._id,
+    status: { $in: [REQUEST_STATUS.BROADCASTED, REQUEST_STATUS.PENDING_REVIEW] }
+  })
+
+  if (!request) {
+    return sendError(res, { message: 'Job not found', statusCode: HTTP_STATUS.NOT_FOUND })
+  }
+
+  // Reject the request and set status to cancelled so it doesn't show up anymore
+  await WorkforceRequest.updateOne(
+    { _id: requestId }, 
+    { $set: { status: REQUEST_STATUS.CANCELLED } }
+  )
+
+  sendSuccess(res, { message: 'Direct request rejected successfully', data: { requestId } })
 })
 
 export const assignVendorCrew = asyncHandler(async (req, res) => {

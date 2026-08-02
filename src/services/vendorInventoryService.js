@@ -2,6 +2,8 @@ import { User } from '../models/User.js'
 import { Assignment } from '../models/Assignment.js'
 import { USER_ROLES } from '../constants/roles.js'
 import { ASSIGNMENT_STATUS } from '../constants/workforceConstants.js'
+import VendorCrewLabour from '../models/VendorCrewLabour.js'
+import { LabourSubcategory } from '../models/LabourSubcategory.js'
 
 /**
  * Checks if a vendor has enough available crew members to fulfill a request.
@@ -15,10 +17,18 @@ import { ASSIGNMENT_STATUS } from '../constants/workforceConstants.js'
 export async function checkVendorInventory(vendorId, lines, startDate, endDate) {
   if (!endDate) endDate = startDate
 
+  // Map categoryId to Category names
+  const categoryIds = lines.map(l => l.categoryId)
+  const categories = await LabourSubcategory.find({ _id: { $in: categoryIds } }).lean()
+  const categoryIdToName = {}
+  categories.forEach(c => categoryIdToName[c._id.toString()] = c.name)
+
   // 1. Fetch all crew members for this vendor
-  const crew = await User.find({ vendorId, role: USER_ROLES.LABOUR })
-    .select('_id labourProfile.categoryIds')
-    .lean()
+  const crew = await VendorCrewLabour.find({ 
+    vendorId, 
+    status: 'active',
+    verificationStatus: 'approved'
+  }).lean()
 
   if (!crew.length) {
     return { hasInventory: false, availableCrew: [], missing: lines }
@@ -27,7 +37,6 @@ export async function checkVendorInventory(vendorId, lines, startDate, endDate) 
   const crewIds = crew.map(c => c._id)
 
   // 2. Find active assignments for these crew members that overlap with the requested dates
-  // We need to populate the request to check dates
   const activeAssignments = await Assignment.find({
     labourId: { $in: crewIds },
     status: { $in: [ASSIGNMENT_STATUS.OFFERED, ASSIGNMENT_STATUS.ACCEPTED, ASSIGNMENT_STATUS.ON_SITE] }
@@ -53,29 +62,42 @@ export async function checkVendorInventory(vendorId, lines, startDate, endDate) 
   const availableCrew = crew.filter(c => !busyCrewIds.includes(String(c._id)))
 
   // 4. Verify if available crew can fulfill the requested lines
-  // We use a greedy approach since a worker might have multiple categories.
-  // We try to allocate workers to lines.
   let hasInventory = true
   const missing = []
+  const billingBreakdown = []
   const remainingCrew = [...availableCrew]
 
   for (const line of lines) {
-    const reqCatStr = String(line.categoryId)
+    const reqCatName = categoryIdToName[String(line.categoryId)]
     let allocatedCount = 0
+    let categoryAdminPriceTotal = 0
 
-    // Find workers who have this category
-    for (let i = remainingCrew.length - 1; i >= 0; i--) {
-      const worker = remainingCrew[i]
-      const workerCats = worker.labourProfile?.categoryIds?.map(c => String(c)) || []
-      
-      if (workerCats.includes(reqCatStr)) {
-        allocatedCount++
-        remainingCrew.splice(i, 1) // Remove from pool so they can't be used for another line
-      }
+    if (reqCatName) {
+      // Find workers who have this category
+      for (let i = remainingCrew.length - 1; i >= 0; i--) {
+        const worker = remainingCrew[i]
+        
+        if (worker.category === reqCatName) {
+          allocatedCount++
+          const adminPrice = worker.services?.[0]?.adminPrice || 0
+          categoryAdminPriceTotal += adminPrice
+          remainingCrew.splice(i, 1) // Remove from pool so they can't be used for another line
+        }
 
-      if (allocatedCount === line.quantity) {
-        break // Fulfilled this line
+        if (allocatedCount === line.quantity) {
+          break // Fulfilled this line
+        }
       }
+    }
+
+    if (allocatedCount > 0) {
+      billingBreakdown.push({
+        categoryId: line.categoryId,
+        categoryName: reqCatName,
+        quantity: allocatedCount,
+        adminPriceTotal: categoryAdminPriceTotal,
+        adminPricePerWorker: allocatedCount > 0 ? (categoryAdminPriceTotal / allocatedCount) : 0
+      })
     }
 
     if (allocatedCount < line.quantity) {
@@ -88,5 +110,5 @@ export async function checkVendorInventory(vendorId, lines, startDate, endDate) 
     }
   }
 
-  return { hasInventory, availableCrew, missing }
+  return { hasInventory, availableCrew, missing, billingBreakdown }
 }

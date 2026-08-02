@@ -60,6 +60,7 @@ const workforceRequestSchema = new mongoose.Schema(
     reviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     reviewedAt: Date,
     preferredVendorId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', index: true },
+    preferredCrewIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'VendorCrewLabour' }],
   },
   { timestamps: true },
 )

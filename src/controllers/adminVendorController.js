@@ -44,6 +44,21 @@ export const listVendorsAndCrew = asyncHandler(async (req, res) => {
   })
 })
 
+export const getVendorCrewById = asyncHandler(async (req, res) => {
+  const { id } = req.params
+  const crew = await VendorCrewLabour.findById(id).lean()
+  if (!crew) {
+    return sendError(res, { message: 'Crew request not found', statusCode: 404 })
+  }
+  
+  const vendor = await User.findById(crew.vendorId).select('fullName phone email contractorProfile').lean()
+  
+  return sendSuccess(res, {
+    message: 'Crew fetched successfully',
+    data: { crew: { ...crew, vendorName: vendor?.contractorProfile?.companyName || vendor?.fullName, vendorPhone: vendor?.phone, vendorEmail: vendor?.email } }
+  })
+})
+
 export const updateVendorCrewVerification = asyncHandler(async (req, res) => {
   const { id } = req.params
   const { status, rejectMessage, adminPrices } = req.body
@@ -71,6 +86,7 @@ export const updateVendorCrewVerification = asyncHandler(async (req, res) => {
       const match = adminPrices.find(p => p.name === service.name)
       if (match && typeof match.adminPrice === 'number') {
         service.adminPrice = match.adminPrice
+        service.priceDifference = match.adminPrice - (service.price || 0)
       }
     })
   }
