@@ -327,6 +327,20 @@ export const updateBookingStatus = asyncHandler(async (req, res) => {
           description: 'Platform fees, taxes & commission for Cash Booking'
         }).catch(err => console.error('WalletTx error:', err))
       })
+
+      // Log splits to AdminWallet for Platform Fee and Commission
+      if (booking.platformFee > 0 || booking.commissionAmount > 0 || booking.basePrice > 0 || booking.taxes > 0) {
+        import('../models/AdminWallet.js').then(async ({ AdminWallet }) => {
+          let adminWallet = await AdminWallet.findOne()
+          if (!adminWallet) adminWallet = new AdminWallet()
+          
+          adminWallet.totalPlatformFeesCollected += (booking.platformFee || 0)
+          adminWallet.totalCommissionsCollected += (booking.commissionAmount || 0)
+          adminWallet.totalTaxesCollected += (booking.taxes || 0)
+          adminWallet.totalServiceAmountCollected += (booking.basePrice || 0)
+          await adminWallet.save()
+        }).catch(err => console.error('AdminWallet error:', err))
+      }
     } else if (booking.paymentMethod === 'ONLINE') {
       // ONLY payout if the customer has actually completed the online payment.
       // If they haven't paid yet, the paymentController will handle this payout later once they pay.
@@ -348,12 +362,13 @@ export const updateBookingStatus = asyncHandler(async (req, res) => {
         })
 
         // Log splits to AdminWallet for Platform Fee, Commission and total business
-        if (booking.platformFee > 0 || booking.commissionAmount > 0 || booking.basePrice > 0) {
+        if (booking.platformFee > 0 || booking.commissionAmount > 0 || booking.basePrice > 0 || booking.taxes > 0) {
           let adminWallet = await AdminWallet.findOne()
           if (!adminWallet) adminWallet = new AdminWallet()
           
           adminWallet.totalPlatformFeesCollected += (booking.platformFee || 0)
           adminWallet.totalCommissionsCollected += (booking.commissionAmount || 0)
+          adminWallet.totalTaxesCollected += (booking.taxes || 0)
           adminWallet.totalServiceAmountCollected += (booking.basePrice || 0)
           await adminWallet.save()
         }

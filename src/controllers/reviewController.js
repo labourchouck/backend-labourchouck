@@ -52,3 +52,16 @@ export const getReviews = asyncHandler(async (req, res) => {
 
   return sendSuccess(res, { data: { reviews, averageRating, totalReviews: reviews.length } })
 })
+
+export const getAllReviews = asyncHandler(async (req, res) => {
+  const reviews = await Review.find({})
+    .populate('reviewerId', 'name fullName email phone profileImageUrl')
+    .populate('revieweeId', 'name fullName email phone profileImageUrl')
+    .populate({
+      path: 'bookingId',
+      select: 'type scheduledAt timeSlot status',
+    })
+    .sort({ createdAt: -1 })
+    
+  return sendSuccess(res, { data: { reviews, totalReviews: reviews.length } })
+})

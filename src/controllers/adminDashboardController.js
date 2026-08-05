@@ -14,11 +14,13 @@ export const getDashboardStats = asyncHandler(async (req, res) => {
   let totalRevenue = 0
   let totalTaxesCollected = 0
   let totalGrossVolume = 0
+  let totalCommissionsCollected = 0
 
   completedBookings.forEach(booking => {
     totalRevenue += booking.platformFee || 0
     totalTaxesCollected += booking.taxes || 0
     totalGrossVolume += booking.totalAmount || 0
+    totalCommissionsCollected += booking.commissionAmount || 0
   })
 
   // User Counts
@@ -41,6 +43,7 @@ export const getDashboardStats = asyncHandler(async (req, res) => {
       revenue: {
         platformEarnings: totalRevenue,
         taxesCollected: totalTaxesCollected,
+        commissionsCollected: totalCommissionsCollected,
         grossTransactionVolume: totalGrossVolume,
       },
       users: {

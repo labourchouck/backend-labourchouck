@@ -67,9 +67,21 @@ export const checkWalletEligibility = async (userId) => {
   if (!wallet) return true // New labor, no dues
 
   let settings = await SystemSetting.findOne({ configKey: 'master_config' })
-  const limit = settings?.walletLimit ?? 100
-  const currentDues = wallet.adminBalance || 0
+  
+  // Need to know if they are a vendor or labour to apply the correct limit
+  const User = mongoose.model('User')
+  const user = await User.findById(userId).select('role')
+  
+  let limit = settings?.walletLimit ?? 100
+  if (user) {
+    if (user.role === 'contractor') {
+      limit = settings?.vendorCashLimit ?? 5000
+    } else if (user.role === 'labour') {
+      limit = settings?.labourCashLimit ?? 500
+    }
+  }
 
+  const currentDues = wallet.adminBalance || 0
   return currentDues <= limit
 }
 

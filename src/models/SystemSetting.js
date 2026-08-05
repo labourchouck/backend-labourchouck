@@ -61,6 +61,16 @@ const systemSettingSchema = new mongoose.Schema(
       min: 0,
       default: 100,
     },
+    labourCashLimit: {
+      type: Number,
+      min: 0,
+      default: 500,
+    },
+    vendorCashLimit: {
+      type: Number,
+      min: 0,
+      default: 5000,
+    },
     gstPercentage: {
       type: Number,
       min: 0,

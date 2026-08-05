@@ -1,6 +1,6 @@
 import { Router } from 'express'
 import { body } from 'express-validator'
-import { protect } from '../middleware/auth.js'
+import { protect, restrictTo } from '../middleware/auth.js'
 import { validateRequest } from '../middleware/validateRequest.js'
 import * as review from '../controllers/reviewController.js'
 
@@ -20,5 +20,7 @@ router.post(
 )
 
 router.get('/user/:userId', review.getReviews)
+
+router.get('/', restrictTo('ADMIN', 'SUPER_ADMIN'), review.getAllReviews)
 
 export default router

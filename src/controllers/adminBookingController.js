@@ -161,12 +161,16 @@ export const updateBookingAdmin = asyncHandler(async (req, res) => {
 
 export const deleteBookingAdmin = asyncHandler(async (req, res) => {
   const { id } = req.params
+  
+  console.log(`[deleteBookingAdmin] Attempting to delete booking with ID: ${id}`);
 
   const booking = await Booking.findByIdAndDelete(id)
 
   if (!booking) {
+    console.log(`[deleteBookingAdmin] Booking NOT FOUND for ID: ${id}`);
     return sendError(res, { message: 'Booking not found', statusCode: HTTP_STATUS.NOT_FOUND })
   }
 
+  console.log(`[deleteBookingAdmin] Successfully deleted booking: ${booking._id}, Status was: ${booking.status}`);
   return sendSuccess(res, { message: 'Booking deleted successfully' })
 })

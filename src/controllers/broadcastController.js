@@ -6,7 +6,22 @@ export const acceptBroadcast = asyncHandler(async (req, res) => {
   const { bookingId } = req.params
   const laborId = req.user._id
 
-  // 1. Atomic FCFS Update
+  // 1. Check Cash Limit before allowing acceptance
+  const { Wallet } = await import('../models/Wallet.js')
+  const { SystemSetting } = await import('../models/SystemSetting.js')
+  
+  const wallet = await Wallet.findOne({ userId: laborId })
+  if (wallet && wallet.adminBalance > 0) {
+    let settings = await SystemSetting.findOne({ configKey: 'master_config' })
+    if (settings && wallet.adminBalance >= (settings.labourCashLimit ?? 500)) {
+      return sendError(res, { 
+        message: `Cannot accept new bookings. You owe the admin ₹${wallet.adminBalance}. Please clear your dues first.`, 
+        statusCode: HTTP_STATUS.FORBIDDEN 
+      })
+    }
+  }
+
+  // 2. Atomic FCFS Update
   // We only update if the booking is currently in BROADCASTING state.
   // This inherently prevents race conditions. The first update succeeds, subsequent updates find nothing or fail.
   const booking = await Booking.findOneAndUpdate(
