@@ -6,7 +6,7 @@ const otpChallengeSchema = new mongoose.Schema(
     codeHash: { type: String, required: true },
     purpose: { type: String, enum: ['register', 'login', 'link_crew', 'link_vendor_crew'], required: true },
     attempts: { type: Number, default: 0 },
-    expiresAt: { type: Date, required: true, index: true },
+    expiresAt: { type: Date, required: true },
   },
   { timestamps: true },
 )

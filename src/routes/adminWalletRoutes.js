@@ -10,6 +10,8 @@ const router = Router()
 router.use(protect, restrictTo(USER_ROLES.ADMIN))
 
 router.get('/withdrawals', adminWallet.getAllWithdrawalRequests)
+router.get('/vendor-withdrawals', adminWallet.getAllVendorWithdrawalRequests)
+router.get('/vendor-stats', adminWallet.getVendorWalletStats)
 
 router.patch(
   '/withdrawals/:id',

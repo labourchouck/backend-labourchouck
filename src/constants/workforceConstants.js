@@ -14,14 +14,9 @@ export const REQUEST_STATUS = {
   BILLING: 'billing',
   COMPLETED: 'completed',
   CANCELLED: 'cancelled',
+  REJECTED: 'rejected',
 }
 
-export const SCHEDULE_TYPE = {
-  DAILY: 'daily',
-  WEEKLY: 'weekly',
-  MONTHLY: 'monthly',
-  LONG_TERM: 'long_term',
-}
 
 export const ASSIGNMENT_STATUS = {
   OFFERED: 'offered',
@@ -33,7 +28,11 @@ export const ASSIGNMENT_STATUS = {
 }
 
 export const ATTENDANCE_STATUS = {
+  SCHEDULED: 'scheduled',
+  DISPATCHED: 'dispatched',
   PRESENT: 'present',
+  WORK_COMPLETED: 'work_completed',
+  COMPLETED: 'completed',
   ABSENT: 'absent',
   HALF_DAY: 'half_day',
   LATE: 'late',

@@ -17,6 +17,11 @@ import { Banner } from '../models/Banner.js'
 import { SubscriptionPlan } from '../models/SubscriptionPlan.js'
 import { VendorSubscription } from '../models/VendorSubscription.js'
 import { checkVendorInventory } from '../services/vendorInventoryService.js'
+import {
+  ensureDailyAttendanceForRequest,
+  getVendorAttendanceData,
+  toggleAttendanceStep,
+} from '../services/attendanceService.js'
 import { createOtpChallenge, validateOtpChallenge, deleteOtpChallengeDoc } from '../services/otpService.js'
 import { emitToUser } from '../socket.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
@@ -330,9 +335,17 @@ export const getVendorDashboard = asyncHandler(async (req, res) => {
     status: 'active'
   }).populate('plan').lean()
 
+  const invoices = await Invoice.find({ vendorId }).lean()
+  const totalBookingAmount = invoices.reduce((sum, inv) => sum + (inv.total || inv.totalAmount || 0), 0)
+
+  const approvedWithdrawals = await WithdrawalRequest.find({ vendorId, status: 'APPROVED' }).lean()
+  const totalPaid = approvedWithdrawals.reduce((sum, w) => sum + (w.amount || 0), 0)
+
+  const dueAmount = totalBookingAmount - totalPaid
+
   sendSuccess(res, {
     data: {
-      stats: { crewCount, openJobs, activeAssignments },
+      stats: { crewCount, openJobs, activeAssignments, totalBookingAmount, totalPaid, dueAmount },
       activeSubscription,
     },
   })
@@ -385,35 +398,70 @@ export const getVendorJob = asyncHandler(async (req, res) => {
   const err = requireApprovedVendor(req.user)
   if (err) return sendError(res, { message: err, statusCode: HTTP_STATUS.FORBIDDEN })
   
-  const allocation = await Allocation.findOne({ _id: req.params.id, vendorId: req.user._id })
+  let allocation = await Allocation.findOne({ _id: req.params.id, vendorId: req.user._id })
     .populate({
       path: 'requestId',
-      populate: { path: 'clientId', select: 'fullName phone companyName' }
+      populate: [
+        { path: 'clientId', select: 'fullName phone corporateProfile.companyName companyName' },
+        { path: 'preferredCrewIds', select: 'fullName category services' }
+      ]
     })
     .lean()
     
   if (!allocation) {
+    // Check if it's a pending workforce request
+    const pendingRequest = await WorkforceRequest.findOne({
+      _id: req.params.id,
+      preferredVendorId: req.user._id,
+    })
+      .populate('clientId', 'fullName phone corporateProfile.companyName companyName')
+      .populate('preferredCrewIds', 'fullName category services')
+      .lean()
+
+    if (pendingRequest) {
+      allocation = {
+        _id: pendingRequest._id,
+        vendorId: req.user._id,
+        vendorAcceptedAt: null,
+        vendorRejectedAt: null,
+        requestId: pendingRequest,
+        createdAt: pendingRequest.createdAt,
+        isDirectRequest: true
+      }
+    }
+  }
+
+  if (!allocation) {
     return sendError(res, { message: 'Job not found', statusCode: HTTP_STATUS.NOT_FOUND })
   }
 
-  // Map the populated fields to match the exact JSON structure defined in JOB_ALLOCATIONS_API.md
+  // Map the populated fields to match the exact JSON structure
   if (allocation.requestId) {
     const reqData = allocation.requestId
     const client = reqData.clientId || {}
     allocation.requestId = {
+      _id: reqData._id,
       reference: reqData.reference,
       status: reqData.status,
       locationText: reqData.locationText,
       startDate: reqData.startDate,
       endDate: reqData.endDate,
       description: reqData.notes,
-      requirements: reqData.notes, // Using notes as a fallback since requirements isn't in schema
-      clientName: client.companyName || client.fullName,
+      requirements: reqData.notes,
+      clientName: client.corporateProfile?.companyName || client.companyName || client.fullName,
       clientPhone: client.phone,
-      lines: reqData.lines
+      lines: reqData.lines,
+      preferredCrewIds: reqData.preferredCrewIds || []
     }
   }
   
+  const reqId = allocation.requestId?._id || allocation.requestId
+  const assignments = await Assignment.find({ requestId: reqId, vendorId: req.user._id })
+    .populate('labourId', 'fullName phone category services')
+    .lean()
+    
+  allocation.assignments = assignments
+
   sendSuccess(res, { data: { allocation } })
 })
 
@@ -421,105 +469,224 @@ export const acceptVendorJob = asyncHandler(async (req, res) => {
   const err = requireApprovedVendor(req.user)
   if (err) return sendError(res, { message: err, statusCode: HTTP_STATUS.FORBIDDEN })
   
-  const requestId = req.params.id
-  
-  // Start a transaction-like atomic update
-  const request = await WorkforceRequest.findOneAndUpdate(
-    { 
-      _id: requestId, 
-      status: { $in: [REQUEST_STATUS.BROADCASTED, REQUEST_STATUS.PENDING_REVIEW] },
-      $or: [{ preferredVendorId: req.user._id }, { preferredVendorId: { $exists: false } }]
-    },
-    { $set: { status: REQUEST_STATUS.CONFIRMED } },
-    { new: true }
-  )
+  const jobId = req.params.id
 
-  if (!request) {
-    return sendError(res, { message: 'Job not found, already accepted by another vendor, or not available.', statusCode: HTTP_STATUS.NOT_FOUND })
+  // 1. Check if jobId refers to an existing Allocation for this vendor
+  let allocation = await Allocation.findOne({ _id: jobId, vendorId: req.user._id })
+  let request = null
+
+  if (allocation) {
+    request = await WorkforceRequest.findById(allocation.requestId)
+  } else {
+    // 2. Check if jobId is directly a WorkforceRequest _id
+    request = await WorkforceRequest.findById(jobId)
+    if (request) {
+      allocation = await Allocation.findOne({ requestId: request._id, vendorId: req.user._id })
+    }
   }
 
-  // Check inventory to be absolutely sure
-  const sDate = new Date(request.startDate)
-  const eDate = request.endDate ? new Date(request.endDate) : sDate
-  const inventory = await checkVendorInventory(req.user._id, request.lines, sDate, eDate)
-
-  if (!inventory.hasInventory) {
-    // Revert request status
-    await WorkforceRequest.updateOne({ _id: requestId }, { $set: { status: REQUEST_STATUS.BROADCASTED } })
+  if (!request) {
     return sendError(res, { 
-      message: 'You do not have enough available crew members to fulfill this request.', 
-      statusCode: HTTP_STATUS.BAD_REQUEST 
+      message: 'Job not found, already accepted by another vendor, or not available.', 
+      statusCode: HTTP_STATUS.NOT_FOUND 
     })
   }
 
-  // Create Allocation
-  const allocation = await Allocation.create({
-    requestId: request._id,
-    vendorId: req.user._id,
-    vendorAcceptedAt: new Date(),
-  })
-  
-  if (request.preferredCrewIds && request.preferredCrewIds.length > 0) {
-    const assignmentsToCreate = request.preferredCrewIds.map(labourId => ({
-      allocationId: allocation._id,
+  // Validate that vendor has permission to accept this request
+  const isDirectVendor = request.preferredVendorId && String(request.preferredVendorId) === String(req.user._id)
+  const isUnassigned = !request.preferredVendorId
+  if (!isDirectVendor && !isUnassigned && !allocation) {
+    return sendError(res, {
+      message: 'This job is reserved for another vendor partner.',
+      statusCode: HTTP_STATUS.FORBIDDEN
+    })
+  }
+
+  // If already accepted, return existing allocation
+  if (allocation && allocation.vendorAcceptedAt) {
+    return sendSuccess(res, { 
+      message: 'Job is already accepted', 
+      data: { allocation } 
+    })
+  }
+
+  // Check inventory if request has line items
+  if (request.lines && request.lines.length > 0) {
+    const sDate = new Date(request.startDate || Date.now())
+    const eDate = request.endDate ? new Date(request.endDate) : sDate
+    const inventory = await checkVendorInventory(req.user._id, request.lines, sDate, eDate)
+
+    if (!inventory.hasInventory) {
+      return sendError(res, { 
+        message: 'You do not have enough available crew members to fulfill this request.', 
+        statusCode: HTTP_STATUS.BAD_REQUEST 
+      })
+    }
+  }
+
+  // Update request status to confirmed
+  request.status = REQUEST_STATUS.CONFIRMED
+  await request.save()
+
+  // Create or update Allocation
+  if (!allocation) {
+    allocation = await Allocation.create({
       requestId: request._id,
       vendorId: req.user._id,
-      labourId: labourId,
-      status: ASSIGNMENT_STATUS.ACCEPTED,
-      acceptedAt: new Date()
-    }))
-    await Assignment.insertMany(assignmentsToCreate)
+      vendorAcceptedAt: new Date(),
+    })
+  } else {
+    allocation.vendorAcceptedAt = new Date()
+    allocation.vendorRejectedAt = null
+    await allocation.save()
   }
   
-  // Notify corporate
+  if (request.preferredCrewIds && request.preferredCrewIds.length > 0) {
+    for (const labourId of request.preferredCrewIds) {
+      const exists = await Assignment.findOne({ requestId: request._id, labourId })
+      if (!exists) {
+        await Assignment.create({
+          allocationId: allocation._id,
+          requestId: request._id,
+          vendorId: req.user._id,
+          labourId,
+          status: ASSIGNMENT_STATUS.ACCEPTED,
+          acceptedAt: new Date()
+        })
+      }
+    }
+  }
+  
+  // Ensure daily attendance records are prepared
+  await ensureDailyAttendanceForRequest(
+    {
+      ...request.toObject(),
+      allocationId: allocation._id,
+    },
+    req.user._id,
+  )
+
+  const vendorName = req.user.contractorProfile?.businessName || req.user.fullName || 'Vendor'
+
+  // Notify corporate with rich metadata for instant toast and link
   emitToUser(request.clientId, 'B2B_REQUEST_ACCEPTED', {
     requestId: request._id,
+    reference: request.reference,
     vendorId: req.user._id,
-    allocationId: allocation._id
+    vendorName,
+    businessName: vendorName,
+    startDate: request.startDate,
+    endDate: request.endDate,
+    crewCount: request.preferredCrewIds?.length || 1,
+    allocationId: allocation._id,
+    message: `Vendor ${vendorName} has accepted your request ${request.reference || ''}`,
   })
 
-  sendSuccess(res, { data: { allocation } })
+  sendSuccess(res, { message: 'Job accepted successfully', data: { allocation } })
+})
+
+export const getVendorAttendance = asyncHandler(async (req, res) => {
+  const err = requireApprovedVendor(req.user)
+  if (err) return sendError(res, { message: err, statusCode: HTTP_STATUS.FORBIDDEN })
+
+  const result = await getVendorAttendanceData(req.user._id, req.query.date)
+
+  sendSuccess(res, {
+    data: result,
+  })
+})
+
+export const toggleVendorAttendance = asyncHandler(async (req, res) => {
+  const err = requireApprovedVendor(req.user)
+  if (err) return sendError(res, { message: err, statusCode: HTTP_STATUS.FORBIDDEN })
+
+  const { recordId, action, notes } = req.body
+  if (!recordId || !action) {
+    return sendError(res, { message: 'recordId and action are required', statusCode: HTTP_STATUS.BAD_REQUEST })
+  }
+
+  try {
+    const record = await toggleAttendanceStep({
+      user: req.user,
+      recordId,
+      action,
+      notes,
+    })
+    sendSuccess(res, {
+      message: 'Attendance updated successfully',
+      data: { record },
+    })
+  } catch (error) {
+    return sendError(res, { message: error.message, statusCode: HTTP_STATUS.BAD_REQUEST })
+  }
 })
 
 export const rejectVendorJob = asyncHandler(async (req, res) => {
   const err = requireApprovedVendor(req.user)
   if (err) return sendError(res, { message: err, statusCode: HTTP_STATUS.FORBIDDEN })
   
-  const requestId = req.params.id
+  const jobId = req.params.id
 
   // 1. Try to find an existing Allocation
-  let allocation = await Allocation.findOne({ _id: requestId, vendorId: req.user._id })
+  let allocation = await Allocation.findOne({ _id: jobId, vendorId: req.user._id })
+  let request = null
   
   if (allocation) {
-    if (allocation.vendorAcceptedAt) {
-      return sendError(res, { message: 'Job has already been accepted', statusCode: HTTP_STATUS.BAD_REQUEST })
+    request = await WorkforceRequest.findById(allocation.requestId)
+  } else {
+    request = await WorkforceRequest.findById(jobId)
+    if (request) {
+      allocation = await Allocation.findOne({ requestId: request._id, vendorId: req.user._id })
     }
-    if (allocation.vendorRejectedAt) {
-      return sendError(res, { message: 'Job has already been rejected', statusCode: HTTP_STATUS.BAD_REQUEST })
-    }
-    allocation.vendorRejectedAt = new Date()
-    await allocation.save()
-    return sendSuccess(res, { message: 'Job rejected successfully', data: { allocation } })
   }
-
-  // 2. If no Allocation, check if it's a pending direct WorkforceRequest
-  const request = await WorkforceRequest.findOne({
-    _id: requestId,
-    preferredVendorId: req.user._id,
-    status: { $in: [REQUEST_STATUS.BROADCASTED, REQUEST_STATUS.PENDING_REVIEW] }
-  })
 
   if (!request) {
     return sendError(res, { message: 'Job not found', statusCode: HTTP_STATUS.NOT_FOUND })
   }
 
-  // Reject the request and set status to cancelled so it doesn't show up anymore
-  await WorkforceRequest.updateOne(
-    { _id: requestId }, 
-    { $set: { status: REQUEST_STATUS.CANCELLED } }
-  )
+  if (allocation) {
+    if (allocation.vendorAcceptedAt) {
+      return sendError(res, { message: 'Job has already been accepted', statusCode: HTTP_STATUS.BAD_REQUEST })
+    }
+    if (allocation.vendorRejectedAt) {
+      return sendSuccess(res, { message: 'Job was already rejected', data: { allocation, requestId: request._id } })
+    }
+    allocation.vendorRejectedAt = new Date()
+    await allocation.save()
+  } else {
+    // If no allocation exists, check if vendor is authorized to reject this direct request
+    const isDirectVendor = request.preferredVendorId && String(request.preferredVendorId) === String(req.user._id)
+    if (!isDirectVendor) {
+      return sendError(res, { message: 'Unauthorized to reject this request', statusCode: HTTP_STATUS.FORBIDDEN })
+    }
+    
+    // Create an allocation to mark the rejection
+    allocation = await Allocation.create({
+      requestId: request._id,
+      vendorId: req.user._id,
+      vendorRejectedAt: new Date()
+    })
+  }
 
-  sendSuccess(res, { message: 'Direct request rejected successfully', data: { requestId } })
+  // Set request status to REJECTED and unset preferredVendorId so corporate client can reassign
+  if (request.status !== REQUEST_STATUS.CANCELLED && request.status !== REQUEST_STATUS.COMPLETED) {
+    request.status = REQUEST_STATUS.REJECTED
+    request.preferredVendorId = undefined
+    await request.save()
+  }
+
+  const vendorName = req.user.contractorProfile?.businessName || req.user.fullName || 'Vendor'
+
+  // Emit socket event to corporate client
+  emitToUser(request.clientId, 'B2B_REQUEST_REJECTED', {
+    requestId: request._id,
+    reference: request.reference,
+    vendorId: req.user._id,
+    vendorName,
+    message: `Vendor ${vendorName} has declined your request ${request.reference || ''}. Please search and assign another vendor.`
+  })
+
+  sendSuccess(res, { message: 'Job rejected successfully', data: { allocation, requestId: request._id } })
 })
 
 export const assignVendorCrew = asyncHandler(async (req, res) => {
@@ -795,11 +962,18 @@ export const requestVendorWithdrawal = asyncHandler(async (req, res) => {
     })
   }
 
-  // Check wallet balance
-  const wallet = await Wallet.findOne({ userId: req.user._id })
-  if (!wallet || wallet.selfBalance < parsedAmount) {
+  // Calculate available dueAmount dynamically
+  const invoices = await Invoice.find({ vendorId: req.user._id }).lean()
+  const totalBookingAmount = invoices.reduce((sum, inv) => sum + (inv.total || inv.totalAmount || 0), 0)
+
+  const approvedWithdrawals = await WithdrawalRequest.find({ vendorId: req.user._id, status: 'APPROVED' }).lean()
+  const totalPaid = approvedWithdrawals.reduce((sum, w) => sum + (w.amount || 0), 0)
+
+  const dueAmount = totalBookingAmount - totalPaid
+
+  if (dueAmount < parsedAmount) {
     return sendError(res, {
-      message: `Insufficient wallet balance. Available: ₹${wallet?.selfBalance ?? 0}`,
+      message: `Insufficient balance. Available: ₹${dueAmount}`,
       statusCode: HTTP_STATUS.BAD_REQUEST,
       code: 'INSUFFICIENT_BALANCE',
     })

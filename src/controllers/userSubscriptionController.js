@@ -5,10 +5,15 @@ import { UserSubscription } from '../models/UserSubscription.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { HTTP_STATUS, sendError, sendSuccess } from '../utils/apiResponse.js'
 
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID,
-  key_secret: process.env.RAZORPAY_KEY_SECRET,
-})
+const getRazorpayInstance = () => {
+  if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+    throw new Error('Razorpay credentials not configured in environment')
+  }
+  return new Razorpay({
+    key_id: process.env.RAZORPAY_KEY_ID,
+    key_secret: process.env.RAZORPAY_KEY_SECRET,
+  })
+}
 
 export const getIndividualPlans = asyncHandler(async (req, res) => {
   const plans = await SubscriptionPlan.find({ isActive: true, planType: 'individual' }).sort({ price: 1 })
@@ -35,6 +40,7 @@ export const createRazorpayOrder = asyncHandler(async (req, res) => {
     }
   }
 
+  const razorpay = getRazorpayInstance()
   const order = await razorpay.orders.create(options)
   return sendSuccess(res, { data: { order, keyId: process.env.RAZORPAY_KEY_ID } })
 })

@@ -79,7 +79,7 @@ export async function checkVendorInventory(vendorId, lines, startDate, endDate) 
         
         if (worker.category === reqCatName) {
           allocatedCount++
-          const adminPrice = worker.services?.[0]?.adminPrice || 0
+          const adminPrice = worker.services?.[0]?.adminPrice ?? worker.services?.[0]?.price ?? 0
           categoryAdminPriceTotal += adminPrice
           remainingCrew.splice(i, 1) // Remove from pool so they can't be used for another line
         }
@@ -94,6 +94,7 @@ export async function checkVendorInventory(vendorId, lines, startDate, endDate) 
       billingBreakdown.push({
         categoryId: line.categoryId,
         categoryName: reqCatName,
+        serviceName: line.serviceName || undefined,
         quantity: allocatedCount,
         adminPriceTotal: categoryAdminPriceTotal,
         adminPricePerWorker: allocatedCount > 0 ? (categoryAdminPriceTotal / allocatedCount) : 0

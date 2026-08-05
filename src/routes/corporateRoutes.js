@@ -19,6 +19,7 @@ import {
   listCorporateComplaints,
   rateCorporateAssignment,
   getCorporateVendorAttendance,
+  toggleCorporateAttendance,
   searchVendors,
   listCorporateVendors,
   getCorporateBanners,
@@ -26,7 +27,7 @@ import {
 
 const router = Router()
 
-router.use(protect, restrictTo(USER_ROLES.CORPORATE))
+router.use(protect, restrictTo(USER_ROLES.CORPORATE, USER_ROLES.ADMIN, 'super_admin'))
 
 router.get('/me', getCorporateMe)
 router.patch('/me', patchCorporateMe)
@@ -36,6 +37,8 @@ router.post('/verification/submit', submitCorporateVerification)
 router.get('/dashboard', getCorporateDashboard)
 router.get('/banners', getCorporateBanners)
 router.get('/vendor-attendance', getCorporateVendorAttendance)
+router.get('/attendance', getCorporateVendorAttendance)
+router.post('/attendance/toggle', toggleCorporateAttendance)
 router.get('/vendors', listCorporateVendors)
 router.get('/projects', listCorporateProjects)
 router.post('/projects', createCorporateProject)

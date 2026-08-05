@@ -46,6 +46,6 @@ router.post('/admin/login', validateAdminLogin, validateRequest, auth.adminLogin
 
 router.get('/me', protect, auth.getMe)
 
-router.post('/logout', protect, auth.logout)
+router.post('/logout', auth.logout)
 
 export default router

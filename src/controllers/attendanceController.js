@@ -5,6 +5,7 @@ import { User } from '../models/User.js'
 import { Assignment } from '../models/Assignment.js'
 import { AttendanceRecord } from '../models/AttendanceRecord.js'
 import { WorkforceRequest } from '../models/WorkforceRequest.js'
+import { ensureDailyAttendanceForRequest } from '../services/attendanceService.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { HTTP_STATUS, sendError, sendSuccess } from '../utils/apiResponse.js'
 
@@ -47,7 +48,7 @@ export const checkIn = asyncHandler(async (req, res) => {
   assignment.status = 'on_site'
   await assignment.save()
 
-  sendSuccess(res, { record })
+  sendSuccess(res, { data: { record } })
 })
 
 export const checkOut = asyncHandler(async (req, res) => {
@@ -63,7 +64,7 @@ export const checkOut = asyncHandler(async (req, res) => {
   record.checkOutAt = new Date()
   record.billableUnits = billableUnitsForStatus(record.status)
   await record.save()
-  sendSuccess(res, { record })
+  sendSuccess(res, { data: { record } })
 })
 
 export const listAttendance = asyncHandler(async (req, res) => {
@@ -84,6 +85,12 @@ export const listAttendance = asyncHandler(async (req, res) => {
 
   if (req.query.requestId && mongoose.Types.ObjectId.isValid(req.query.requestId)) {
     filter.requestId = req.query.requestId
+    
+    // Auto-generate if not existing (especially useful for Admins viewing fresh requests)
+    const request = await WorkforceRequest.findById(req.query.requestId).lean()
+    if (request) {
+      await ensureDailyAttendanceForRequest(request, request.preferredVendorId)
+    }
   }
   if (req.query.projectId && mongoose.Types.ObjectId.isValid(req.query.projectId)) {
     filter.projectId = req.query.projectId
@@ -96,12 +103,23 @@ export const listAttendance = asyncHandler(async (req, res) => {
     filter.shiftDate = { $gte: d, $lt: end }
   }
 
-  const records = await AttendanceRecord.find(filter)
+  let records = await AttendanceRecord.find(filter)
     .sort({ shiftDate: -1 })
     .limit(200)
     .populate('labourId', 'fullName phone')
     .lean()
-  sendSuccess(res, { records })
+
+  if (req.user.role === USER_ROLES.CORPORATE) {
+    records = records.map(r => {
+      if (r.labourId) {
+        delete r.labourId.phone
+        r.labourId.fullName = `Worker (ID: ${String(r.labourId._id).slice(-4).toUpperCase()})`
+      }
+      return r
+    })
+  }
+
+  sendSuccess(res, { data: { records } })
 })
 
 export const verifyAttendanceAdmin = asyncHandler(async (req, res) => {
@@ -116,7 +134,7 @@ export const verifyAttendanceAdmin = asyncHandler(async (req, res) => {
   record.verifiedBy = req.user.role === USER_ROLES.CONTRACTOR ? 'vendor_supervisor' : 'admin'
   record.verifiedAt = new Date()
   await record.save()
-  sendSuccess(res, { record })
+  sendSuccess(res, { data: { record } })
 })
 
 export const markAttendanceVendor = asyncHandler(async (req, res) => {
@@ -153,5 +171,5 @@ export const markAttendanceVendor = asyncHandler(async (req, res) => {
     if (notes != null) record.notes = notes
     await record.save()
   }
-  sendSuccess(res, { record })
+  sendSuccess(res, { data: { record } })
 })

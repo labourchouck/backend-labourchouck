@@ -2,13 +2,17 @@ import mongoose from 'mongoose'
 import {
   REQUEST_SOURCE,
   REQUEST_STATUS,
-  SCHEDULE_TYPE,
   BILLING_MODE,
 } from '../constants/workforceConstants.js'
 
 const requestLineSchema = new mongoose.Schema(
   {
-    categoryId: { type: mongoose.Schema.Types.ObjectId, ref: 'LabourCategory', required: true },
+    categoryId: { type: mongoose.Schema.Types.ObjectId, ref: 'LabourSubcategory' },
+    categoryName: { type: String, trim: true },
+    serviceId: { type: mongoose.Schema.Types.ObjectId, ref: 'LabourService' },
+    serviceName: { type: String, trim: true },
+    adminPrice: { type: Number, default: 0 },
+    vendorPrice: { type: Number, default: 0 },
     quantity: { type: Number, required: true, min: 1 },
   },
   { _id: true },
@@ -26,15 +30,10 @@ const workforceRequestSchema = new mongoose.Schema(
     clientId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     projectId: { type: mongoose.Schema.Types.ObjectId, ref: 'Project' },
     siteId: { type: mongoose.Schema.Types.ObjectId, ref: 'Site' },
-    scheduleType: {
-      type: String,
-      enum: Object.values(SCHEDULE_TYPE),
-      default: SCHEDULE_TYPE.DAILY,
-    },
+
     startDate: { type: Date, required: true },
     endDate: Date,
     shiftStart: String,
-    shiftEnd: String,
     lines: [requestLineSchema],
     locationText: { type: String, trim: true },
     notes: { type: String, trim: true, maxlength: 2000 },

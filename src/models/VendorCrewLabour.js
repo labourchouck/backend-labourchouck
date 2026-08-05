@@ -60,4 +60,6 @@ const vendorCrewLabourSchema = new mongoose.Schema(
   { timestamps: true }
 )
 
-export default mongoose.model('VendorCrewLabour', vendorCrewLabourSchema)
+export const VendorCrewLabour = mongoose.model('VendorCrewLabour', vendorCrewLabourSchema)
+export default VendorCrewLabour
+
