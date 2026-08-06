@@ -1,7 +1,4 @@
-/**
- * Curated Unsplash images for labour category tiles (home / search UI).
- * Format: w=600, crop, q=80 — stable HTTPS URLs for MongoDB seed upserts.
- */
+
 const u = (id) =>
   `https://images.unsplash.com/photo-${id}?w=600&h=450&fit=crop&q=80&auto=format`
 
