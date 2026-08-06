@@ -19,6 +19,7 @@ export const LABOUR_CATEGORY_SEED_V2 = [
           { name: "Waterproofing Worker", basePrice: 750, description: "Surface treatments to prevent water leakage and damage." }
         ]
       },
+
       {
         name: "Plumbing & Electrical",
         description: "Professionals for plumbing, electrical, HVAC, and utility installations.",
