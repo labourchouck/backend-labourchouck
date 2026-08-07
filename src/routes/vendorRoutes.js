@@ -29,6 +29,7 @@ import {
   subscribeToPlan,
   getVendorAttendance,
   toggleVendorAttendance,
+  collectVendorCashPayment,
 } from '../controllers/vendorController.js'
 import {
   requestOtp,
@@ -81,6 +82,7 @@ router.post('/jobs/:id/replace-crew', replaceVendorCrew)
 router.patch('/toggle-availability', toggleAcceptingRequests)
 router.get('/direct-requests', getVendorDirectRequests)
 router.post('/jobs/:id/reject', rejectVendorJob)
+router.post('/jobs/:id/collect-cash', collectVendorCashPayment)
 router.get('/attendance', getVendorAttendance)
 router.post('/attendance/toggle', toggleVendorAttendance)
 router.get('/analytics', getVendorAnalytics)

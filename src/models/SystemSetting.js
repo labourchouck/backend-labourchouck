@@ -52,10 +52,15 @@ const systemSettingSchema = new mongoose.Schema(
       type: platformFeeSchema,
       default: () => ({}),
     },
+    b2bPlatformFee: {
+      type: platformFeeSchema,
+      default: () => ({}),
+    },
     commission: {
       type: commissionSchema,
       default: () => ({}),
     },
+
     walletLimit: {
       type: Number,
       min: 0,

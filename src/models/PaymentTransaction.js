@@ -23,6 +23,11 @@ const paymentTransactionSchema = new mongoose.Schema(
       ref: 'SubscriptionPlan',
       index: true,
     },
+    requestId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'WorkforceRequest',
+      index: true,
+    },
     razorpayOrderId: {
       type: String,
       required: true,
@@ -49,7 +54,7 @@ const paymentTransactionSchema = new mongoose.Schema(
     },
     purpose: {
       type: String,
-      enum: ['BOOKING', 'WALLET_CLEARANCE', 'INVOICE', 'SUBSCRIPTION'],
+      enum: ['BOOKING', 'WALLET_CLEARANCE', 'INVOICE', 'SUBSCRIPTION', 'WORKFORCE_REQUEST'],
       required: true,
     },
   },

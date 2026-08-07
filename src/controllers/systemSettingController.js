@@ -11,26 +11,30 @@ export const getSystemSettings = asyncHandler(async (req, res) => {
 })
 
 export const updatePlatformFees = asyncHandler(async (req, res) => {
-  const { type, value, isActive } = req.body
+  const { type, value, isActive, bookingType = 'B2C' } = req.body
   let settings = await SystemSetting.findOne({ configKey: 'master_config' })
   if (!settings) settings = new SystemSetting({ configKey: 'master_config' })
   
-  if (type) settings.platformFee.type = type
-  if (value !== undefined) settings.platformFee.value = Number(value)
-  if (isActive !== undefined) settings.platformFee.isActive = Boolean(isActive)
+  const targetObj = bookingType === 'B2B' ? settings.b2bPlatformFee : settings.platformFee
+  
+  if (type) targetObj.type = type
+  if (value !== undefined) targetObj.value = Number(value)
+  if (isActive !== undefined) targetObj.isActive = Boolean(isActive)
   
   await settings.save()
   return sendSuccess(res, { message: 'Platform fees updated', data: { settings } })
 })
 
 export const updateCommission = asyncHandler(async (req, res) => {
-  const { type, globalPercentage, isActive } = req.body
+  const { type, globalPercentage, isActive, bookingType = 'B2C' } = req.body
   let settings = await SystemSetting.findOne({ configKey: 'master_config' })
   if (!settings) settings = new SystemSetting({ configKey: 'master_config' })
   
-  if (type) settings.commission.type = type
-  if (globalPercentage !== undefined) settings.commission.globalPercentage = Number(globalPercentage)
-  if (isActive !== undefined) settings.commission.isActive = Boolean(isActive)
+  const targetObj = settings.commission
+  
+  if (type) targetObj.type = type
+  if (globalPercentage !== undefined) targetObj.globalPercentage = Number(globalPercentage)
+  if (isActive !== undefined) targetObj.isActive = Boolean(isActive)
   
   await settings.save()
   return sendSuccess(res, { message: 'Commission updated', data: { settings } })

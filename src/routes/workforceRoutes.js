@@ -5,6 +5,7 @@ import {
   createRequest,
   listMyRequests,
   getRequest,
+  mockPayRequest
 } from '../controllers/requestController.js'
 import {
   listLabourAssignments,
@@ -21,9 +22,10 @@ const router = Router()
 
 router.use(protect)
 
-router.post('/requests', restrictTo(USER_ROLES.INDIVIDUAL, USER_ROLES.CORPORATE), createRequest)
-router.get('/requests', restrictTo(...APP_ROLES), listMyRequests)
+router.post('/requests', restrictTo(USER_ROLES.INDIVIDUAL, USER_ROLES.CORPORATE, USER_ROLES.ADMIN, 'super_admin'), createRequest)
+router.get('/requests', restrictTo(...APP_ROLES, USER_ROLES.ADMIN, 'super_admin'), listMyRequests)
 router.get('/requests/:id', restrictTo(...APP_ROLES, USER_ROLES.ADMIN), getRequest)
+router.post('/requests/:id/mock-pay', restrictTo(USER_ROLES.CORPORATE, USER_ROLES.ADMIN, 'super_admin'), mockPayRequest)
 
 router.get('/assignments', restrictTo(USER_ROLES.LABOUR), listLabourAssignments)
 router.patch('/assignments/:id/respond', restrictTo(USER_ROLES.LABOUR), respondToAssignment)

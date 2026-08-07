@@ -279,6 +279,7 @@ export async function getVendorAttendanceData(vendorUserId, dateFilter) {
       locationText: req.locationText,
       totalDays: dateList.length,
       bookedDates: dateList.map((d) => d.dateStr),
+      paymentStatus: req.paymentStatus,
       client: {
         _id: client._id,
         name: clientName,

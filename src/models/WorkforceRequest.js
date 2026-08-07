@@ -60,6 +60,22 @@ const workforceRequestSchema = new mongoose.Schema(
     reviewedAt: Date,
     preferredVendorId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', index: true },
     preferredCrewIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'VendorCrewLabour' }],
+    
+    // Financial Tracking
+    paymentMethod: {
+      type: String,
+      enum: ['ONLINE', 'CASH'],
+      default: 'ONLINE',
+    },
+    paymentStatus: {
+      type: String,
+      enum: ['PENDING', 'PAID'],
+      default: 'PENDING',
+    },
+    totalAmount: { type: Number, default: 0 },
+    platformFee: { type: Number, default: 0 },
+    commissionAmount: { type: Number, default: 0 },
+    taxAmount: { type: Number, default: 0 },
   },
   { timestamps: true },
 )

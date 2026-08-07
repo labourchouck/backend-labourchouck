@@ -343,9 +343,28 @@ export const getVendorDashboard = asyncHandler(async (req, res) => {
 
   const dueAmount = totalBookingAmount - totalPaid
 
+  const Wallet = (await import('../models/Wallet.js')).Wallet
+  const wallet = await Wallet.findOne({ userId: vendorId }).lean()
+  const adminBalance = wallet?.adminBalance || 0
+
+  const WorkforceRequest = (await import('../models/WorkforceRequest.js')).WorkforceRequest
+  const allocations = await Allocation.find({ vendorId }).lean()
+  const requestIds = allocations.map(a => a.requestId)
+  
+  const cashRequests = await WorkforceRequest.find({ 
+    _id: { $in: requestIds },
+    paymentMethod: 'CASH', 
+    paymentStatus: 'PAID' 
+  }).lean()
+  
+  const totalCashEarnings = cashRequests.reduce((sum, req) => {
+    const adminDues = (req.platformFee || 0) + (req.commissionAmount || 0) + (req.taxAmount || 0)
+    return sum + ((req.totalAmount || 0) - adminDues)
+  }, 0)
+
   sendSuccess(res, {
     data: {
-      stats: { crewCount, openJobs, activeAssignments, totalBookingAmount, totalPaid, dueAmount },
+      stats: { crewCount, openJobs, activeAssignments, totalBookingAmount, totalPaid, dueAmount, totalCashEarnings, adminBalance },
       activeSubscription,
     },
   })
@@ -446,6 +465,8 @@ export const getVendorJob = asyncHandler(async (req, res) => {
       locationText: reqData.locationText,
       startDate: reqData.startDate,
       endDate: reqData.endDate,
+      paymentStatus: reqData.paymentStatus,
+      paymentMethod: reqData.paymentMethod,
       description: reqData.notes,
       requirements: reqData.notes,
       clientName: client.corporateProfile?.companyName || client.companyName || client.fullName,
@@ -1041,4 +1062,48 @@ export const subscribeToPlan = asyncHandler(async (req, res) => {
   })
 
   sendSuccess(res, { data: { subscription, message: `Successfully subscribed to ${plan.name}` } })
+})
+
+export const collectVendorCashPayment = asyncHandler(async (req, res) => {
+  const err = requireApprovedVendor(req.user)
+  if (err) return sendError(res, { message: err, statusCode: HTTP_STATUS.FORBIDDEN })
+
+  const { id: allocationId } = req.params
+
+  const allocation = await Allocation.findOne({ _id: allocationId, vendorId: req.user._id })
+  if (!allocation) {
+    return sendError(res, { message: 'Allocation not found', statusCode: HTTP_STATUS.NOT_FOUND })
+  }
+
+  const WorkforceRequest = (await import('../models/WorkforceRequest.js')).WorkforceRequest
+  const request = await WorkforceRequest.findById(allocation.requestId)
+
+  if (!request) {
+    return sendError(res, { message: 'Request not found', statusCode: HTTP_STATUS.NOT_FOUND })
+  }
+
+  if (request.paymentMethod !== 'CASH') {
+    return sendError(res, { message: 'This is not a cash payment request', statusCode: HTTP_STATUS.BAD_REQUEST })
+  }
+
+  if (request.paymentStatus === 'PAID') {
+    return sendError(res, { message: 'Payment already collected', statusCode: HTTP_STATUS.BAD_REQUEST })
+  }
+
+  request.paymentStatus = 'PAID'
+  await request.save()
+
+  // Add admin dues to vendor wallet
+  const adminDues = (request.platformFee || 0) + (request.commissionAmount || 0) + (request.taxAmount || 0)
+
+  if (adminDues > 0) {
+    const Wallet = (await import('../models/Wallet.js')).Wallet
+    await Wallet.findOneAndUpdate(
+      { userId: req.user._id },
+      { $inc: { adminBalance: adminDues } },
+      { new: true, upsert: true }
+    )
+  }
+
+  sendSuccess(res, { message: 'Cash payment collected successfully' })
 })

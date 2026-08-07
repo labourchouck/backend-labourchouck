@@ -820,7 +820,7 @@ export const searchVendors = asyncHandler(async (req, res) => {
   availableVendors.sort((a, b) => (a.distance || 0) - (b.distance || 0))
 
   const globalSettings = await SystemSetting.findOne({ configKey: 'master_config' })
-  const platformFeeConfig = globalSettings?.platformFee?.isActive ? globalSettings.platformFee : null
+  const platformFeeConfig = globalSettings?.b2bPlatformFee?.isActive ? globalSettings.b2bPlatformFee : null
 
   sendSuccess(res, {
     message: 'Vendors found',

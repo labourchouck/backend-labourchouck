@@ -18,6 +18,9 @@ export const initPayment = asyncHandler(async (req, res) => {
   if (purpose === 'SUBSCRIPTION' && !req.body.planId) {
     return sendError(res, { message: 'planId is required for SUBSCRIPTION purpose', statusCode: HTTP_STATUS.BAD_REQUEST })
   }
+  if (purpose === 'WORKFORCE_REQUEST' && !req.body.requestId) {
+    return sendError(res, { message: 'requestId is required for WORKFORCE_REQUEST purpose', statusCode: HTTP_STATUS.BAD_REQUEST })
+  }
 
   // Generate Razorpay Order
   const receiptId = `rcpt_${req.user._id.toString().slice(-4)}_${Date.now().toString().slice(-4)}`
@@ -29,6 +32,7 @@ export const initPayment = asyncHandler(async (req, res) => {
     bookingId: purpose === 'BOOKING' ? bookingId : undefined,
     invoiceId: purpose === 'INVOICE' ? req.body.invoiceId : undefined,
     planId: purpose === 'SUBSCRIPTION' ? req.body.planId : undefined,
+    requestId: purpose === 'WORKFORCE_REQUEST' ? req.body.requestId : undefined,
     razorpayOrderId: order.id,
     amount,
     purpose,
@@ -126,6 +130,18 @@ export const verifyPayment = asyncHandler(async (req, res) => {
         startDate: new Date(),
         endDate: new Date(Date.now() + days * 24 * 60 * 60 * 1000)
       })
+    }
+  } else if (pTx.purpose === 'WORKFORCE_REQUEST' && pTx.requestId) {
+    const WorkforceRequest = (await import('../models/WorkforceRequest.js')).WorkforceRequest
+    const Invoice = (await import('../models/Invoice.js')).Invoice
+    
+    const request = await WorkforceRequest.findById(pTx.requestId)
+    if (request) {
+      request.paymentStatus = 'PAID'
+      request.status = 'completed'
+      await request.save()
+      
+      await Invoice.updateMany({ requestId: request._id }, { status: 'paid', paidAt: new Date() })
     }
   }
 

@@ -36,14 +36,19 @@ function parseLines(lines) {
 export const createRequest = asyncHandler(async (req, res) => {
   const user = req.user
   let sourceType = REQUEST_SOURCE.INDIVIDUAL
-  if (user.role === USER_ROLES.CORPORATE) {
-    if (user.corporateProfile?.status !== CORPORATE_STATUS.APPROVED) {
+  if (user.role === USER_ROLES.CORPORATE || user.role === USER_ROLES.ADMIN || user.role === 'super_admin') {
+    if (user.role === USER_ROLES.CORPORATE && user.corporateProfile?.status !== CORPORATE_STATUS.APPROVED) {
       return sendError(res, {
         message: 'Corporate account must be approved',
         statusCode: HTTP_STATUS.FORBIDDEN,
       })
     }
-    sourceType = REQUEST_SOURCE.CORPORATE
+    // If Admin/Super admin is testing, we can infer sourceType from req.body.preferredVendorId or just default to CORPORATE for their testing
+    if (user.role !== USER_ROLES.CORPORATE && req.body.projectName) {
+      sourceType = REQUEST_SOURCE.CORPORATE
+    } else if (user.role === USER_ROLES.CORPORATE) {
+      sourceType = REQUEST_SOURCE.CORPORATE
+    }
   } else if (user.role !== USER_ROLES.INDIVIDUAL) {
     return sendError(res, { message: 'Forbidden', statusCode: HTTP_STATUS.FORBIDDEN })
   }
@@ -63,6 +68,7 @@ export const createRequest = asyncHandler(async (req, res) => {
     scheduleTime,
     preferredVendorId,
     selectedCrewIds,
+    paymentMethod,
   } = req.body
 
   const parsedLines = parseLines(lines)
@@ -138,6 +144,39 @@ export const createRequest = asyncHandler(async (req, res) => {
     })
   }
 
+  const SystemSetting = (await import('../models/SystemSetting.js')).SystemSetting
+  const globalSettings = await SystemSetting.findOne({ configKey: 'master_config' }).lean()
+  const b2bPlatformFeeConfig = globalSettings?.b2bPlatformFee?.isActive ? globalSettings.b2bPlatformFee : null
+
+  let days = 1
+  if (finalStartDate && endDate) {
+    const sDate = new Date(finalStartDate)
+    const eDate = new Date(endDate)
+    sDate.setHours(0,0,0,0)
+    eDate.setHours(0,0,0,0)
+    days = Math.max(1, Math.round((eDate - sDate) / (1000 * 60 * 60 * 24)) + 1)
+  }
+
+  const basePriceTotal = enrichedLines.reduce((sum, line) => {
+    return sum + ((line.adminPrice || 0) * (Number(line.quantity) || 1) * days)
+  }, 0)
+
+  let platformFee = 0
+  if (b2bPlatformFeeConfig) {
+    if (b2bPlatformFeeConfig.type === 'fixed') {
+      platformFee = b2bPlatformFeeConfig.value
+    } else {
+      platformFee = (basePriceTotal * b2bPlatformFeeConfig.value) / 100
+    }
+  }
+  
+  let commissionAmount = 0
+
+  const gstPercentage = globalSettings?.gstPercentage || 0
+  const taxAmount = ((platformFee + commissionAmount) * gstPercentage) / 100
+  
+  const totalAmount = basePriceTotal + platformFee + taxAmount
+
   const request = await WorkforceRequest.create({
     reference: generateRequestReference(sourceType === REQUEST_SOURCE.CORPORATE ? 'CR' : 'IR'),
     sourceType,
@@ -157,6 +196,12 @@ export const createRequest = asyncHandler(async (req, res) => {
     preferredVendorId: preferredVendorId && mongoose.Types.ObjectId.isValid(preferredVendorId) ? preferredVendorId : undefined,
     preferredCrewIds: validCrewIds.length ? validCrewIds : undefined,
     status: (preferredVendorId && mongoose.Types.ObjectId.isValid(preferredVendorId)) ? REQUEST_STATUS.BROADCASTED : REQUEST_STATUS.PENDING_REVIEW,
+    paymentMethod: paymentMethod === 'CASH' ? 'CASH' : 'ONLINE',
+    paymentStatus: 'PENDING',
+    totalAmount,
+    platformFee,
+    commissionAmount,
+    taxAmount,
   })
 
   // Bypass admin and emit socket instantly if it's a direct request
@@ -336,7 +381,12 @@ export const getRequest = asyncHandler(async (req, res) => {
   // Global settings for platform fee
   const SystemSetting = (await import('../models/SystemSetting.js')).SystemSetting
   const globalSettings = await SystemSetting.findOne({ configKey: 'master_config' }).lean()
-  const platformFeeConfig = globalSettings?.platformFee?.isActive ? globalSettings.platformFee : null
+  let platformFeeConfig = null
+  if (request.sourceType === REQUEST_SOURCE.CORPORATE) {
+    platformFeeConfig = globalSettings?.b2bPlatformFee?.isActive ? globalSettings.b2bPlatformFee : null
+  } else {
+    platformFeeConfig = globalSettings?.platformFee?.isActive ? globalSettings.platformFee : null
+  }
 
   // Calculate overall totals
   const perDayBaseTotal = serviceBreakdown.reduce((sum, item) => sum + item.totalPricePerDay, 0)
@@ -463,3 +513,17 @@ export const deleteAdminRequest = asyncHandler(async (req, res) => {
   if (!request) return sendError(res, { message: 'Not found', statusCode: HTTP_STATUS.NOT_FOUND })
   sendSuccess(res, { message: 'Request deleted successfully' })
 })
+
+export const mockPayRequest = asyncHandler(async (req, res) => {
+  const request = await WorkforceRequest.findById(req.params.id);
+  if (!request) return sendError(res, { message: 'Not found', statusCode: 404 });
+  
+  request.paymentStatus = 'PAID';
+  request.status = 'completed';
+  await request.save();
+
+  const Invoice = (await import('../models/Invoice.js')).Invoice;
+  await Invoice.updateMany({ requestId: request._id }, { status: 'paid', paidAt: new Date() });
+
+  sendSuccess(res, { message: 'Payment simulated successfully' });
+});
