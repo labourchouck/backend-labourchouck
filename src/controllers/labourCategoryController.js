@@ -45,6 +45,8 @@ export const listGrouped = asyncHandler(async (_req, res) => {
       kind: LABOUR_GROUP_KIND.TRADE, // Mock as trade so frontend picks it up
       sortOrder: c.sortOrder,
       imageUrl: c.imageUrl || '',
+      gstPercentage: c.gstPercentage || 0,
+      isGstActive: c.isGstActive !== false,
       categories: subcatsByCat.get(String(c._id)) ?? [],
     })),
     meta: {

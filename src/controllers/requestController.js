@@ -306,19 +306,22 @@ export const getRequest = asyncHandler(async (req, res) => {
         delete crew.phone
       }
 
-      const key = `${serviceName}_${adminPrice}`
+      const key = `${categoryName}_${serviceName}`
       if (!groupMap[key]) {
         groupMap[key] = {
           serviceName,
           categoryName,
           quantity: 0,
-          adminPricePerDay: adminPrice,
+          adminPricePerDay: 0,
           totalPricePerDay: 0,
-          totalPriceForDuration: 0
+          totalPriceForDuration: 0,
+          labourers: []
         }
       }
       groupMap[key].quantity += 1
+      groupMap[key].adminPricePerDay += adminPrice // keeping track of sum for this group
       groupMap[key].totalPricePerDay += adminPrice
+      groupMap[key].labourers.push({ labourName: crew.fullName, adminPrice, _id: crew._id })
     }
 
     for (const key of Object.keys(groupMap)) {
@@ -344,7 +347,7 @@ export const getRequest = asyncHandler(async (req, res) => {
         adminPricePerDay: adminPrice,
         totalPricePerDay: adminPrice * qty,
         totalPriceForDuration: adminPrice * qty * days,
-        workers: []
+        labourers: Array(qty).fill({ labourName: 'Labourer', adminPrice })
       })
     }
   }
@@ -378,6 +381,22 @@ export const getRequest = asyncHandler(async (req, res) => {
     }
   })
 
+  // Fetch all categories and subcategories to map their GST percentages
+  const allCategories = await LabourCategory.find({}).lean()
+  const LabourSubcategoryModel = (await import('../models/LabourSubcategory.js')).LabourSubcategory
+  const allSubcategories = await LabourSubcategoryModel.find({}).lean()
+  
+  const categoryGstMap = new Map()
+  allCategories.forEach(c => {
+    const gst = c.isGstActive ? (c.gstPercentage || 0) : 0
+    categoryGstMap.set(c.name, gst)
+    categoryGstMap.set(String(c._id), gst)
+  })
+  allSubcategories.forEach(sc => {
+    const parentGst = categoryGstMap.get(String(sc.categoryId)) || 0
+    categoryGstMap.set(sc.name, parentGst)
+  })
+
   // Global settings for platform fee
   const SystemSetting = (await import('../models/SystemSetting.js')).SystemSetting
   const globalSettings = await SystemSetting.findOne({ configKey: 'master_config' }).lean()
@@ -405,12 +424,24 @@ export const getRequest = asyncHandler(async (req, res) => {
 
   const estimatedTotal = basePriceTotal + Math.round(platformFee)
 
+  // Calculate GST per category for corporate requests
+  let taxAmount = 0
+  if (request.sourceType === REQUEST_SOURCE.CORPORATE) {
+    serviceBreakdown.forEach(item => {
+      const gstPercent = categoryGstMap.get(item.categoryName) || 0
+      item.gstPercentage = gstPercent
+      item.gstAmount = (item.totalPriceForDuration * gstPercent) / 100
+      taxAmount += item.gstAmount
+    })
+  }
+
   const pricingSummary = {
     days,
     perDayBaseTotal,
     basePriceTotal,
     platformFee: Math.round(platformFee),
-    estimatedTotal: Math.round(estimatedTotal)
+    taxAmount: Math.round(taxAmount),
+    estimatedTotal: Math.round(estimatedTotal + taxAmount)
   }
 
   const allocation = await Allocation.findOne({ requestId: request._id })
@@ -523,7 +554,35 @@ export const mockPayRequest = asyncHandler(async (req, res) => {
   await request.save();
 
   const Invoice = (await import('../models/Invoice.js')).Invoice;
-  await Invoice.updateMany({ requestId: request._id }, { status: 'paid', paidAt: new Date() });
+  const Assignment = (await import('../models/Assignment.js')).Assignment;
+  const { generateInvoiceNumber } = await import('../models/Invoice.js');
+  
+  const existingInvoice = await Invoice.findOne({ requestId: request._id, corporateId: request.clientId });
+  if (!existingInvoice) {
+    const baseAmount = request.totalAmount - (request.platformFee || 0) - (request.taxAmount || 0);
+    await Invoice.create({
+      invoiceNumber: generateInvoiceNumber(),
+      corporateId: request.clientId,
+      requestId: request._id,
+      projectId: request.projectId,
+      type: 'advance',
+      status: 'paid',
+      paidAt: new Date(),
+      total: request.totalAmount || 0,
+      subtotal: baseAmount || 0,
+      gstTotal: request.taxAmount || 0,
+      lines: (request.lines || []).map(l => ({
+        description: `Booking for ${l.quantity || 1}x Labour`,
+        categoryId: l.categoryId,
+        billableUnits: l.quantity || 1,
+        amount: (l.adminPrice || 500) * (l.quantity || 1)
+      }))
+    });
+  } else {
+    await Invoice.updateMany({ requestId: request._id }, { status: 'paid', paidAt: new Date() });
+  }
+  
+  await Assignment.updateMany({ requestId: request._id }, { status: 'COMPLETED' });
 
   sendSuccess(res, { message: 'Payment simulated successfully' });
 });

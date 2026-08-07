@@ -405,3 +405,20 @@ export const searchServices = asyncHandler(async (req, res) => {
     }
   })
 })
+
+export const updateCategoryGst = asyncHandler(async (req, res) => {
+  const { id } = req.params
+  const { gstPercentage, isGstActive } = req.body
+
+  const category = await LabourCategory.findById(id)
+  if (!category) return sendError(res, { message: 'Category not found', statusCode: HTTP_STATUS.NOT_FOUND })
+
+  category.gstPercentage = Number(gstPercentage)
+  category.isGstActive = Boolean(isGstActive)
+  await category.save()
+
+  sendSuccess(res, {
+    message: 'Category GST updated successfully',
+    data: { category }
+  })
+})

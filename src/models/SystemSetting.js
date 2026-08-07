@@ -71,17 +71,6 @@ const systemSettingSchema = new mongoose.Schema(
       min: 0,
       default: 500,
     },
-    vendorCashLimit: {
-      type: Number,
-      min: 0,
-      default: 5000,
-    },
-    gstPercentage: {
-      type: Number,
-      min: 0,
-      max: 100,
-      default: 0,
-    },
     cancellationPenalty: {
       type: Number,
       min: 0,

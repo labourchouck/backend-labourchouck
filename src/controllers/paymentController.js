@@ -134,14 +134,44 @@ export const verifyPayment = asyncHandler(async (req, res) => {
   } else if (pTx.purpose === 'WORKFORCE_REQUEST' && pTx.requestId) {
     const WorkforceRequest = (await import('../models/WorkforceRequest.js')).WorkforceRequest
     const Invoice = (await import('../models/Invoice.js')).Invoice
+    const Assignment = (await import('../models/Assignment.js')).Assignment
     
     const request = await WorkforceRequest.findById(pTx.requestId)
     if (request) {
+      const baseAmount = (request.lines || []).reduce((sum, l) => sum + (l.adminPrice || 500) * (l.quantity || 1), 0)
+      
       request.paymentStatus = 'PAID'
       request.status = 'completed'
+      request.totalAmount = pTx.amount
+      request.platformFee = pTx.amount - baseAmount - (request.taxAmount || 0)
       await request.save()
       
-      await Invoice.updateMany({ requestId: request._id }, { status: 'paid', paidAt: new Date() })
+      const { generateInvoiceNumber } = await import('../models/Invoice.js')
+      const existingInvoice = await Invoice.findOne({ requestId: request._id, corporateId: request.clientId })
+      
+      if (!existingInvoice) {
+        await Invoice.create({
+          invoiceNumber: generateInvoiceNumber(),
+          corporateId: request.clientId,
+          requestId: request._id,
+          projectId: request.projectId,
+          type: 'advance',
+          status: 'paid',
+          paidAt: new Date(),
+          total: pTx.amount || 0,
+          subtotal: baseAmount || 0,
+          gstTotal: request.taxAmount || 0,
+          lines: (request.lines || []).map(l => ({
+            description: `Booking for ${l.quantity || 1}x Labour`,
+            categoryId: l.categoryId,
+            billableUnits: l.quantity || 1,
+            amount: (l.adminPrice || 500) * (l.quantity || 1)
+          }))
+        })
+      } else {
+        await Invoice.updateMany({ requestId: request._id }, { status: 'paid', paidAt: new Date() })
+      }
+      await Assignment.updateMany({ requestId: request._id }, { status: 'COMPLETED' })
     }
   }
 

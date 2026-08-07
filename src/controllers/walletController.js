@@ -73,12 +73,10 @@ export const checkWalletEligibility = async (userId) => {
   const user = await User.findById(userId).select('role')
   
   let limit = settings?.walletLimit ?? 100
-  if (user) {
-    if (user.role === 'contractor') {
-      limit = settings?.vendorCashLimit ?? 5000
-    } else if (user.role === 'labour') {
-      limit = settings?.labourCashLimit ?? 500
-    }
+  if (user && user.role === 'labour') {
+    limit = settings?.labourCashLimit ?? 500
+  } else if (user && user.role === 'contractor') {
+    return true // Vendors no longer use cash limits
   }
 
   const currentDues = wallet.adminBalance || 0

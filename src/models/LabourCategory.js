@@ -11,6 +11,8 @@ const labourCategorySchema = new mongoose.Schema(
     imageUrl: { type: String, default: '', maxlength: 2048 },
     sortOrder: { type: Number, default: 0 },
     isActive: { type: Boolean, default: true },
+    gstPercentage: { type: Number, min: 0, max: 100, default: 0 },
+    isGstActive: { type: Boolean, default: true },
   },
   { timestamps: true },
 )

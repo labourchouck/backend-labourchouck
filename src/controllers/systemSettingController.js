@@ -62,16 +62,7 @@ export const updateLabourCashLimit = asyncHandler(async (req, res) => {
   return sendSuccess(res, { message: 'Labour cash limit updated', data: { settings } })
 })
 
-export const updateVendorCashLimit = asyncHandler(async (req, res) => {
-  const { vendorCashLimit } = req.body
-  let settings = await SystemSetting.findOne({ configKey: 'master_config' })
-  if (!settings) settings = new SystemSetting({ configKey: 'master_config' })
-  
-  if (vendorCashLimit !== undefined) settings.vendorCashLimit = Number(vendorCashLimit)
-  
-  await settings.save()
-  return sendSuccess(res, { message: 'Vendor cash limit updated', data: { settings } })
-})
+
 
 export const updateGstPercentage = asyncHandler(async (req, res) => {
   const { gstPercentage } = req.body

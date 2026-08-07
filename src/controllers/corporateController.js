@@ -172,100 +172,6 @@ export const removeCorporateDocument = asyncHandler(async (req, res) => {
   sendSuccess(res, { data: { user: req.user.toSafeObject() } })
 })
 
-export const listCorporateProjects = asyncHandler(async (req, res) => {
-  const err = requireApprovedCorporate(req.user)
-  if (err) return sendError(res, { message: err, statusCode: HTTP_STATUS.FORBIDDEN })
-  const projects = await Project.find({ 
-    corporateId: req.user._id, 
-    status: { $ne: 'deleted' },
-    isDeleted: { $ne: true }
-  }).sort({ createdAt: -1 }).lean()
-  const sites = await Site.find({ 
-    corporateId: req.user._id,
-    isDeleted: { $ne: true }
-  }).lean()
-  const sitesByProject = sites.reduce((acc, s) => {
-    const key = String(s.projectId)
-    if (!acc[key]) acc[key] = []
-    acc[key].push(s)
-    return acc
-  }, {})
-  sendSuccess(res, {
-    data: {
-      projects: projects.map((p) => ({ ...p, sites: sitesByProject[String(p._id)] || [] })),
-    },
-  })
-})
-
-export const createCorporateProject = asyncHandler(async (req, res) => {
-  const err = requireApprovedCorporate(req.user)
-  if (err) return sendError(res, { message: err, statusCode: HTTP_STATUS.FORBIDDEN })
-  const { name, startDate, endDate, notes, site } = req.body
-  if (!name?.trim()) {
-    return sendError(res, { message: 'Project name required', statusCode: HTTP_STATUS.BAD_REQUEST })
-  }
-  const project = await Project.create({
-    corporateId: req.user._id,
-    name: name.trim(),
-    startDate: startDate ? new Date(startDate) : undefined,
-    endDate: endDate ? new Date(endDate) : undefined,
-    notes,
-  })
-  let createdSite = null
-  if (site?.name?.trim()) {
-    createdSite = await Site.create({
-      projectId: project._id,
-      corporateId: req.user._id,
-      name: site.name.trim(),
-      address: site.address,
-      city: site.city,
-      geo: site.geo,
-      contactName: site.contactName,
-      contactPhone: site.contactPhone,
-    })
-  }
-  sendSuccess(res, {
-    data: { project: project.toObject(), site: createdSite },
-    statusCode: HTTP_STATUS.CREATED,
-  })
-})
-
-export const getCorporateProject = asyncHandler(async (req, res) => {
-  const err = requireApprovedCorporate(req.user)
-  if (err) return sendError(res, { message: err, statusCode: HTTP_STATUS.FORBIDDEN })
-  const project = await Project.findOne({ 
-    _id: req.params.id, 
-    corporateId: req.user._id,
-    status: { $ne: 'deleted' },
-    isDeleted: { $ne: true }
-  }).lean()
-  if (!project) return sendError(res, { message: 'Project not found', statusCode: HTTP_STATUS.NOT_FOUND })
-  const sites = await Site.find({ projectId: project._id }).lean()
-  sendSuccess(res, { data: { project: { ...project, sites } } })
-})
-
-export const addCorporateSite = asyncHandler(async (req, res) => {
-  const err = requireApprovedCorporate(req.user)
-  if (err) return sendError(res, { message: err, statusCode: HTTP_STATUS.FORBIDDEN })
-  const project = await Project.findOne({ _id: req.params.projectId, corporateId: req.user._id })
-  if (!project) return sendError(res, { message: 'Project not found', statusCode: HTTP_STATUS.NOT_FOUND })
-  const { name, address, city, geo, contactName, contactPhone } = req.body
-  if (!name?.trim()) {
-    return sendError(res, { message: 'Site name required', statusCode: HTTP_STATUS.BAD_REQUEST })
-  }
-  const site = await Site.create({
-    projectId: project._id,
-    corporateId: req.user._id,
-    name: name.trim(),
-    address,
-    city,
-    geo,
-    contactName,
-    contactPhone,
-  })
-  sendSuccess(res, { data: { site }, statusCode: HTTP_STATUS.CREATED })
-})
-
 export const getCorporateDashboard = asyncHandler(async (req, res) => {
   const err = requireApprovedCorporate(req.user)
   if (err) return sendError(res, { message: err, statusCode: HTTP_STATUS.FORBIDDEN })
@@ -361,7 +267,18 @@ export const getCorporateAnalytics = asyncHandler(async (req, res) => {
 export const listCorporateInvoices = asyncHandler(async (req, res) => {
   const err = requireApprovedCorporate(req.user)
   if (err) return sendError(res, { message: err, statusCode: HTTP_STATUS.FORBIDDEN })
-  const invoices = await Invoice.find({ corporateId: req.user._id }).sort({ createdAt: -1 }).lean()
+  const invoices = await Invoice.find({ corporateId: req.user._id })
+    .populate('corporateId', 'fullName email phone corporateProfile')
+    .populate('projectId', 'name')
+    .populate({
+      path: 'requestId',
+      populate: [
+        { path: 'preferredVendorId', select: 'fullName email phone contractorProfile' },
+        { path: 'preferredCrewIds', select: 'fullName category phone' }
+      ]
+    })
+    .sort({ createdAt: -1 })
+    .lean()
   sendSuccess(res, { data: { invoices } })
 })
 

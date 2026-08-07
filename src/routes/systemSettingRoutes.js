@@ -65,14 +65,7 @@ router.patch(
   settings.updateLabourCashLimit,
 )
 
-router.patch(
-  '/vendor-cash-limit',
-  [
-    body('vendorCashLimit').isNumeric().withMessage('Vendor cash limit is required'),
-  ],
-  validateRequest,
-  settings.updateVendorCashLimit,
-)
+
 
 router.patch(
   '/gst',

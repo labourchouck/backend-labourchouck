@@ -7,10 +7,6 @@ import {
   addCorporateDocument,
   submitCorporateVerification,
   removeCorporateDocument,
-  listCorporateProjects,
-  createCorporateProject,
-  getCorporateProject,
-  addCorporateSite,
   getCorporateDashboard,
   listCorporateInvoices,
   getCorporateAnalytics,
@@ -40,10 +36,6 @@ router.get('/vendor-attendance', getCorporateVendorAttendance)
 router.get('/attendance', getCorporateVendorAttendance)
 router.post('/attendance/toggle', toggleCorporateAttendance)
 router.get('/vendors', listCorporateVendors)
-router.get('/projects', listCorporateProjects)
-router.post('/projects', createCorporateProject)
-router.get('/projects/:id', getCorporateProject)
-router.post('/projects/:projectId/sites', addCorporateSite)
 router.get('/invoices', listCorporateInvoices)
 router.get('/analytics', getCorporateAnalytics)
 router.get('/transactions', getCorporateTransactions)

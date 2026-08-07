@@ -59,6 +59,17 @@ router.patch(
   admin.patchCategory,
 )
 
+router.put(
+  '/labour-categories/:id/gst',
+  [
+    param('id').isMongoId().withMessage('Invalid id'),
+    body('gstPercentage').isNumeric().withMessage('Must be a number'),
+    body('isGstActive').isBoolean().withMessage('Must be a boolean'),
+  ],
+  validateRequest,
+  admin.updateCategoryGst,
+)
+
 router.get(
   '/labour-categories/:id',
   [param('id').isMongoId().withMessage('Invalid id')],
