@@ -744,3 +744,59 @@ export const searchVendors = asyncHandler(async (req, res) => {
     data: { vendors: availableVendors, platformFeeConfig }
   })
 })
+
+// ==========================================
+// Projects & Sites
+// ==========================================
+
+export const listCorporateProjects = asyncHandler(async (req, res) => {
+  const projects = await Project.find({ corporateId: req.user._id }).sort({ createdAt: -1 })
+  return sendSuccess(res, { projects })
+})
+
+export const createCorporateProject = asyncHandler(async (req, res) => {
+  const { name, startDate, endDate, notes } = req.body
+  if (!name) return sendError(res, 'Project name is required', HTTP_STATUS.BAD_REQUEST)
+
+  const project = await Project.create({
+    corporateId: req.user._id,
+    name,
+    startDate,
+    endDate,
+    notes,
+  })
+  
+  return sendSuccess(res, { project }, 'Project created successfully', HTTP_STATUS.CREATED)
+})
+
+export const getCorporateProject = asyncHandler(async (req, res) => {
+  const project = await Project.findOne({ _id: req.params.id, corporateId: req.user._id })
+  if (!project) return sendError(res, 'Project not found', HTTP_STATUS.NOT_FOUND)
+
+  const sites = await Site.find({ projectId: project._id })
+  
+  return sendSuccess(res, { project, sites })
+})
+
+export const addProjectSite = asyncHandler(async (req, res) => {
+  const { projectId } = req.params
+  const { name, address, city, geo, contactName, contactPhone } = req.body
+
+  if (!name) return sendError(res, 'Site name is required', HTTP_STATUS.BAD_REQUEST)
+
+  const project = await Project.findOne({ _id: projectId, corporateId: req.user._id })
+  if (!project) return sendError(res, 'Project not found', HTTP_STATUS.NOT_FOUND)
+
+  const site = await Site.create({
+    projectId,
+    corporateId: req.user._id,
+    name,
+    address,
+    city,
+    geo,
+    contactName,
+    contactPhone,
+  })
+
+  return sendSuccess(res, { site }, 'Site added successfully', HTTP_STATUS.CREATED)
+})

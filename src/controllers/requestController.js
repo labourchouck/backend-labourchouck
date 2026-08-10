@@ -250,12 +250,14 @@ export const listMyRequests = asyncHandler(async (req, res) => {
 
 export const getRequest = asyncHandler(async (req, res) => {
   let request = await WorkforceRequest.findById(req.params.id)
-    .populate('preferredVendorId', 'fullName contractorProfile.businessName')
-    .populate('preferredCrewIds', 'fullName address city state category services verificationStatus profileImageUrl')
+    .populate('clientId', 'fullName phone corporateProfile')
+    .populate('preferredVendorId', 'fullName contractorProfile.businessName phone email')
+    .populate('preferredCrewIds', 'fullName address city state category services verificationStatus profileImageUrl phone email')
     .lean()
   if (!request) return sendError(res, { message: 'Not found', statusCode: HTTP_STATUS.NOT_FOUND })
 
-  const isOwner = String(request.clientId) === String(req.user._id)
+  const clientId = request.clientId?._id || request.clientId
+  const isOwner = String(clientId) === String(req.user._id)
   const isAdmin = req.user.role === USER_ROLES.ADMIN
   if (!isOwner && !isAdmin) {
     return sendError(res, { message: 'Forbidden', statusCode: HTTP_STATUS.FORBIDDEN })
@@ -583,6 +585,15 @@ export const mockPayRequest = asyncHandler(async (req, res) => {
   }
   
   await Assignment.updateMany({ requestId: request._id }, { status: 'COMPLETED' });
+
+  if (request.sourceType === 'corporate') {
+    const { UserSubscription } = await import('../models/UserSubscription.js');
+    const activeSub = await UserSubscription.findOne({ user: request.clientId, status: 'active' });
+    if (activeSub) {
+      activeSub.bookingsUsed += 1;
+      await activeSub.save();
+    }
+  }
 
   sendSuccess(res, { message: 'Payment simulated successfully' });
 });

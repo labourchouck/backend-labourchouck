@@ -61,8 +61,10 @@ export const listLeadsAdmin = asyncHandler(async (req, res) => {
   const limit = Math.min(50, Math.max(5, parseInt(req.query.limit, 10) || 20))
   const status = req.query.status?.trim()
   const search = req.query.search?.trim()
+  const type = req.query.type?.trim()
 
   const filter = {}
+  if (type === 'platform') filter.vendorId = { $eq: null }
   if (status && status !== 'all') filter.status = status
   if (search) {
     const re = new RegExp(search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i')

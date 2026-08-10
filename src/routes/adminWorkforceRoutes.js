@@ -14,6 +14,7 @@ import {
   listAdminRequests,
   patchRequestStatusAdmin,
   deleteAdminRequest,
+  getRequest,
 } from '../controllers/requestController.js'
 import {
   createAllocationAdmin,
@@ -40,6 +41,7 @@ router.get('/vendors/:id', getBusinessVerificationAdmin)
 router.patch('/vendors/:id/review', reviewContractorAdmin)
 
 router.get('/requests', listAdminRequests)
+router.get('/requests/:id', getRequest)
 router.patch('/requests/:id/status', patchRequestStatusAdmin)
 router.delete('/requests/:id', deleteAdminRequest)
 

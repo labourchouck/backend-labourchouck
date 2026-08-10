@@ -19,7 +19,18 @@ import {
   searchVendors,
   listCorporateVendors,
   getCorporateBanners,
+  listCorporateProjects,
+  createCorporateProject,
+  getCorporateProject,
+  addProjectSite,
 } from '../controllers/corporateController.js'
+
+import {
+  getCorporatePlans,
+  createRazorpayOrder,
+  verifyRazorpayPayment,
+  getMySubscription
+} from '../controllers/userSubscriptionController.js'
 
 const router = Router()
 
@@ -43,5 +54,16 @@ router.post('/complaints', createCorporateComplaint)
 router.get('/complaints', listCorporateComplaints)
 router.post('/assignments/:assignmentId/rate', rateCorporateAssignment)
 router.post('/vendors/search', searchVendors)
+
+router.get('/projects', listCorporateProjects)
+router.post('/projects', createCorporateProject)
+router.get('/projects/:id', getCorporateProject)
+router.post('/projects/:projectId/sites', addProjectSite)
+
+// Subscription Routes
+router.get('/subscription/plans', getCorporatePlans)
+router.get('/subscription/my-subscription', getMySubscription)
+router.post('/subscription/order', createRazorpayOrder)
+router.post('/subscription/verify', verifyRazorpayPayment)
 
 export default router

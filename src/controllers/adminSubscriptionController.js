@@ -114,3 +114,23 @@ export const getUserSubscriptions = async (req, res, next) => {
     next(error)
   }
 }
+
+export const getCorporateSubscriptions = async (req, res, next) => {
+  try {
+    const { UserSubscription } = await import('../models/UserSubscription.js')
+    const subscriptions = await UserSubscription.find()
+      .populate({
+        path: 'plan',
+        match: { planType: 'corporate' },
+        select: 'name price allowedBookings planType'
+      })
+      .populate('user', 'fullName phone corporateProfile.companyName')
+      .sort({ createdAt: -1 })
+    
+    const corporateSubs = subscriptions.filter(sub => sub.plan !== null)
+    
+    res.status(200).json({ success: true, subscriptions: corporateSubs })
+  } catch (error) {
+    next(error)
+  }
+}

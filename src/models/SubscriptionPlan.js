@@ -10,7 +10,7 @@ const subscriptionPlanSchema = new mongoose.Schema({
   gradient: { type: String, default: 'from-[#7a280e] to-[#c45c26]' },
   shadow: { type: String, default: 'shadow-orange-500/20' },
   isActive: { type: Boolean, default: true },
-  planType: { type: String, enum: ['vendor', 'individual'], default: 'vendor' },
+  planType: { type: String, enum: ['vendor', 'individual', 'corporate'], default: 'vendor' },
   allowedBookings: { type: Number, default: 0 }
 }, {
   timestamps: true

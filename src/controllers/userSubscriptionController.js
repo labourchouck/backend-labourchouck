@@ -20,11 +20,16 @@ export const getIndividualPlans = asyncHandler(async (req, res) => {
   return sendSuccess(res, { data: { plans } })
 })
 
+export const getCorporatePlans = asyncHandler(async (req, res) => {
+  const plans = await SubscriptionPlan.find({ isActive: true, planType: 'corporate' }).sort({ price: 1 })
+  return sendSuccess(res, { data: { plans } })
+})
+
 export const createRazorpayOrder = asyncHandler(async (req, res) => {
   const { planId } = req.body
   const plan = await SubscriptionPlan.findById(planId)
   
-  if (!plan || plan.planType !== 'individual') {
+  if (!plan || !['individual', 'corporate'].includes(plan.planType)) {
     return sendError(res, { message: 'Invalid subscription plan', statusCode: HTTP_STATUS.BAD_REQUEST })
   }
 

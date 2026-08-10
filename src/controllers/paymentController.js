@@ -171,7 +171,17 @@ export const verifyPayment = asyncHandler(async (req, res) => {
       } else {
         await Invoice.updateMany({ requestId: request._id }, { status: 'paid', paidAt: new Date() })
       }
+      
       await Assignment.updateMany({ requestId: request._id }, { status: 'COMPLETED' })
+
+      if (request.sourceType === 'corporate') {
+        const UserSubscription = (await import('../models/UserSubscription.js')).UserSubscription
+        const activeSub = await UserSubscription.findOne({ user: request.clientId, status: 'active' })
+        if (activeSub) {
+          activeSub.bookingsUsed += 1
+          await activeSub.save()
+        }
+      }
     }
   }
 
