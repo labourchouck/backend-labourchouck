@@ -4,6 +4,7 @@ import { BroadcastLog } from '../models/BroadcastLog.js'
 import { SystemSetting } from '../models/SystemSetting.js'
 import { checkWalletEligibility } from '../controllers/walletController.js'
 import { getRoadDistances } from '../utils/googleMapsDistance.js'
+import { sendToUser, sendToUsers } from './notificationService.js'
 
 export const BROADCAST_TIMEOUT_MS = 300000 // 5 minutes flash broadcast timeout
 
@@ -187,6 +188,14 @@ export async function startBroadcastCycle(bookingId) {
     })
   }).catch(err => console.error('Failed to load socket emitter:', err))
 
+  // Push notification to eligible laborers (reaches devices even when the app is closed)
+  sendToUsers(eligibleLaborers.map(l => l._id), {
+    title: 'New job offer nearby',
+    body: `₹${booking.laborShare || booking.basePrice || ''} · ${booking.address?.text || 'Near you'}. Open the app to accept — offer expires soon!`,
+    type: 'BOOKING_RECEIVED',
+    data: { bookingId: String(booking._id), link: '/app' },
+  }).catch(err => console.error('Push notify (offer) failed:', err))
+
   // Set timeout to expire broadcast if no one accepts
   setTimeout(async () => {
     const currentBooking = await Booking.findById(booking._id)
@@ -198,12 +207,19 @@ export async function startBroadcastCycle(bookingId) {
       // Notify customer
       import('../socket.js').then(({ emitToUser }) => {
         emitToUser(currentBooking.userId, 'BOOKING_FAILED', { bookingId: currentBooking._id, reason: 'Expired' })
-        
+
         // Notify laborers that it expired
         eligibleLaborers.forEach(labor => {
           emitToUser(labor._id, 'BOOKING_EXPIRED', { bookingId: currentBooking._id })
         })
       }).catch(err => console.error(err))
+
+      sendToUser(currentBooking.userId, {
+        title: 'No worker found',
+        body: 'Sorry, no worker accepted your booking in time. Please try booking again.',
+        type: 'BOOKING_FAILED',
+        data: { bookingId: String(currentBooking._id), reason: 'Expired', link: '/app/my-bookings' },
+      }).catch(err => console.error('Push notify (expiry) failed:', err))
     }
   }, BROADCAST_TIMEOUT_MS)
 }
@@ -215,4 +231,11 @@ async function markBookingFailed(booking, reason) {
   import('../socket.js').then(({ emitToUser }) => {
     emitToUser(booking.userId, 'BOOKING_FAILED', { bookingId: booking._id, reason })
   }).catch(err => console.error(err))
+
+  sendToUser(booking.userId, {
+    title: 'Booking could not be placed',
+    body: 'We could not find an available worker for your booking. Please try again.',
+    type: 'BOOKING_FAILED',
+    data: { bookingId: String(booking._id), reason, link: '/app/my-bookings' },
+  }).catch(err => console.error('Push notify (failed) failed:', err))
 }

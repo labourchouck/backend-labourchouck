@@ -3,6 +3,7 @@ import { Wallet } from '../models/Wallet.js'
 import { WalletTransaction } from '../models/WalletTransaction.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { HTTP_STATUS, sendError, sendSuccess } from '../utils/apiResponse.js'
+import { sendToUser } from '../services/notificationService.js'
 import mongoose from 'mongoose'
 
 export const getAllWithdrawalRequests = asyncHandler(async (req, res) => {
@@ -173,6 +174,16 @@ export const processWithdrawalRequest = asyncHandler(async (req, res) => {
       if (adminRemarks) request.adminRemarks = adminRemarks
       await request.save({ session })
       await session.commitTransaction()
+
+      sendToUser(request.labourId, {
+        title: status === 'APPROVED' ? 'Withdrawal approved' : 'Withdrawal rejected',
+        body: status === 'APPROVED'
+          ? `Your withdrawal of ₹${request.amount} has been approved and will be transferred to your bank.`
+          : `Your withdrawal of ₹${request.amount} was rejected.${adminRemarks ? ` Remarks: ${adminRemarks}` : ''}`,
+        type: `WITHDRAWAL_${status}`,
+        data: { withdrawalId: String(request._id), link: '/vendor/earnings' },
+      }).catch(err => console.error('Push notify (vendor withdrawal decision) failed:', err))
+
       return sendSuccess(res, { message: `Vendor withdrawal request ${status.toLowerCase()} successfully`, data: { request } })
     }
 
@@ -203,6 +214,15 @@ export const processWithdrawalRequest = asyncHandler(async (req, res) => {
 
     await request.save({ session })
     await session.commitTransaction()
+
+    sendToUser(request.labourId, {
+      title: status === 'APPROVED' ? 'Withdrawal approved' : 'Withdrawal rejected',
+      body: status === 'APPROVED'
+        ? `Your withdrawal of ₹${request.amount} has been approved and will be transferred to your bank.`
+        : `Your withdrawal of ₹${request.amount} was rejected and refunded to your wallet.${adminRemarks ? ` Remarks: ${adminRemarks}` : ''}`,
+      type: `WITHDRAWAL_${status}`,
+      data: { withdrawalId: String(request._id), link: '/app/wallet' },
+    }).catch(err => console.error('Push notify (withdrawal decision) failed:', err))
 
     return sendSuccess(res, { message: `Withdrawal request ${status.toLowerCase()} successfully`, data: { request } })
   } catch (error) {

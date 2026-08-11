@@ -553,6 +553,20 @@ export const reviewCorporateAdmin = asyncHandler(async (req, res) => {
   user.corporateProfile.status = resolved
   user.corporateProfile.reviewedAt = new Date()
   await user.save()
+
+  if (resolved !== CORPORATE_STATUS.PENDING) {
+    import('../services/notificationService.js').then(({ sendToUser }) => {
+      sendToUser(user._id, {
+        title: resolved === CORPORATE_STATUS.APPROVED ? 'Account verified ✅' : 'Verification rejected',
+        body: resolved === CORPORATE_STATUS.APPROVED
+          ? 'Your corporate account has been verified. You can now book workforce on LabourChowk.'
+          : `Your corporate verification was rejected.${user.corporateProfile.reviewNote ? ` Reason: ${user.corporateProfile.reviewNote}` : ''}`,
+        type: resolved === CORPORATE_STATUS.APPROVED ? 'CORPORATE_APPROVED' : 'CORPORATE_REJECTED',
+        data: { link: '/corporate/profile' },
+      }).catch(err => console.error('Push notify (corporate review) failed:', err))
+    })
+  }
+
   sendSuccess(res, {
     message: resolved === CORPORATE_STATUS.APPROVED ? 'Corporate account approved' : 'Corporate verification rejected',
     data: { user: user.toSafeObject() },
@@ -594,6 +608,20 @@ export const reviewContractorAdmin = asyncHandler(async (req, res) => {
   user.contractorProfile.verificationStatus = resolved
   user.contractorProfile.reviewedAt = new Date()
   await user.save()
+
+  if (resolved !== 'pending') {
+    import('../services/notificationService.js').then(({ sendToUser }) => {
+      sendToUser(user._id, {
+        title: resolved === 'approved' ? 'Account verified ✅' : 'Verification rejected',
+        body: resolved === 'approved'
+          ? 'Your vendor account has been verified. You can now receive booking requests on LabourChowk.'
+          : `Your vendor verification was rejected.${user.contractorProfile.reviewNote ? ` Reason: ${user.contractorProfile.reviewNote}` : ''}`,
+        type: resolved === 'approved' ? 'VENDOR_APPROVED' : 'VENDOR_REJECTED',
+        data: { link: '/vendor/profile' },
+      }).catch(err => console.error('Push notify (vendor review) failed:', err))
+    })
+  }
+
   sendSuccess(res, {
     message: resolved === 'approved' ? 'Vendor account verified' : 'Vendor verification rejected',
     data: { user: user.toSafeObject() },

@@ -3,6 +3,7 @@ import { Booking } from '../models/Booking.js'
 import { Wallet } from '../models/Wallet.js'
 import { WalletTransaction } from '../models/WalletTransaction.js'
 import { createOrder, verifyPaymentSignature } from '../services/paymentService.js'
+import { sendToUser } from '../services/notificationService.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { HTTP_STATUS, sendError, sendSuccess } from '../utils/apiResponse.js'
 
@@ -55,6 +56,14 @@ export const verifyPayment = asyncHandler(async (req, res) => {
   if (!isValid) {
     pTx.status = 'FAILED'
     await pTx.save()
+
+    sendToUser(req.user._id, {
+      title: 'Payment failed',
+      body: `Your payment of ₹${pTx.amount} could not be verified. If money was deducted it will be refunded automatically.`,
+      type: 'PAYMENT_FAILED',
+      data: { paymentTransactionId: String(pTx._id) },
+    }).catch(err => console.error('Push notify (payment failed) failed:', err))
+
     return sendError(res, { message: 'Payment verification failed', statusCode: HTTP_STATUS.BAD_REQUEST })
   }
 
@@ -87,7 +96,21 @@ export const verifyPayment = asyncHandler(async (req, res) => {
             referenceId: booking._id,
             description: 'Online Payment Payout for Booking'
          })
+
+         sendToUser(booking.laborId, {
+            title: 'Payment received 💰',
+            body: `₹${booking.laborShare} has been credited to your wallet for the completed job.`,
+            type: 'WALLET_CREDITED',
+            data: { bookingId: String(booking._id), amount: booking.laborShare, link: '/app/wallet' },
+         }).catch(err => console.error('Push notify (payout) failed:', err))
       }
+
+      sendToUser(booking.userId, {
+        title: 'Payment successful',
+        body: `Your payment of ₹${pTx.amount} for the booking was successful.`,
+        type: 'PAYMENT_SUCCESS',
+        data: { bookingId: String(booking._id), link: '/app/my-bookings' },
+      }).catch(err => console.error('Push notify (payment success) failed:', err))
     }
   } else if (pTx.purpose === 'WALLET_CLEARANCE') {
     let wallet = await Wallet.findOne({ userId: req.user._id })

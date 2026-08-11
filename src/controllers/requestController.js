@@ -9,6 +9,7 @@ import { Assignment } from '../models/Assignment.js'
 import { Allocation } from '../models/Allocation.js'
 import { checkVendorInventory } from '../services/vendorInventoryService.js'
 import { emitToUser } from '../socket.js'
+import { sendToUser, notifyAdmins } from '../services/notificationService.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { HTTP_STATUS, sendError, sendSuccess } from '../utils/apiResponse.js'
 
@@ -210,6 +211,21 @@ export const createRequest = asyncHandler(async (req, res) => {
       requestId: request._id,
       clientId: request.clientId
     })
+
+    sendToUser(request.preferredVendorId, {
+      title: 'New direct booking request',
+      body: `${user.fullName || 'A corporate client'} sent you a direct workforce request (${request.reference}). Open the app to accept.`,
+      type: 'B2B_DIRECT_REQUEST',
+      data: { requestId: String(request._id), link: '/vendor/jobs' },
+    }).catch(err => console.error('Push notify (direct request) failed:', err))
+  } else if (request.status === REQUEST_STATUS.PENDING_REVIEW) {
+    // Admin is the approval bottleneck — surface the new request in their queue
+    notifyAdmins({
+      title: 'Workforce request awaiting review',
+      body: `New request ${request.reference} is pending review.`,
+      type: 'B2B_PENDING_REVIEW',
+      data: { requestId: String(request._id), link: '/admin/bookings' },
+    }).catch(err => console.error('Push notify (pending review) failed:', err))
   }
 
   sendSuccess(res, { data: { request }, statusCode: HTTP_STATUS.CREATED })
@@ -536,6 +552,29 @@ export const patchRequestStatusAdmin = asyncHandler(async (req, res) => {
       requestId: request._id,
       clientId: request.clientId
     })
+
+    sendToUser(request.preferredVendorId, {
+      title: 'New booking request',
+      body: `Workforce request ${request.reference} has been assigned to you. Open the app to accept.`,
+      type: 'B2B_DIRECT_REQUEST',
+      data: { requestId: String(request._id), link: '/vendor/jobs' },
+    }).catch(err => console.error('Push notify (direct request) failed:', err))
+  }
+
+  // Tell the client how their request review went
+  const clientStatusMessages = {
+    [REQUEST_STATUS.BROADCASTED]: { title: 'Request approved', body: `Your request ${request.reference} was approved and sent to vendors.` },
+    [REQUEST_STATUS.REJECTED]: { title: 'Request rejected', body: `Your request ${request.reference} was rejected.${request.adminNote ? ` Note: ${request.adminNote}` : ''}` },
+    [REQUEST_STATUS.CANCELLED]: { title: 'Request cancelled', body: `Your request ${request.reference} was cancelled by the admin.` },
+  }
+  const clientMsg = clientStatusMessages[status]
+  if (clientMsg) {
+    sendToUser(request.clientId, {
+      title: clientMsg.title,
+      body: clientMsg.body,
+      type: `B2B_REQUEST_${String(status).toUpperCase()}`,
+      data: { requestId: String(request._id), status, link: `/corporate/requests/${request._id}` },
+    }).catch(err => console.error('Push notify (request status) failed:', err))
   }
 
   sendSuccess(res, { data: { request } })

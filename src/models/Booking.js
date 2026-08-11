@@ -99,6 +99,8 @@ const bookingSchema = new mongoose.Schema(
     broadcastRadius: { type: Number },
     eligibleLabourCount: { type: Number, default: 0 },
     acceptedLabourId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    /** Labourers who declined this broadcast (used to fail-fast when everyone declines) */
+    rejectedBy: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     startOtp: { type: String },
     completionOtp: { type: String },
     startWorkImage: { type: String },

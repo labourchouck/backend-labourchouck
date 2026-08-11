@@ -124,6 +124,16 @@ export const requestWithdrawal = asyncHandler(async (req, res) => {
     }], { session })
 
     await session.commitTransaction()
+
+    import('../services/notificationService.js').then(({ notifyAdmins }) => {
+      notifyAdmins({
+        title: 'New withdrawal request',
+        body: `${req.user.fullName || 'A user'} requested a withdrawal of ₹${numAmount}.`,
+        type: 'WITHDRAWAL_REQUESTED',
+        data: { withdrawalId: String(request[0]._id), link: '/admin/labour-wallet' },
+      }).catch(err => console.error('Push notify (withdrawal request) failed:', err))
+    })
+
     return sendSuccess(res, { message: 'Withdrawal request submitted successfully', data: { request: request[0], wallet } })
   } catch (error) {
     await session.abortTransaction()

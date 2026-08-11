@@ -186,6 +186,42 @@ const userSchema = new mongoose.Schema(
     },
     /** When labour is onboarded under a vendor/contractor */
     vendorId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', index: true },
+    /**
+     * FCM device registration tokens for push notifications, stored separately per type:
+     *  - fcmTokens.web → browser tokens (delivered with a `webpush` config)
+     *  - fcmTokens.app → mobile app tokens, Android/iOS (delivered with `android` + `apns` configs)
+     */
+    fcmTokens: {
+      type: new mongoose.Schema(
+        {
+          web: {
+            type: [
+              {
+                token: { type: String, required: true },
+                updatedAt: { type: Date, default: Date.now },
+                _id: false,
+              },
+            ],
+            default: [],
+          },
+          app: {
+            type: [
+              {
+                token: { type: String, required: true },
+                /** Device OS detail: 'android' | 'ios' */
+                deviceOs: { type: String, trim: true, lowercase: true },
+                updatedAt: { type: Date, default: Date.now },
+                _id: false,
+              },
+            ],
+            default: [],
+          },
+        },
+        { _id: false },
+      ),
+      default: () => ({ web: [], app: [] }),
+      select: false,
+    },
     corporateProfile: corporateProfileSchema,
     labourProfile: labourProfileSchema,
     contractorProfile: contractorProfileSchema,

@@ -48,6 +48,18 @@ export const submitQuoteRequest = asyncHandler(async (req, res) => {
     userName: req.user.fullName || name,
   })
 
+  // Route the lead notification to the product's vendor (or admins for platform leads)
+  import('../services/notificationService.js').then(({ sendToUser, notifyAdmins }) => {
+    const payload = {
+      title: 'New product enquiry',
+      body: `${name || 'A customer'} enquired about ${productName || 'a product'}${quantity ? ` (${quantity})` : ''}.`,
+      type: 'BUILDMART_ENQUIRY',
+      data: { leadId: String(lead._id), link: vendorId ? '/vendor/mart/enquiries' : '/admin/mart/enquiries' },
+    }
+    const notifyPromise = vendorId ? sendToUser(vendorId, payload) : notifyAdmins(payload)
+    notifyPromise.catch(err => console.error('Push notify (buildmart enquiry) failed:', err))
+  })
+
   return sendSuccess(res, {
     statusCode: HTTP_STATUS.CREATED,
     message: 'Quote request submitted',

@@ -6,6 +6,7 @@ import { KYC_STATUS, ROLE_LIST, USER_ROLES } from '../constants/roles.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { HTTP_STATUS, sendError, sendSuccess } from '../utils/apiResponse.js'
 import { populateLabourCategories } from '../utils/populateLabourCategories.js'
+import { sendToUser, notifyAdmins } from '../services/notificationService.js'
 import { isValidAadhaarLength, maskAadhaarLast4, normalizeAadhaar } from '../utils/aadhaar.js'
 import { normalizeStoredMediaUrl } from '../utils/mediaUrl.js'
 
@@ -300,6 +301,13 @@ export const submitLabourKycDocuments = asyncHandler(async (req, res) => {
   )
   await populateLabourCategories(req.user)
 
+  notifyAdmins({
+    title: 'New KYC submission',
+    body: `${req.user.fullName || 'A worker'} submitted KYC documents for review.`,
+    type: 'KYC_SUBMITTED',
+    data: { userId: String(req.user._id), link: '/admin/labour' },
+  }).catch(err => console.error('Push notify (KYC submitted) failed:', err))
+
   return sendSuccess(res, {
     message: 'KYC video submitted — an admin will review your Aadhaar and PAN shortly.',
     data: { user: req.user.toSafeObject() },
@@ -340,6 +348,15 @@ export const reviewLabourKyc = asyncHandler(async (req, res) => {
 
   await user.save()
   await populateLabourCategories(user)
+
+  sendToUser(user._id, {
+    title: decision === 'approved' ? 'KYC verified ✅' : 'KYC rejected',
+    body: decision === 'approved'
+      ? 'Your KYC has been verified. You can now accept jobs on LabourChowk!'
+      : `Your KYC was rejected.${user.labourProfile.kycReviewNote ? ` Reason: ${user.labourProfile.kycReviewNote}` : ''} Please resubmit your documents.`,
+    type: decision === 'approved' ? 'KYC_APPROVED' : 'KYC_REJECTED',
+    data: { link: '/app/kyc' },
+  }).catch(err => console.error('Push notify (KYC decision) failed:', err))
 
   return sendSuccess(res, {
     message: decision === 'approved' ? 'KYC approved for this worker' : 'KYC marked as rejected',
