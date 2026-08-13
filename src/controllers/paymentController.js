@@ -3,6 +3,7 @@ import { Booking } from '../models/Booking.js'
 import { Wallet } from '../models/Wallet.js'
 import { WalletTransaction } from '../models/WalletTransaction.js'
 import { createOrder, verifyPaymentSignature } from '../services/paymentService.js'
+import { sendToUser } from '../services/notificationService.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { HTTP_STATUS, sendError, sendSuccess } from '../utils/apiResponse.js'
 
@@ -55,6 +56,14 @@ export const verifyPayment = asyncHandler(async (req, res) => {
   if (!isValid) {
     pTx.status = 'FAILED'
     await pTx.save()
+
+    sendToUser(req.user._id, {
+      title: 'Payment failed',
+      body: `Your payment of ₹${pTx.amount} could not be verified. If money was deducted it will be refunded automatically.`,
+      type: 'PAYMENT_FAILED',
+      data: { paymentTransactionId: String(pTx._id) },
+    }).catch(err => console.error('Push notify (payment failed) failed:', err))
+
     return sendError(res, { message: 'Payment verification failed', statusCode: HTTP_STATUS.BAD_REQUEST })
   }
 
@@ -69,30 +78,44 @@ export const verifyPayment = asyncHandler(async (req, res) => {
     if (booking) {
       booking.paymentStatus = 'PAID'
       await booking.save()
-      
+
       // In Phase 4, Online Payment commission handling:
       // Since platform receives the money, the labor's selfWallet is credited the laborShare
       if (booking.status === 'COMPLETED') {
-         let wallet = await Wallet.findOne({ userId: booking.laborId })
-         if (!wallet) wallet = new Wallet({ userId: booking.laborId })
-         wallet.selfBalance += booking.laborShare
-         await wallet.save()
+        let wallet = await Wallet.findOne({ userId: booking.laborId })
+        if (!wallet) wallet = new Wallet({ userId: booking.laborId })
+        wallet.selfBalance += booking.laborShare
+        await wallet.save()
 
-         await WalletTransaction.create({
-            walletId: wallet._id,
-            amount: booking.laborShare,
-            type: 'CREDIT',
-            targetWallet: 'SELF',
-            context: 'PAYOUT',
-            referenceId: booking._id,
-            description: 'Online Payment Payout for Booking'
-         })
-         
-         // Notify labourer that payment is collected
-         import('../socket.js').then(({ emitToUser }) => {
-           emitToUser(booking.laborId, 'ONLINE_PAYMENT_COMPLETED', { bookingId: booking._id })
-         })
+        await WalletTransaction.create({
+          walletId: wallet._id,
+          amount: booking.laborShare,
+          type: 'CREDIT',
+          targetWallet: 'SELF',
+          context: 'PAYOUT',
+          referenceId: booking._id,
+          description: 'Online Payment Payout for Booking'
+        })
+
+        // Notify labourer that payment is collected
+        import('../socket.js').then(({ emitToUser }) => {
+          emitToUser(booking.laborId, 'ONLINE_PAYMENT_COMPLETED', { bookingId: booking._id })
+        })
+
+        sendToUser(booking.laborId, {
+          title: 'Payment received 💰',
+          body: `₹${booking.laborShare} has been credited to your wallet for the completed job.`,
+          type: 'WALLET_CREDITED',
+          data: { bookingId: String(booking._id), amount: booking.laborShare, link: '/app/wallet' },
+        }).catch(err => console.error('Push notify (payout) failed:', err))
       }
+
+      sendToUser(booking.userId, {
+        title: 'Payment successful',
+        body: `Your payment of ₹${pTx.amount} for the booking was successful.`,
+        type: 'PAYMENT_SUCCESS',
+        data: { bookingId: String(booking._id), link: '/app/my-bookings' },
+      }).catch(err => console.error('Push notify (payment success) failed:', err))
     }
   } else if (pTx.purpose === 'WALLET_CLEARANCE') {
     let wallet = await Wallet.findOne({ userId: req.user._id })
@@ -127,7 +150,7 @@ export const verifyPayment = asyncHandler(async (req, res) => {
       let days = 30
       if (durationLower.includes('year')) days = 365
       else if (durationLower.includes('quarter')) days = 90
-      
+
       await VendorSubscription.create({
         vendor: req.user._id,
         plan: plan._id,
@@ -140,20 +163,20 @@ export const verifyPayment = asyncHandler(async (req, res) => {
     const WorkforceRequest = (await import('../models/WorkforceRequest.js')).WorkforceRequest
     const Invoice = (await import('../models/Invoice.js')).Invoice
     const Assignment = (await import('../models/Assignment.js')).Assignment
-    
+
     const request = await WorkforceRequest.findById(pTx.requestId)
     if (request) {
       const baseAmount = (request.lines || []).reduce((sum, l) => sum + (l.adminPrice || 500) * (l.quantity || 1), 0)
-      
+
       request.paymentStatus = 'PAID'
       request.status = 'completed'
       request.totalAmount = pTx.amount
       request.platformFee = pTx.amount - baseAmount - (request.taxAmount || 0)
       await request.save()
-      
+
       const { generateInvoiceNumber } = await import('../models/Invoice.js')
       const existingInvoice = await Invoice.findOne({ requestId: request._id, corporateId: request.clientId })
-      
+
       if (!existingInvoice) {
         await Invoice.create({
           invoiceNumber: generateInvoiceNumber(),
@@ -176,7 +199,7 @@ export const verifyPayment = asyncHandler(async (req, res) => {
       } else {
         await Invoice.updateMany({ requestId: request._id }, { status: 'paid', paidAt: new Date() })
       }
-      
+
       await Assignment.updateMany({ requestId: request._id }, { status: 'COMPLETED' })
 
       if (request.sourceType === 'corporate') {

@@ -1,6 +1,7 @@
 import { Booking } from '../models/Booking.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { HTTP_STATUS, sendError, sendSuccess } from '../utils/apiResponse.js'
+import { sendToUser } from '../services/notificationService.js'
 
 export const acceptBroadcast = asyncHandler(async (req, res) => {
   const { bookingId } = req.params
@@ -53,17 +54,22 @@ export const acceptBroadcast = asyncHandler(async (req, res) => {
   }
 
   // 2. Notify the customer that the booking was accepted
-  import('../socket.js').then(({ emitToUser, getSocketServer }) => {
+  import('../socket.js').then(({ emitToUser, getIo }) => {
     emitToUser(booking.userId, 'BOOKING_ACCEPTED', { bookingId: booking._id, laborId: laborId })
-    
-    // In a real production system, you'd emit BOOKING_EXPIRED to everyone who received the broadcast, 
-    // EXCEPT the winner. For now, broadcasting globally to all connected clients is an option, 
-    // or relying on a room.
-    const io = getSocketServer()
+
+    // Dismiss the offer for everyone else who received the broadcast
+    const io = getIo()
     if (io) {
       io.emit('BOOKING_EXPIRED', { bookingId: booking._id, winnerId: laborId })
     }
   }).catch(err => console.error('Failed to notify sockets:', err))
+
+  sendToUser(booking.userId, {
+    title: 'Worker found!',
+    body: `${req.user.fullName || 'A worker'} accepted your booking and will be on the way soon.`,
+    type: 'BOOKING_ACCEPTED',
+    data: { bookingId: String(booking._id), link: `/app/tracking/${booking._id}` },
+  }).catch(err => console.error('Push notify (accepted) failed:', err))
 
   return sendSuccess(res, { message: 'Booking accepted successfully', data: { booking } })
 })
@@ -83,18 +89,25 @@ export const rejectBroadcast = asyncHandler(async (req, res) => {
   }
 
   // If everyone eligible has rejected it, fail it immediately to save customer wait time
-  if (booking.rejectedBy.length >= (booking.eligibleLabourCount || 0)) {
+  if ((booking.rejectedBy?.length || 0) >= (booking.eligibleLabourCount || 0)) {
     booking.status = 'FAILED'
     await booking.save()
 
-    import('../socket.js').then(({ emitToUser, getSocketServer }) => {
+    import('../socket.js').then(({ emitToUser, getIo }) => {
       emitToUser(booking.userId, 'BOOKING_FAILED', { bookingId: booking._id, reason: 'All available labourers declined' })
-      
-      const io = getSocketServer()
+
+      const io = getIo()
       if (io) {
         io.emit('BOOKING_EXPIRED', { bookingId: booking._id })
       }
     }).catch(err => console.error('Failed to notify sockets on reject:', err))
+
+    sendToUser(booking.userId, {
+      title: 'No worker available',
+      body: 'All nearby workers declined your booking. Please try again in a while.',
+      type: 'BOOKING_FAILED',
+      data: { bookingId: String(booking._id), reason: 'All declined', link: '/app/my-bookings' },
+    }).catch(err => console.error('Push notify (all declined) failed:', err))
   }
 
   return sendSuccess(res, { message: 'Booking rejected successfully' })

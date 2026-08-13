@@ -24,6 +24,7 @@ import {
 } from '../services/attendanceService.js'
 import { createOtpChallenge, validateOtpChallenge, deleteOtpChallengeDoc } from '../services/otpService.js'
 import { emitToUser } from '../socket.js'
+import { sendToUser, notifyAdmins } from '../services/notificationService.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { HTTP_STATUS, sendError, sendSuccess } from '../utils/apiResponse.js'
 import { normalizeStoredMediaUrl } from '../utils/mediaUrl.js'
@@ -603,6 +604,13 @@ export const acceptVendorJob = asyncHandler(async (req, res) => {
     message: `Vendor ${vendorName} has accepted your request ${request.reference || ''}`,
   })
 
+  sendToUser(request.clientId, {
+    title: 'Vendor accepted your request',
+    body: `${vendorName} accepted request ${request.reference || ''}. Crew will be assigned shortly.`,
+    type: 'B2B_REQUEST_ACCEPTED',
+    data: { requestId: String(request._id), allocationId: String(allocation._id), link: `/corporate/requests/${request._id}` },
+  }).catch(err => console.error('Push notify (vendor accept) failed:', err))
+
   sendSuccess(res, { message: 'Job accepted successfully', data: { allocation } })
 })
 
@@ -707,6 +715,13 @@ export const rejectVendorJob = asyncHandler(async (req, res) => {
     message: `Vendor ${vendorName} has declined your request ${request.reference || ''}. Please search and assign another vendor.`
   })
 
+  sendToUser(request.clientId, {
+    title: 'Vendor declined your request',
+    body: `${vendorName} declined request ${request.reference || ''}. Please choose another vendor.`,
+    type: 'B2B_REQUEST_REJECTED',
+    data: { requestId: String(request._id), link: `/corporate/requests/${request._id}` },
+  }).catch(err => console.error('Push notify (vendor reject) failed:', err))
+
   sendSuccess(res, { message: 'Job rejected successfully', data: { allocation, requestId: request._id } })
 })
 
@@ -777,6 +792,13 @@ export const assignVendorCrew = asyncHandler(async (req, res) => {
     requestId: request._id
   })
 
+  sendToUser(request.clientId, {
+    title: 'Crew assigned',
+    body: `Your vendor has assigned the crew for request ${request.reference || ''}.`,
+    type: 'B2B_CREW_ASSIGNED',
+    data: { requestId: String(request._id), allocationId: String(allocation._id), link: `/corporate/requests/${request._id}` },
+  }).catch(err => console.error('Push notify (crew assigned) failed:', err))
+
   sendSuccess(res, { message: 'Crew assigned successfully' })
 })
 
@@ -828,8 +850,8 @@ export const replaceVendorCrew = asyncHandler(async (req, res) => {
     return sendError(res, { message: 'New worker is already assigned to another overlapping project', statusCode: HTTP_STATUS.BAD_REQUEST })
   }
 
-  // Cancel old
-  oldAssignment.status = 'CANCELLED'
+  // Mark old assignment as replaced ('CANCELLED' is not a valid ASSIGNMENT_STATUS)
+  oldAssignment.status = ASSIGNMENT_STATUS.REPLACED
   oldAssignment.replacedBy = newLabourId
   await oldAssignment.save()
 
@@ -852,6 +874,13 @@ export const replaceVendorCrew = asyncHandler(async (req, res) => {
     oldLabourId,
     newLabourId
   })
+
+  sendToUser(request.clientId, {
+    title: 'Crew member replaced',
+    body: `Your vendor replaced a crew member on request ${request.reference || ''}.`,
+    type: 'B2B_CREW_REPLACED',
+    data: { requestId: String(request._id), allocationId: String(allocation._id), link: `/corporate/requests/${request._id}` },
+  }).catch(err => console.error('Push notify (crew replaced) failed:', err))
 
   sendSuccess(res, { message: 'Crew replaced successfully', data: { newAssignment } })
 })

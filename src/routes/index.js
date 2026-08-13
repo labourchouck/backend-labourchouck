@@ -20,6 +20,7 @@ import userSubscriptionRoutes from './userSubscriptionRoutes.js'
 import termsRoutes from './termsRoutes.js'
 import privacyPolicyRoutes from './privacyPolicyRoutes.js'
 import faqRoutes from './faqRoutes.js'
+import notificationRoutes from './notificationRoutes.js'
 
 import adminZoneRoutes from './adminZoneRoutes.js'
 import locationRoutes from './locationRoutes.js'
@@ -60,6 +61,7 @@ router.use('/user-subscriptions', userSubscriptionRoutes)
 router.use('/terms', termsRoutes)
 router.use('/privacy-policy', privacyPolicyRoutes)
 router.use('/faqs', faqRoutes)
+router.use('/notifications', notificationRoutes)
 
 router.use('/admin/settings', systemSettingRoutes)
 router.use('/admin/zones', adminZoneRoutes)

@@ -7,6 +7,7 @@ import { Assignment } from '../models/Assignment.js'
 import { User } from '../models/User.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { HTTP_STATUS, sendError, sendSuccess } from '../utils/apiResponse.js'
+import { sendToUser, sendToUsers } from '../services/notificationService.js'
 
 export const createAllocationAdmin = asyncHandler(async (req, res) => {
   const { requestId, vendorId, labourIds, notes } = req.body
@@ -61,6 +62,14 @@ export const createAllocationAdmin = asyncHandler(async (req, res) => {
   if (assignments.length) {
     request.status = REQUEST_STATUS.ASSIGNED
     await request.save()
+
+    // Tell each offered worker they have a new job offer waiting
+    sendToUsers(assignments.map(a => a.labourId), {
+      title: 'New job assignment offer',
+      body: 'You have been offered a new job assignment. Open the app to accept or decline.',
+      type: 'ASSIGNMENT_OFFERED',
+      data: { requestId: String(request._id), allocationId: String(allocation._id), link: '/app/jobs' },
+    }).catch(err => console.error('Push notify (assignment offered) failed:', err))
   }
 
   sendSuccess(res, { allocation, assignments }, HTTP_STATUS.CREATED)
@@ -87,6 +96,21 @@ export const replaceAssignmentAdmin = asyncHandler(async (req, res) => {
     status: ASSIGNMENT_STATUS.OFFERED,
     replacedAssignmentId: old._id,
   })
+
+  sendToUser(old.labourId, {
+    title: 'Assignment reassigned',
+    body: 'Your job assignment was reassigned to another worker by the admin.',
+    type: 'ASSIGNMENT_REPLACED',
+    data: { assignmentId: String(old._id), link: '/app/jobs' },
+  }).catch(err => console.error('Push notify (assignment replaced, old) failed:', err))
+
+  sendToUser(newLabourId, {
+    title: 'New job assignment offer',
+    body: 'You have been offered a new job assignment. Open the app to accept or decline.',
+    type: 'ASSIGNMENT_OFFERED',
+    data: { assignmentId: String(assignment._id), link: '/app/jobs' },
+  }).catch(err => console.error('Push notify (assignment replaced, new) failed:', err))
+
   sendSuccess(res, { assignment, replaced: old })
 })
 

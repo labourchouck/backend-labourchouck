@@ -5,6 +5,7 @@ import { startBroadcastCycle } from '../services/broadcastService.js'
 import { emitToUser } from '../socket.js'
 import { User } from '../models/User.js'
 import { SystemSetting } from '../models/SystemSetting.js'
+import { sendToUser, sendToUsers } from '../services/notificationService.js'
 
 export function initBroadcastCron() {
   // Run every minute
@@ -14,10 +15,25 @@ export function initBroadcastCron() {
       // Clean up stuck BROADCASTING bookings
       // If a booking has been BROADCASTING for more than 10 minutes, mark as FAILED
       const tenMinsAgo = new Date(now.getTime() - 10 * 60 * 1000)
-      await Booking.updateMany(
-        { status: 'BROADCASTING', updatedAt: { $lt: tenMinsAgo } },
-        { $set: { status: 'FAILED' } }
-      )
+      const stuckBookings = await Booking.find(
+        { status: 'BROADCASTING', updatedAt: { $lt: tenMinsAgo } }
+      ).select('_id userId').lean()
+      if (stuckBookings.length > 0) {
+        await Booking.updateMany(
+          { _id: { $in: stuckBookings.map(b => b._id) } },
+          { $set: { status: 'FAILED' } }
+        )
+        // Tell each customer instead of leaving their app on "searching" forever
+        for (const stuck of stuckBookings) {
+          emitToUser(stuck.userId, 'BOOKING_FAILED', { bookingId: stuck._id, reason: 'Expired' })
+          sendToUser(stuck.userId, {
+            title: 'No worker found',
+            body: 'Sorry, we could not find a worker for your booking in time. Please try again.',
+            type: 'BOOKING_FAILED',
+            data: { bookingId: String(stuck._id), reason: 'Expired', link: '/app/my-bookings' },
+          }).catch(err => console.error('[CRON] Push notify (stuck booking) failed:', err))
+        }
+      }
 
       // 1 hour from now
       const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000)
@@ -99,6 +115,13 @@ export function initBroadcastCron() {
               shiftStart: req.shiftStart
             })
           })
+
+          sendToUsers(vendors.map(v => v._id), {
+            title: 'New workforce request available',
+            body: `A job starting at ${req.shiftStart} needs workers. Open the app to accept before other vendors do.`,
+            type: 'B2B_GENERAL_BROADCAST',
+            data: { requestId: String(req._id), link: '/vendor/jobs' },
+          }).catch(err => console.error('[CRON] Push notify (B2B broadcast) failed:', err))
         }
       }
 

@@ -7,6 +7,7 @@ import { AdminWallet } from '../models/AdminWallet.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { HTTP_STATUS, sendError, sendSuccess } from '../utils/apiResponse.js'
 import { parseISTDateTime } from '../utils/dateHelper.js'
+import { sendToUser } from '../services/notificationService.js'
 
 export const calculateBill = asyncHandler(async (req, res) => {
   const { serviceId, durationDays = 1 } = req.body
@@ -198,6 +199,13 @@ export const createBooking = asyncHandler(async (req, res) => {
     import('../socket.js').then(({ emitToUser }) => {
       emitToUser(booking.userId, 'BOOKING_SCHEDULED_QUEUED', { bookingId: booking._id, scheduledAt: booking.scheduledAt })
     }).catch(err => console.error(err))
+
+    sendToUser(booking.userId, {
+      title: 'Booking scheduled',
+      body: 'Your booking is confirmed. We will start finding a worker 30 minutes before the scheduled time.',
+      type: 'BOOKING_SCHEDULED_QUEUED',
+      data: { bookingId: String(booking._id), link: '/app/my-bookings' },
+    }).catch(err => console.error('Push notify (scheduled) failed:', err))
   }
 
   // Save the address for future use if requested
@@ -407,6 +415,29 @@ export const updateBookingStatus = asyncHandler(async (req, res) => {
   import('../socket.js').then(({ emitToUser }) => {
     emitToUser(booking.userId, 'BOOKING_STATUS_UPDATE', { bookingId: booking._id, status })
   }).catch(err => console.error(err))
+
+  // Push notifications — tell the party who did NOT perform the action
+  const actorIsCustomer = String(booking.userId) === String(req.user._id)
+  const statusMessages = {
+    EN_ROUTE: { title: 'Worker on the way', body: 'Your worker is on the way to your location.' },
+    STARTED: { title: 'Work started', body: 'Your worker has started the job.' },
+    COMPLETED: { title: 'Job completed', body: 'Your job has been completed. Please rate your experience.' },
+    CANCELLED: { title: 'Booking cancelled', body: actorIsCustomer ? 'The customer cancelled the booking.' : 'The worker cancelled your booking.' },
+  }
+  const msg = statusMessages[status]
+  if (msg) {
+    // Customer gets updates for everything the worker does
+    if (!actorIsCustomer || status === 'CANCELLED') {
+      const recipient = actorIsCustomer ? booking.laborId : booking.userId
+      const link = actorIsCustomer ? '/app/jobs' : `/app/tracking/${booking._id}`
+      sendToUser(recipient, {
+        title: msg.title,
+        body: msg.body,
+        type: `BOOKING_${status}`,
+        data: { bookingId: String(booking._id), status, link },
+      }).catch(err => console.error('Push notify (status) failed:', err))
+    }
+  }
 
   return sendSuccess(res, { message: `Booking marked as ${status}`, data: { booking } })
 })
