@@ -43,6 +43,17 @@ router.patch(
 )
 
 router.patch(
+  '/:id/verify-daily-otp',
+  [
+    body('type').isIn(['start', 'end']).withMessage('Invalid OTP type'),
+    body('otp').isString().isLength({ min: 4, max: 4 }).withMessage('Valid 4-digit OTP is required'),
+    body('dayNumber').isInt({ min: 1 }).withMessage('Valid day number is required'),
+  ],
+  validateRequest,
+  booking.verifyDailyOtp,
+)
+
+router.patch(
   '/:id/payment-method',
   [
     body('paymentMethod').isIn(['ONLINE', 'CASH']).withMessage('Invalid payment method'),

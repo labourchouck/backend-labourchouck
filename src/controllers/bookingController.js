@@ -80,8 +80,13 @@ export const createBooking = asyncHandler(async (req, res) => {
     return sendError(res, { message: 'Latitude and Longitude are required for accurate matching', statusCode: HTTP_STATUS.BAD_REQUEST })
   }
 
-  if (type === 'SCHEDULED' && (!scheduledAt || !timeSlot || !endTime)) {
-    return sendError(res, { message: 'scheduledAt date, timeSlot (startTime), and endTime are required for SCHEDULED bookings', statusCode: HTTP_STATUS.BAD_REQUEST })
+  if (type === 'SCHEDULED') {
+    if (!scheduledAt || !timeSlot) {
+      return sendError(res, { message: 'scheduledAt date and timeSlot (startTime) are required for SCHEDULED bookings', statusCode: HTTP_STATUS.BAD_REQUEST })
+    }
+    if (durationKind !== 'multi_day' && !endTime) {
+      return sendError(res, { message: 'endTime is required for single day SCHEDULED bookings', statusCode: HTTP_STATUS.BAD_REQUEST })
+    }
   }
 
   const service = await LabourService.findById(serviceId)
@@ -130,12 +135,27 @@ export const createBooking = asyncHandler(async (req, res) => {
   const startOtp = Math.floor(1000 + Math.random() * 9000).toString()
   const completionOtp = Math.floor(1000 + Math.random() * 9000).toString()
 
+  let attendanceLog = []
+  const parsedScheduledAt = type === 'SCHEDULED' ? parseISTDateTime(scheduledAt, timeSlot) : undefined;
+  if (durationKind === 'multi_day' && parsedScheduledAt) {
+    for (let i = 0; i < durationDays; i++) {
+      const date = new Date(parsedScheduledAt.getTime() + i * 24 * 60 * 60 * 1000)
+      const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+      attendanceLog.push({
+        dateStr,
+        dayNumber: i + 1,
+        startOtp: Math.floor(1000 + Math.random() * 9000).toString(),
+        endOtp: Math.floor(1000 + Math.random() * 9000).toString(),
+      })
+    }
+  }
+
   const booking = await Booking.create({
     userId: req.user._id,
     subcategoryId: service.subcategoryId,
     serviceId: service._id,
     type,
-    scheduledAt: type === 'SCHEDULED' ? parseISTDateTime(scheduledAt, timeSlot) : undefined,
+    scheduledAt: parsedScheduledAt,
     timeSlot: type === 'SCHEDULED' ? timeSlot : (type === 'INSTANT' ? timeSlot : undefined),
     endTime: type === 'SCHEDULED' ? endTime : undefined,
     images: Array.isArray(imageNames) ? imageNames : [],
@@ -158,7 +178,8 @@ export const createBooking = asyncHandler(async (req, res) => {
     paymentMethod,
     status: 'CREATED',
     startOtp,
-    completionOtp
+    completionOtp,
+    attendanceLog
   })
 
   if (activeSub) {
@@ -297,15 +318,21 @@ export const updateBookingStatus = asyncHandler(async (req, res) => {
 
   // OTP Verification
   if (status === 'STARTED') {
+    if (booking.durationKind === 'multi_day') {
+      return sendError(res, { message: 'Please use the daily verification flow for multi-day bookings.', statusCode: HTTP_STATUS.BAD_REQUEST })
+    }
     if (!otp) return sendError(res, { message: 'OTP is required to start the job', statusCode: HTTP_STATUS.BAD_REQUEST })
-    if (otp !== booking.startOtp) return sendError(res, { message: 'Invalid Start OTP', statusCode: HTTP_STATUS.BAD_REQUEST })
+    if (String(otp).trim() !== String(booking.startOtp).trim()) return sendError(res, { message: 'Invalid Start OTP', statusCode: HTTP_STATUS.BAD_REQUEST })
     const finalStartImg = startWorkImage || beforeImage
     if (finalStartImg) booking.startWorkImage = finalStartImg
   }
 
   if (status === 'COMPLETED') {
+    if (booking.durationKind === 'multi_day') {
+      return sendError(res, { message: 'Please use the daily verification flow for multi-day bookings.', statusCode: HTTP_STATUS.BAD_REQUEST })
+    }
     if (!otp) return sendError(res, { message: 'OTP is required to complete the job', statusCode: HTTP_STATUS.BAD_REQUEST })
-    if (otp !== booking.completionOtp) return sendError(res, { message: 'Invalid Completion OTP', statusCode: HTTP_STATUS.BAD_REQUEST })
+    if (String(otp).trim() !== String(booking.completionOtp).trim()) return sendError(res, { message: 'Invalid Completion OTP', statusCode: HTTP_STATUS.BAD_REQUEST })
     const finalEndImg = endWorkImage || afterImage
     if (finalEndImg) booking.endWorkImage = finalEndImg
   }
@@ -413,4 +440,121 @@ export const updateBookingStatus = asyncHandler(async (req, res) => {
   }
 
   return sendSuccess(res, { message: `Booking marked as ${status}`, data: { booking } })
+})
+
+export const verifyDailyOtp = asyncHandler(async (req, res) => {
+  const { id } = req.params
+  const { type, otp, dayNumber, image } = req.body
+  const booking = await Booking.findById(id)
+  
+  if (!booking) return sendError(res, { message: 'Booking not found', statusCode: HTTP_STATUS.NOT_FOUND })
+  
+  if (String(booking.laborId) !== String(req.user._id) && String(booking.userId) !== String(req.user._id)) {
+    return sendError(res, { message: 'Unauthorized', statusCode: HTTP_STATUS.FORBIDDEN })
+  }
+
+  if (booking.durationKind !== 'multi_day') {
+    return sendError(res, { message: 'Daily OTP verification is only for multi-day bookings', statusCode: HTTP_STATUS.BAD_REQUEST })
+  }
+
+  const dayIndex = booking.attendanceLog.findIndex(log => log.dayNumber === dayNumber)
+  if (dayIndex === -1) {
+    return sendError(res, { message: 'Invalid day number', statusCode: HTTP_STATUS.BAD_REQUEST })
+  }
+
+  const log = booking.attendanceLog[dayIndex]
+
+  if (type === 'start') {
+    if (log.startOtp !== otp) {
+      return sendError(res, { message: 'Invalid Start OTP for this day', statusCode: HTTP_STATUS.BAD_REQUEST })
+    }
+    log.startOtpVerifiedAt = new Date()
+    // Mark as started if it's the first day
+    if (dayNumber === 1 && booking.status !== 'STARTED') {
+      booking.status = 'STARTED'
+      booking.startWorkImage = image || booking.startWorkImage
+    }
+  } else if (type === 'end') {
+    if (log.endOtp !== otp) {
+      return sendError(res, { message: 'Invalid End OTP for this day', statusCode: HTTP_STATUS.BAD_REQUEST })
+    }
+    log.endOtpVerifiedAt = new Date()
+    
+    // If this is the last day, complete the booking
+    if (dayNumber === booking.durationDays) {
+      booking.status = 'COMPLETED'
+      booking.endWorkImage = image || booking.endWorkImage
+      
+      // Perform wallet transactions exactly as the standard completion flow
+      import('../models/Wallet.js').then(async ({ Wallet }) => {
+        let wallet = await Wallet.findOne({ userId: booking.laborId })
+        if (!wallet) wallet = new Wallet({ userId: booking.laborId })
+
+        if (booking.paymentMethod === 'CASH') {
+          const adminDues = (booking.platformFee || 0) + (booking.taxes || 0) + (booking.commissionAmount || 0)
+          wallet.adminBalance += adminDues
+          await wallet.save()
+
+          import('../models/WalletTransaction.js').then(({ WalletTransaction }) => {
+            WalletTransaction.create({
+              walletId: wallet._id,
+              amount: adminDues,
+              type: 'CREDIT',
+              targetWallet: 'ADMIN',
+              context: 'BOOKING',
+              referenceId: booking._id,
+              description: 'Platform fees, taxes & commission for Cash Booking'
+            }).catch(err => console.error('WalletTx error:', err))
+          })
+
+          if (booking.platformFee > 0 || booking.commissionAmount > 0 || booking.basePrice > 0 || booking.taxes > 0) {
+            import('../models/AdminWallet.js').then(async ({ AdminWallet }) => {
+              let adminWallet = await AdminWallet.findOne()
+              if (!adminWallet) adminWallet = new AdminWallet()
+              adminWallet.totalPlatformFeesCollected += (booking.platformFee || 0)
+              adminWallet.totalCommissionsCollected += (booking.commissionAmount || 0)
+              adminWallet.totalTaxesCollected += (booking.taxes || 0)
+              adminWallet.totalServiceAmountCollected += (booking.basePrice || 0)
+              await adminWallet.save()
+            }).catch(err => console.error('AdminWallet error:', err))
+          }
+        } else if (booking.paymentMethod === 'ONLINE') {
+          if (booking.paymentStatus === 'PAID') {
+            wallet.selfBalance += booking.laborShare
+            await wallet.save()
+
+            import('../models/WalletTransaction.js').then(({ WalletTransaction }) => {
+              WalletTransaction.create({
+                walletId: wallet._id,
+                amount: booking.laborShare,
+                type: 'CREDIT',
+                targetWallet: 'SELF',
+                context: 'BOOKING',
+                referenceId: booking._id,
+                description: 'Service payout for completed Online Booking'
+              }).catch(err => console.error('WalletTx error:', err))
+            })
+
+            import('../models/AdminWallet.js').then(async ({ AdminWallet }) => {
+              let adminWallet = await AdminWallet.findOne()
+              if (!adminWallet) adminWallet = new AdminWallet()
+              adminWallet.totalPlatformFeesCollected += (booking.platformFee || 0)
+              adminWallet.totalCommissionsCollected += (booking.commissionAmount || 0)
+              adminWallet.totalTaxesCollected += (booking.taxes || 0)
+              adminWallet.totalServiceAmountCollected += (booking.basePrice || 0)
+              await adminWallet.save()
+            }).catch(err => console.error('AdminWallet error:', err))
+          }
+        }
+      }).catch(err => console.error('Wallet completion error:', err))
+    }
+  }
+
+  await booking.save()
+
+  import('../socket.js').then(({ emitToUser }) => {
+    emitToUser(booking.userId, 'BOOKING_STATUS_UPDATE', { bookingId: booking._id, status: booking.status })
+  }).catch(err => console.error(err))
+
+  return sendSuccess(res, { message: `Day ${dayNumber} ${type} OTP verified successfully`, data: { booking } })
 })

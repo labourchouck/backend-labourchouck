@@ -30,8 +30,7 @@ router.post('/requests/:id/mock-pay', restrictTo(USER_ROLES.CORPORATE, USER_ROLE
 router.get('/assignments', restrictTo(USER_ROLES.LABOUR), listLabourAssignments)
 router.patch('/assignments/:id/respond', restrictTo(USER_ROLES.LABOUR), respondToAssignment)
 
-router.post('/attendance/check-in', restrictTo(USER_ROLES.LABOUR), checkIn)
-router.post('/attendance/check-out', restrictTo(USER_ROLES.LABOUR), checkOut)
+
 router.get('/attendance', restrictTo(...APP_ROLES, USER_ROLES.ADMIN), listAttendance)
 router.post('/attendance/vendor-mark', restrictTo(USER_ROLES.CONTRACTOR), markAttendanceVendor)
 
