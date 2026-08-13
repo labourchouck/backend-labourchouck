@@ -190,5 +190,13 @@ export const verifyPayment = asyncHandler(async (req, res) => {
     }
   }
 
-  return sendSuccess(res, { message: 'Payment verified successfully', data: { pTx } })
+  let returnedInvoiceId = pTx.invoiceId;
+  if (!returnedInvoiceId && pTx.purpose === 'WORKFORCE_REQUEST') {
+    const Invoice = (await import('../models/Invoice.js')).Invoice;
+    // Look for the corporate invoice specifically, not the vendor invoice
+    const inv = await Invoice.findOne({ requestId: pTx.requestId, corporateId: { $exists: true } });
+    returnedInvoiceId = inv?._id;
+  }
+
+  return sendSuccess(res, { message: 'Payment verified successfully', data: { pTx, invoiceId: returnedInvoiceId } })
 })

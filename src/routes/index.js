@@ -17,6 +17,9 @@ import broadcastRoutes from './broadcastRoutes.js'
 import paymentRoutes from './paymentRoutes.js'
 import reviewRoutes from './reviewRoutes.js'
 import userSubscriptionRoutes from './userSubscriptionRoutes.js'
+import termsRoutes from './termsRoutes.js'
+import privacyPolicyRoutes from './privacyPolicyRoutes.js'
+import faqRoutes from './faqRoutes.js'
 
 import adminZoneRoutes from './adminZoneRoutes.js'
 import locationRoutes from './locationRoutes.js'
@@ -31,6 +34,9 @@ import adminBuildmartRoutes from './adminBuildmartRoutes.js'
 import adminBookingRoutes from './adminBookingRoutes.js'
 import adminVendorRoutes from './adminVendorRoutes.js'
 import adminSubscriptionRoutes from './adminSubscriptionRoutes.js'
+import adminTermsRoutes from './adminTermsRoutes.js'
+import adminPrivacyPolicyRoutes from './adminPrivacyPolicyRoutes.js'
+import adminFaqRoutes from './admin/adminFaqRoutes.js'
 
 const router = Router()
 
@@ -51,6 +57,9 @@ router.use('/reviews', reviewRoutes)
 router.use('/complaints', complaintRoutes)
 router.use('/banners', bannerRoutes)
 router.use('/user-subscriptions', userSubscriptionRoutes)
+router.use('/terms', termsRoutes)
+router.use('/privacy-policy', privacyPolicyRoutes)
+router.use('/faqs', faqRoutes)
 
 router.use('/admin/settings', systemSettingRoutes)
 router.use('/admin/zones', adminZoneRoutes)
@@ -65,6 +74,9 @@ router.use('/admin/bookings', adminBookingRoutes)
 router.use('/admin', adminLabourCategoryRoutes)
 router.use('/admin/vendors', adminVendorRoutes)
 router.use('/admin/subscriptions', adminSubscriptionRoutes)
+router.use('/admin/terms', adminTermsRoutes)
+router.use('/admin/privacy-policy', adminPrivacyPolicyRoutes)
+router.use('/admin/faqs', adminFaqRoutes)
 router.use('/labour/location', locationRoutes)
 
 import { getCollectedCommissionAmount } from '../controllers/adminWalletController.js'

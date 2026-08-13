@@ -3,26 +3,37 @@ import { Booking } from '../models/Booking.js'
 import { User } from '../models/User.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { HTTP_STATUS, sendError, sendSuccess } from '../utils/apiResponse.js'
+import { WorkforceRequest } from '../models/WorkforceRequest.js'
 
 export const submitReview = asyncHandler(async (req, res) => {
-  const { bookingId, rating, comment } = req.body
+  const { bookingId, rating, comment, revieweeId: reqRevieweeId } = req.body
 
-  const booking = await Booking.findById(bookingId)
+  let booking = await Booking.findById(bookingId)
+  let request = null
+
   if (!booking) {
-    return sendError(res, { message: 'Booking not found', statusCode: HTTP_STATUS.NOT_FOUND })
+    request = await WorkforceRequest.findById(bookingId)
+    if (!request) {
+      return sendError(res, { message: 'Booking or Request not found', statusCode: HTTP_STATUS.NOT_FOUND })
+    }
   }
 
-  if (booking.status !== 'COMPLETED') {
+  if (booking && booking.status !== 'COMPLETED') {
     return sendError(res, { message: 'Can only review completed bookings', statusCode: HTTP_STATUS.BAD_REQUEST })
   }
+  if (request && !['completed', 'billing'].includes(request.status)) {
+    return sendError(res, { message: 'Can only review completed requests', statusCode: HTTP_STATUS.BAD_REQUEST })
+  }
 
-  let revieweeId
-  if (String(booking.userId) === String(req.user._id)) {
-    revieweeId = booking.laborId // Customer reviewing Labor
-  } else if (String(booking.laborId) === String(req.user._id)) {
-    revieweeId = booking.userId // Labor reviewing Customer
-  } else {
-    return sendError(res, { message: 'Unauthorized to review this booking', statusCode: HTTP_STATUS.FORBIDDEN })
+  let revieweeId = reqRevieweeId
+  if (!revieweeId) {
+    if (booking && String(booking.userId) === String(req.user._id)) {
+      revieweeId = booking.laborId
+    } else if (booking && String(booking.laborId) === String(req.user._id)) {
+      revieweeId = booking.userId
+    } else {
+      return sendError(res, { message: 'Unauthorized to review this booking / missing revieweeId', statusCode: HTTP_STATUS.FORBIDDEN })
+    }
   }
 
   const existingReview = await Review.findOne({ bookingId, reviewerId: req.user._id })
@@ -55,8 +66,8 @@ export const getReviews = asyncHandler(async (req, res) => {
 
 export const getAllReviews = asyncHandler(async (req, res) => {
   const reviews = await Review.find({})
-    .populate('reviewerId', 'name fullName email phone profileImageUrl')
-    .populate('revieweeId', 'name fullName email phone profileImageUrl')
+    .populate('reviewerId', 'name fullName email phone profileImageUrl role')
+    .populate('revieweeId', 'name fullName email phone profileImageUrl role')
     .populate({
       path: 'bookingId',
       select: 'type scheduledAt timeSlot status',
