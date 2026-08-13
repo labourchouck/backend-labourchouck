@@ -103,6 +103,14 @@ const bookingSchema = new mongoose.Schema(
     completionOtp: { type: String },
     startWorkImage: { type: String },
     endWorkImage: { type: String },
+    attendanceLog: [{
+      dateStr: String, // e.g., "YYYY-MM-DD"
+      dayNumber: Number,
+      startOtp: String,
+      startOtpVerifiedAt: Date,
+      endOtp: String,
+      endOtpVerifiedAt: Date
+    }],
   },
   { timestamps: true }
 )

@@ -87,6 +87,11 @@ export const verifyPayment = asyncHandler(async (req, res) => {
             referenceId: booking._id,
             description: 'Online Payment Payout for Booking'
          })
+         
+         // Notify labourer that payment is collected
+         import('../socket.js').then(({ emitToUser }) => {
+           emitToUser(booking.laborId, 'ONLINE_PAYMENT_COMPLETED', { bookingId: booking._id })
+         })
       }
     }
   } else if (pTx.purpose === 'WALLET_CLEARANCE') {
