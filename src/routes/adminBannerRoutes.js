@@ -55,3 +55,4 @@ router.delete(
   adminBanner.deleteBanner,
 )
 
+export default router
