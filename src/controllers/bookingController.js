@@ -464,6 +464,10 @@ export const verifyDailyOtp = asyncHandler(async (req, res) => {
 
   const log = booking.attendanceLog[dayIndex]
 
+  // Customer-facing push for this verification; only the labourer calls this
+  // endpoint, so the notification always goes to the customer (booking.userId).
+  let notifyPayload = null
+
   if (type === 'start') {
     if (log.startOtp !== otp) {
       return sendError(res, { message: 'Invalid Start OTP for this day', statusCode: HTTP_STATUS.BAD_REQUEST })
@@ -473,18 +477,39 @@ export const verifyDailyOtp = asyncHandler(async (req, res) => {
     if (dayNumber === 1 && booking.status !== 'STARTED') {
       booking.status = 'STARTED'
       booking.startWorkImage = image || booking.startWorkImage
+      notifyPayload = {
+        title: 'Work started',
+        body: 'Your worker has started the job.',
+        type: 'BOOKING_STARTED',
+      }
+    } else {
+      notifyPayload = {
+        title: `Day ${dayNumber} started`,
+        body: `Your worker has started day ${dayNumber} of the job.`,
+        type: 'BOOKING_DAY_STARTED',
+      }
     }
   } else if (type === 'end') {
     if (log.endOtp !== otp) {
       return sendError(res, { message: 'Invalid End OTP for this day', statusCode: HTTP_STATUS.BAD_REQUEST })
     }
     log.endOtpVerifiedAt = new Date()
-    
+    notifyPayload = {
+      title: `Day ${dayNumber} completed`,
+      body: `Your worker has completed day ${dayNumber}. Work continues tomorrow.`,
+      type: 'BOOKING_DAY_COMPLETED',
+    }
+
     // If this is the last day, complete the booking
     if (dayNumber === booking.durationDays) {
       booking.status = 'COMPLETED'
       booking.endWorkImage = image || booking.endWorkImage
-      
+      notifyPayload = {
+        title: 'Job completed',
+        body: 'Your job has been completed. Please rate your experience.',
+        type: 'BOOKING_COMPLETED',
+      }
+
       // Perform wallet transactions exactly as the standard completion flow
       import('../models/Wallet.js').then(async ({ Wallet }) => {
         let wallet = await Wallet.findOne({ userId: booking.laborId })
@@ -555,6 +580,13 @@ export const verifyDailyOtp = asyncHandler(async (req, res) => {
   import('../socket.js').then(({ emitToUser }) => {
     emitToUser(booking.userId, 'BOOKING_STATUS_UPDATE', { bookingId: booking._id, status: booking.status })
   }).catch(err => console.error(err))
+
+  if (notifyPayload) {
+    sendToUser(booking.userId, {
+      ...notifyPayload,
+      data: { bookingId: String(booking._id), status: booking.status, dayNumber, link: `/app/tracking/${booking._id}` },
+    }).catch(err => console.error('Push notify (daily otp) failed:', err))
+  }
 
   return sendSuccess(res, { message: `Day ${dayNumber} ${type} OTP verified successfully`, data: { booking } })
 })
