@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs'
 import mongoose from 'mongoose'
 import { OtpChallenge } from '../models/OtpChallenge.js'
 import { normalizeIndianPhone } from '../utils/phone.js'
+import { sendOtpSms } from './smsService.js'
 
 const OTP_TTL_MS = 10 * 60 * 1000
 const MAX_ATTEMPTS = 5
@@ -45,6 +46,14 @@ export async function createOtpChallenge(phone, purpose) {
     const mode = isOtpBypassLast6Enabled() ? 'last-6-of-phone' : 'random'
     console.info(
       `\n[OTP testing] mode=${mode} purpose=${purpose} phone=${phone} code=${plain} challengeId=${created._id}\n`,
+    )
+  }
+
+  // Skip the real SMS send while the bypass (OTP = last 6 digits of phone) is active,
+  // since that mode exists purely for demo/client review without needing SMS delivery.
+  if (!isOtpBypassLast6Enabled() || process.env.SMS_SEND_ALWAYS === 'true') {
+    sendOtpSms(phone, plain).catch((err) =>
+      console.error('[otpService] sendOtpSms unexpected error:', err.message),
     )
   }
 
