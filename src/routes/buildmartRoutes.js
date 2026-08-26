@@ -18,7 +18,7 @@ import {
   updateBanner,
   deleteBanner,
   reviewProductAdmin,
-} from '../controllers/buildMartController.js'
+} from '../controllers/buildmartController.js'
 import { protect, restrictTo } from '../middleware/auth.js'
 import { validateRequest } from '../middleware/validateRequest.js'
 import { submitQuoteValidators } from '../validators/buildmartValidators.js'
