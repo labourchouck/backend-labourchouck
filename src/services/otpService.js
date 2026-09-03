@@ -1,7 +1,7 @@
 import bcrypt from 'bcryptjs'
 import mongoose from 'mongoose'
 import { OtpChallenge } from '../models/OtpChallenge.js'
-import { normalizeIndianPhone } from '../utils/phone.js'
+import { normalizeIndianPhone, HARDCODED_TEST_ACCOUNTS } from '../utils/phone.js'
 import { sendOtpSms } from './smsService.js'
 
 const OTP_TTL_MS = 10 * 60 * 1000
@@ -26,6 +26,9 @@ export function otpFromPhoneLast6(phone) {
 }
 
 function resolvePlainOtpCode(phone) {
+  if (HARDCODED_TEST_ACCOUNTS[phone]) {
+    return HARDCODED_TEST_ACCOUNTS[phone].otp
+  }
   if (isOtpBypassLast6Enabled()) {
     const bypass = otpFromPhoneLast6(phone)
     if (bypass) return bypass
@@ -43,15 +46,19 @@ export async function createOtpChallenge(phone, purpose) {
   const printOtpForTesting =
     process.env.NODE_ENV !== 'production' || process.env.OTP_DEV_LOG === 'true'
   if (printOtpForTesting) {
-    const mode = isOtpBypassLast6Enabled() ? 'last-6-of-phone' : 'random'
+    const isHardcoded = Boolean(HARDCODED_TEST_ACCOUNTS[phone])
+    const mode = isHardcoded
+      ? `hardcoded-${HARDCODED_TEST_ACCOUNTS[phone].role}`
+      : isOtpBypassLast6Enabled()
+        ? 'last-6-of-phone'
+        : 'random'
     console.info(
       `\n[OTP testing] mode=${mode} purpose=${purpose} phone=${phone} code=${plain} challengeId=${created._id}\n`,
     )
   }
 
-  // Skip the real SMS send while the bypass (OTP = last 6 digits of phone) is active,
-  // since that mode exists purely for demo/client review without needing SMS delivery.
-  if (!isOtpBypassLast6Enabled() || process.env.SMS_SEND_ALWAYS === 'true') {
+  // Skip the real SMS send for hardcoded accounts or while demo bypass is active
+  if (!HARDCODED_TEST_ACCOUNTS[phone] && (!isOtpBypassLast6Enabled() || process.env.SMS_SEND_ALWAYS === 'true')) {
     sendOtpSms(phone, plain).catch((err) =>
       console.error('[otpService] sendOtpSms unexpected error:', err.message),
     )
@@ -65,6 +72,16 @@ export async function createOtpChallenge(phone, purpose) {
  * On success, returns the challenge document — caller must delete it only after DB work succeeds.
  */
 export async function validateOtpChallenge({ phone, purpose, code, challengeId }) {
+  const submitted = String(code || '').trim()
+
+  // Master bypass for hardcoded test accounts with 123456
+  if (HARDCODED_TEST_ACCOUNTS[phone] && submitted === HARDCODED_TEST_ACCOUNTS[phone].otp) {
+    const doc = challengeId && mongoose.Types.ObjectId.isValid(challengeId)
+      ? await OtpChallenge.findOne({ _id: challengeId, phone, purpose })
+      : null
+    return { ok: true, doc }
+  }
+
   if (!challengeId || !mongoose.Types.ObjectId.isValid(challengeId)) {
     return { ok: false, reason: 'INVALID_CHALLENGE' }
   }
@@ -82,7 +99,6 @@ export async function validateOtpChallenge({ phone, purpose, code, challengeId }
     return { ok: false, reason: 'TOO_MANY_ATTEMPTS' }
   }
 
-  const submitted = String(code).trim()
   let match = await bcrypt.compare(submitted, doc.codeHash)
   if (!match && isOtpBypassLast6Enabled()) {
     const bypass = otpFromPhoneLast6(phone)
@@ -100,5 +116,7 @@ export async function validateOtpChallenge({ phone, purpose, code, challengeId }
 }
 
 export async function deleteOtpChallengeDoc(doc) {
-  await doc.deleteOne()
+  if (doc && typeof doc.deleteOne === 'function') {
+    await doc.deleteOne()
+  }
 }

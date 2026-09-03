@@ -4,11 +4,15 @@ import app from './app.js'
 import { connectDb } from './config/db.js'
 import { initSocket } from './socket.js'
 import { initBroadcastCron } from './cron/broadcastCron.js'
+import { ensureAllHardcodedTestUsers } from './services/hardcodedTestUsersService.js'
 
 const port = Number(process.env.PORT) || 5005
 
 async function main() {
   await connectDb()
+  await ensureAllHardcodedTestUsers().catch((err) =>
+    console.error('[HardcodedAuth] Failed initial seed:', err.message),
+  )
   
   const server = http.createServer(app)
   initSocket(server)
