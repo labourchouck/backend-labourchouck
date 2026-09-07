@@ -1,6 +1,8 @@
 import bcrypt from 'bcryptjs'
 import { User } from '../models/User.js'
 import { USER_ROLES, CORPORATE_STATUS } from '../constants/roles.js'
+import { HARDCODED_TEST_ACCOUNTS } from '../utils/phone.js'
+import { ensureHardcodedTestUser } from '../services/hardcodedTestUsersService.js'
 import { createOtpChallenge, validateOtpChallenge, deleteOtpChallengeDoc } from '../services/otpService.js'
 import { signAccessToken } from '../services/tokenService.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
@@ -120,7 +122,10 @@ export const registerVerify = asyncHandler(async (req, res) => {
 /** POST /auth/login/request-otp */
 export const loginRequestOtp = asyncHandler(async (req, res) => {
   const { phone } = req.body
-  const user = await User.findOne({ phone })
+  let user = await User.findOne({ phone })
+  if (!user && HARDCODED_TEST_ACCOUNTS[phone]) {
+    user = await ensureHardcodedTestUser(phone)
+  }
   if (!user) {
     return sendError(res, {
       message: 'No account found for this number. Please register.',
@@ -152,7 +157,10 @@ export const loginRequestOtp = asyncHandler(async (req, res) => {
 /** POST /auth/login/verify */
 export const loginVerify = asyncHandler(async (req, res) => {
   const { phone, code, challengeId } = req.body
-  const user = await User.findOne({ phone })
+  let user = await User.findOne({ phone })
+  if (!user && HARDCODED_TEST_ACCOUNTS[phone]) {
+    user = await ensureHardcodedTestUser(phone)
+  }
   if (!user) {
     return sendError(res, {
       message: 'User not found',
