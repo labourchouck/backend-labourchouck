@@ -38,6 +38,7 @@ import adminSubscriptionRoutes from './adminSubscriptionRoutes.js'
 import adminTermsRoutes from './adminTermsRoutes.js'
 import adminPrivacyPolicyRoutes from './adminPrivacyPolicyRoutes.js'
 import adminFaqRoutes from './admin/adminFaqRoutes.js'
+import adminProfileRoutes from './adminProfileRoutes.js'
 
 const router = Router()
 
@@ -79,6 +80,7 @@ router.use('/admin/subscriptions', adminSubscriptionRoutes)
 router.use('/admin/terms', adminTermsRoutes)
 router.use('/admin/privacy-policy', adminPrivacyPolicyRoutes)
 router.use('/admin/faqs', adminFaqRoutes)
+router.use('/admin/profile', adminProfileRoutes)
 router.use('/labour/location', locationRoutes)
 
 import { getCollectedCommissionAmount } from '../controllers/adminWalletController.js'
