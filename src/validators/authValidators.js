@@ -68,3 +68,11 @@ export const validateAdminLogin = [
 ]
 
 export const validateUserIdParam = param('id').isMongoId().withMessage('Invalid user id')
+
+/** Optional Refer & Earn code sent with register/verify. */
+export const validateReferralCodeOptional = body('referralCode')
+  .optional({ values: 'falsy' })
+  .trim()
+  .isLength({ min: 4, max: 16 })
+  .withMessage('Referral code looks invalid')
+  .customSanitizer((value) => String(value).toUpperCase().replace(/[^A-Z0-9]/g, ''))

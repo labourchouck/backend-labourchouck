@@ -23,9 +23,36 @@ export const initPayment = asyncHandler(async (req, res) => {
     return sendError(res, { message: 'requestId is required for WORKFORCE_REQUEST purpose', statusCode: HTTP_STATUS.BAD_REQUEST })
   }
 
+  /**
+   * For bookings the server decides what is owed. Trusting the client here
+   * would let a wallet discount be claimed twice, or the amount lowered freely.
+   */
+  let chargeAmount = amount
+  if (purpose === 'BOOKING') {
+    const booking = await Booking.findOne({ _id: bookingId, userId: req.user._id })
+    if (!booking) {
+      return sendError(res, {
+        message: 'Booking not found',
+        statusCode: HTTP_STATUS.NOT_FOUND,
+        code: 'BOOKING_NOT_FOUND',
+      })
+    }
+    chargeAmount =
+      booking.payableAmount != null && booking.payableAmount >= 0
+        ? booking.payableAmount
+        : booking.totalAmount
+    if (chargeAmount <= 0) {
+      return sendError(res, {
+        message: 'This booking is already fully covered by your wallet balance',
+        statusCode: HTTP_STATUS.BAD_REQUEST,
+        code: 'NOTHING_TO_PAY',
+      })
+    }
+  }
+
   // Generate Razorpay Order
   const receiptId = `rcpt_${req.user._id.toString().slice(-4)}_${Date.now().toString().slice(-4)}`
-  const order = await createOrder(amount, 'INR', receiptId)
+  const order = await createOrder(chargeAmount, 'INR', receiptId)
 
   // Record Transaction intent
   const pTx = await PaymentTransaction.create({
@@ -35,7 +62,7 @@ export const initPayment = asyncHandler(async (req, res) => {
     planId: purpose === 'SUBSCRIPTION' ? req.body.planId : undefined,
     requestId: purpose === 'WORKFORCE_REQUEST' ? req.body.requestId : undefined,
     razorpayOrderId: order.id,
-    amount,
+    amount: chargeAmount,
     purpose,
     status: 'CREATED'
   })

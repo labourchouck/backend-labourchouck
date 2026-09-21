@@ -187,6 +187,21 @@ const userSchema = new mongoose.Schema(
     /** When labour is onboarded under a vendor/contractor */
     vendorId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', index: true },
     /**
+     * Refer & Earn. `referralCode` is this user's own shareable code, assigned
+     * lazily the first time they open the referral screen (or at signup).
+     * `referredBy` is set once, at registration, and never changes.
+     */
+    referralCode: {
+      type: String,
+      uppercase: true,
+      trim: true,
+      unique: true,
+      sparse: true,
+      index: true,
+    },
+    referredBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', index: true },
+    referredByCode: { type: String, uppercase: true, trim: true },
+    /**
      * FCM device registration tokens for push notifications, stored separately per type:
      *  - fcmTokens.web → browser tokens (delivered with a `webpush` config)
      *  - fcmTokens.app → mobile app tokens, Android/iOS (delivered with `android` + `apns` configs)

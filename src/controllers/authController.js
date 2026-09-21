@@ -8,6 +8,7 @@ import { signAccessToken } from '../services/tokenService.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { HTTP_STATUS, sendError, sendSuccess } from '../utils/apiResponse.js'
 import { populateLabourCategories } from '../utils/populateLabourCategories.js'
+import { attachReferral, ensureReferralCode } from '../services/referralService.js'
 
 function buildAuthPayload(user, token) {
   const safe = user.toSafeObject()
@@ -44,7 +45,17 @@ export const registerRequestOtp = asyncHandler(async (req, res) => {
 
 /** POST /auth/register/verify */
 export const registerVerify = asyncHandler(async (req, res) => {
-  const { phone, code, role, fullName, companyName, gstNumber, businessName, challengeId } = req.body
+  const {
+    phone,
+    code,
+    role,
+    fullName,
+    companyName,
+    gstNumber,
+    businessName,
+    challengeId,
+    referralCode,
+  } = req.body
 
   const existing = await User.findOne({ phone })
   if (existing) {
@@ -111,11 +122,26 @@ export const registerVerify = asyncHandler(async (req, res) => {
     })
   }
   await deleteOtpChallengeDoc(otp.doc)
+
+  // Refer & Earn. Never let this break a signup that already succeeded.
+  let referral = { attached: false, reason: 'NO_CODE' }
+  try {
+    await ensureReferralCode(user)
+    if (referralCode) {
+      referral = await attachReferral({ refereeUser: user, code: referralCode })
+    }
+  } catch (err) {
+    console.error('[referral] attach on signup failed:', err?.message || err)
+  }
+
   const token = signAccessToken(user)
   return sendSuccess(res, {
     message: 'Account created',
     statusCode: HTTP_STATUS.CREATED,
-    data: buildAuthPayload(user, token),
+    data: {
+      ...buildAuthPayload(user, token),
+      referral: { applied: Boolean(referral.attached), reason: referral.reason },
+    },
   })
 })
 

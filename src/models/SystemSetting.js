@@ -39,6 +39,31 @@ const commissionSchema = new mongoose.Schema(
   { _id: false }
 )
 
+/** Refer & Earn payout rules. Every amount is in rupees. */
+const referralSchema = new mongoose.Schema(
+  {
+    isActive: { type: Boolean, default: false },
+    /**
+     * SIGNUP pays the moment the referred user registers.
+     * FIRST_BOOKING waits until their first booking is completed (harder to game).
+     */
+    rewardTrigger: {
+      type: String,
+      enum: ['SIGNUP', 'FIRST_BOOKING'],
+      default: 'FIRST_BOOKING',
+    },
+    /** Credited to the person who shared the code */
+    referrerReward: { type: Number, min: 0, default: 100 },
+    /** Credited to the person who used the code. 0 disables the joining bonus. */
+    refereeReward: { type: Number, min: 0, default: 0 },
+    /** Booking total below which a FIRST_BOOKING referral does not qualify. 0 = no floor. */
+    minBookingAmount: { type: Number, min: 0, default: 0 },
+    /** Lifetime cap on paid referrals per referrer. 0 = unlimited. */
+    maxRewardsPerReferrer: { type: Number, min: 0, default: 0 },
+  },
+  { _id: false },
+)
+
 const systemSettingSchema = new mongoose.Schema(
   {
     configKey: {
@@ -91,6 +116,10 @@ const systemSettingSchema = new mongoose.Schema(
       default: ['08:00 AM', '10:00 AM', '12:00 PM', '02:00 PM', '04:00 PM', '06:00 PM'],
     },
     isUserSubscriptionEnabled: { type: Boolean, default: false },
+    referral: {
+      type: referralSchema,
+      default: () => ({}),
+    },
     updatedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',

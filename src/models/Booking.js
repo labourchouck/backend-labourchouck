@@ -68,6 +68,18 @@ const bookingSchema = new mongoose.Schema(
     totalAmount: { type: Number, required: true },
     commissionAmount: { type: Number, required: true, default: 0 },
     laborShare: { type: Number, required: true },
+    /**
+     * Wallet credit spent on this booking. `totalAmount` stays the full price so
+     * the worker's share and the platform's fees never change; the discount is
+     * absorbed by the platform and only reduces what the customer pays.
+     */
+    walletDiscount: { type: Number, default: 0, min: 0 },
+    /** What the customer actually pays: totalAmount - walletDiscount */
+    payableAmount: { type: Number, default: 0 },
+    /** Set once the discount has been returned to the wallet after a cancellation */
+    walletRefundedAt: Date,
+    /** Set once a CASH worker has been topped up for a discount the customer did not hand over */
+    walletTopUpAt: Date,
     paymentMethod: {
       type: String,
       enum: ['ONLINE', 'CASH'],

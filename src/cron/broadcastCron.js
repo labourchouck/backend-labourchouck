@@ -6,6 +6,7 @@ import { emitToUser } from '../socket.js'
 import { User } from '../models/User.js'
 import { SystemSetting } from '../models/SystemSetting.js'
 import { sendToUser, sendToUsers } from '../services/notificationService.js'
+import { refundBookingWalletDiscount } from '../services/bookingSettlementService.js'
 
 export function initBroadcastCron() {
   // Run every minute
@@ -17,7 +18,7 @@ export function initBroadcastCron() {
       const tenMinsAgo = new Date(now.getTime() - 10 * 60 * 1000)
       const stuckBookings = await Booking.find(
         { status: 'BROADCASTING', updatedAt: { $lt: tenMinsAgo } }
-      ).select('_id userId').lean()
+      ).select('_id userId walletDiscount walletRefundedAt').lean()
       if (stuckBookings.length > 0) {
         await Booking.updateMany(
           { _id: { $in: stuckBookings.map(b => b._id) } },
@@ -25,6 +26,7 @@ export function initBroadcastCron() {
         )
         // Tell each customer instead of leaving their app on "searching" forever
         for (const stuck of stuckBookings) {
+          await refundBookingWalletDiscount(stuck, 'expired')
           emitToUser(stuck.userId, 'BOOKING_FAILED', { bookingId: stuck._id, reason: 'Expired' })
           sendToUser(stuck.userId, {
             title: 'No worker found',

@@ -8,6 +8,9 @@ import { asyncHandler } from '../utils/asyncHandler.js'
 import { HTTP_STATUS, sendError, sendSuccess } from '../utils/apiResponse.js'
 import { parseISTDateTime } from '../utils/dateHelper.js'
 import { sendToUser } from '../services/notificationService.js'
+import { qualifyReferralForBooking } from '../services/referralService.js'
+import { creditSelfBalance, debitSelfBalance, getSelfBalance } from '../services/walletService.js'
+import { refundBookingWalletDiscount, topUpWorkerForCashDiscount } from '../services/bookingSettlementService.js'
 
 export const calculateBill = asyncHandler(async (req, res) => {
   const { serviceId, durationDays = 1 } = req.body
@@ -57,6 +60,10 @@ export const calculateBill = asyncHandler(async (req, res) => {
     commissionAmount = (basePrice * settings.commission.globalPercentage) / 100
   }
 
+  // Wallet credit the customer could spend on this booking.
+  const walletBalance = await getSelfBalance(req.user._id)
+  const maxWalletDiscount = Math.min(walletBalance, totalAmount)
+
   return sendSuccess(res, {
     data: {
       basePrice,
@@ -64,13 +71,16 @@ export const calculateBill = asyncHandler(async (req, res) => {
       taxes,
       totalAmount,
       commissionAmount, // Internal calculation preview
-      laborShare: basePrice - commissionAmount
+      laborShare: basePrice - commissionAmount,
+      walletBalance,
+      maxWalletDiscount,
+      payableAfterWallet: totalAmount - maxWalletDiscount,
     }
   })
 })
 
 export const createBooking = asyncHandler(async (req, res) => {
-  const { serviceId, type, scheduledAt, timeSlot, endTime, locationText, lat, lng, paymentMethod, notes, durationKind = 'full_day', durationDays = 1, imageNames = [] } = req.body
+  const { serviceId, type, scheduledAt, timeSlot, endTime, locationText, lat, lng, paymentMethod, notes, durationKind = 'full_day', durationDays = 1, imageNames = [], useWallet = false } = req.body
 
   if (!serviceId || !type || !locationText || !paymentMethod) {
     return sendError(res, { message: 'Missing required fields', statusCode: HTTP_STATUS.BAD_REQUEST })
@@ -132,6 +142,34 @@ export const createBooking = asyncHandler(async (req, res) => {
 
   const laborShare = basePrice - commissionAmount
 
+  /**
+   * Wallet discount. The debit happens before the booking is written so the
+   * balance check and the deduction are one atomic step; if anything below
+   * fails we put the money back.
+   */
+  let walletDiscount = 0
+  if (useWallet) {
+    const balance = await getSelfBalance(req.user._id)
+    const requested = Math.min(balance, totalAmount)
+    if (requested > 0) {
+      const debit = await debitSelfBalance({
+        userId: req.user._id,
+        amount: requested,
+        context: 'BOOKING',
+        description: `Wallet applied to ${service.name || 'booking'}`,
+      })
+      if (!debit) {
+        return sendError(res, {
+          message: 'Your wallet balance changed. Please review the bill and try again.',
+          statusCode: HTTP_STATUS.CONFLICT,
+          code: 'WALLET_BALANCE_CHANGED',
+        })
+      }
+      walletDiscount = requested
+    }
+  }
+  const payableAmount = totalAmount - walletDiscount
+
   const startOtp = Math.floor(1000 + Math.random() * 9000).toString()
   const completionOtp = Math.floor(1000 + Math.random() * 9000).toString()
 
@@ -150,7 +188,9 @@ export const createBooking = asyncHandler(async (req, res) => {
     }
   }
 
-  const booking = await Booking.create({
+  let booking
+  try {
+    booking = await Booking.create({
     userId: req.user._id,
     subcategoryId: service.subcategoryId,
     serviceId: service._id,
@@ -175,12 +215,26 @@ export const createBooking = asyncHandler(async (req, res) => {
     totalAmount,
     commissionAmount,
     laborShare,
+    walletDiscount,
+    payableAmount,
     paymentMethod,
     status: 'CREATED',
     startOtp,
     completionOtp,
     attendanceLog
-  })
+    })
+  } catch (err) {
+    // Give the wallet credit back rather than swallowing it with the booking.
+    if (walletDiscount > 0) {
+      await creditSelfBalance({
+        userId: req.user._id,
+        amount: walletDiscount,
+        context: 'BOOKING',
+        description: 'Wallet refund — booking could not be created',
+      }).catch((e) => console.error('[wallet] refund after failed booking:', e?.message || e))
+    }
+    throw err
+  }
 
   if (activeSub) {
     const { UserSubscription } = await import('../models/UserSubscription.js')
@@ -339,6 +393,16 @@ export const updateBookingStatus = asyncHandler(async (req, res) => {
 
   booking.status = status
   await booking.save()
+
+  // Refer & Earn: a completed booking is what makes the customer's referral pay out.
+  if (status === 'COMPLETED') {
+    await qualifyReferralForBooking(booking)
+    await topUpWorkerForCashDiscount(booking)
+  }
+
+  if (status === 'CANCELLED') {
+    await refundBookingWalletDiscount(booking, 'cancelled')
+  }
 
   // Phase 4: Handle Commission if Cash Payment and Completed
   if (status === 'COMPLETED') {
@@ -509,6 +573,10 @@ export const verifyDailyOtp = asyncHandler(async (req, res) => {
         body: 'Your job has been completed. Please rate your experience.',
         type: 'BOOKING_COMPLETED',
       }
+
+      // Refer & Earn: same hooks as the single-day completion path above.
+      await qualifyReferralForBooking(booking)
+      await topUpWorkerForCashDiscount(booking)
 
       // Perform wallet transactions exactly as the standard completion flow
       import('../models/Wallet.js').then(async ({ Wallet }) => {

@@ -12,6 +12,18 @@ const withdrawalRequestSchema = new mongoose.Schema(
       ref: 'User',
       index: true,
     },
+    /** Customer (individual) payouts — wallet credit cashed out to a bank account */
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      index: true,
+    },
+    /** Which of the three id fields above is set. Absent on rows created before customer payouts. */
+    requesterRole: {
+      type: String,
+      enum: ['labour', 'contractor', 'individual'],
+      index: true,
+    },
     amount: {
       type: Number,
       required: true,
@@ -33,6 +45,11 @@ const withdrawalRequestSchema = new mongoose.Schema(
       accountHolderName: String,
       bankName: String,
       qrCodeUrl: String,
+    },
+    processedAt: Date,
+    processedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
     },
   },
   { timestamps: true }

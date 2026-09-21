@@ -25,6 +25,7 @@ router.post(
     body('type').isIn(['INSTANT', 'SCHEDULED']).withMessage('Invalid booking type'),
     body('locationText').trim().notEmpty().withMessage('Location is required'),
     body('paymentMethod').isIn(['ONLINE', 'CASH']).withMessage('Invalid payment method'),
+    body('useWallet').optional().isBoolean().withMessage('useWallet must be a boolean'),
   ],
   validateRequest,
   booking.createBooking,

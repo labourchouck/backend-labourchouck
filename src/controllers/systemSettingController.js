@@ -111,3 +111,35 @@ export const updateUserSubscriptionToggle = asyncHandler(async (req, res) => {
   await settings.save()
   return sendSuccess(res, { message: 'User subscription toggle updated', data: { settings } })
 })
+
+/**
+ * PATCH /admin/settings/referral — Refer & Earn payout rules.
+ * Every field is optional so the admin form can send partial updates.
+ */
+export const updateReferralSettings = asyncHandler(async (req, res) => {
+  const {
+    isActive,
+    rewardTrigger,
+    referrerReward,
+    refereeReward,
+    minBookingAmount,
+    maxRewardsPerReferrer,
+  } = req.body
+
+  let settings = await SystemSetting.findOne({ configKey: 'master_config' })
+  if (!settings) settings = new SystemSetting({ configKey: 'master_config' })
+  if (!settings.referral) settings.referral = {}
+
+  if (isActive !== undefined) settings.referral.isActive = Boolean(isActive)
+  if (rewardTrigger) settings.referral.rewardTrigger = rewardTrigger
+  if (referrerReward !== undefined) settings.referral.referrerReward = Number(referrerReward)
+  if (refereeReward !== undefined) settings.referral.refereeReward = Number(refereeReward)
+  if (minBookingAmount !== undefined) settings.referral.minBookingAmount = Number(minBookingAmount)
+  if (maxRewardsPerReferrer !== undefined) {
+    settings.referral.maxRewardsPerReferrer = Number(maxRewardsPerReferrer)
+  }
+
+  settings.updatedBy = req.user?._id
+  await settings.save()
+  return sendSuccess(res, { message: 'Referral settings updated', data: { settings } })
+})

@@ -12,6 +12,7 @@ import {
   validateCorporateFields,
   validateContractorBusiness,
   validateAdminLogin,
+  validateReferralCodeOptional,
 } from '../validators/authValidators.js'
 
 const router = Router()
@@ -33,6 +34,7 @@ router.post(
     validateFullNameRequired,
     ...validateCorporateFields,
     validateContractorBusiness,
+    validateReferralCodeOptional,
   ],
   validateRequest,
   auth.registerVerify,

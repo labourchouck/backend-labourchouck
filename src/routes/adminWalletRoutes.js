@@ -11,6 +11,7 @@ router.use(protect, restrictTo(USER_ROLES.ADMIN))
 
 router.get('/withdrawals', adminWallet.getAllWithdrawalRequests)
 router.get('/vendor-withdrawals', adminWallet.getAllVendorWithdrawalRequests)
+router.get('/user-withdrawals', adminWallet.getAllUserWithdrawalRequests)
 router.get('/vendor-stats', adminWallet.getVendorWalletStats)
 
 router.patch(

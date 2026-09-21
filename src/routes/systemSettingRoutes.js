@@ -104,4 +104,18 @@ router.patch(
   settings.updateUserSubscriptionToggle,
 )
 
+router.patch(
+  '/referral',
+  [
+    body('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
+    body('rewardTrigger').optional().isIn(['SIGNUP', 'FIRST_BOOKING']).withMessage('Invalid reward trigger'),
+    body('referrerReward').optional().isFloat({ min: 0 }).withMessage('Referrer reward must be 0 or more'),
+    body('refereeReward').optional().isFloat({ min: 0 }).withMessage('Referee reward must be 0 or more'),
+    body('minBookingAmount').optional().isFloat({ min: 0 }).withMessage('Minimum booking amount must be 0 or more'),
+    body('maxRewardsPerReferrer').optional().isInt({ min: 0 }).withMessage('Cap must be 0 or more'),
+  ],
+  validateRequest,
+  settings.updateReferralSettings,
+)
+
 export default router

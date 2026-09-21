@@ -2,6 +2,7 @@ import { Booking } from '../models/Booking.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { HTTP_STATUS, sendError, sendSuccess } from '../utils/apiResponse.js'
 import { sendToUser } from '../services/notificationService.js'
+import { refundBookingWalletDiscount } from '../services/bookingSettlementService.js'
 
 export const acceptBroadcast = asyncHandler(async (req, res) => {
   const { bookingId } = req.params
@@ -92,6 +93,7 @@ export const rejectBroadcast = asyncHandler(async (req, res) => {
   if ((booking.rejectedBy?.length || 0) >= (booking.eligibleLabourCount || 0)) {
     booking.status = 'FAILED'
     await booking.save()
+    await refundBookingWalletDiscount(booking, 'could not be matched')
 
     import('../socket.js').then(({ emitToUser, getIo }) => {
       emitToUser(booking.userId, 'BOOKING_FAILED', { bookingId: booking._id, reason: 'All available labourers declined' })

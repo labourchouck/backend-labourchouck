@@ -24,7 +24,7 @@ const walletTransactionSchema = new mongoose.Schema(
     },
     context: {
       type: String,
-      enum: ['BOOKING', 'CLEARANCE', 'INCENTIVE', 'PENALTY', 'PAYOUT', 'MANUAL', 'WITHDRAWAL'],
+      enum: ['BOOKING', 'CLEARANCE', 'INCENTIVE', 'PENALTY', 'PAYOUT', 'MANUAL', 'WITHDRAWAL', 'REFERRAL'],
       required: true,
     },
     referenceId: {

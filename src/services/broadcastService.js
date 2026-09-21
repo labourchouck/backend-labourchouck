@@ -5,6 +5,7 @@ import { SystemSetting } from '../models/SystemSetting.js'
 import { checkWalletEligibility } from '../controllers/walletController.js'
 import { getRoadDistances } from '../utils/googleMapsDistance.js'
 import { sendToUser, sendToUsers } from './notificationService.js'
+import { refundBookingWalletDiscount } from './bookingSettlementService.js'
 
 export const BROADCAST_TIMEOUT_MS = 300000 // 5 minutes flash broadcast timeout
 
@@ -30,6 +31,7 @@ export async function startBroadcastCycle(bookingId) {
     console.error(`Booking ${bookingId} FAILED: Invalid coordinates for zone broadcast.`)
     booking.status = 'FAILED'
     await booking.save()
+    await refundBookingWalletDiscount(booking, 'could not be matched')
     // Emit to customer
     import('../socket.js').then(({ emitToUser }) => {
       emitToUser(booking.userId, 'BOOKING_FAILED', { bookingId, reason: 'Invalid location' })
@@ -202,6 +204,7 @@ export async function startBroadcastCycle(bookingId) {
     if (currentBooking && currentBooking.status === 'BROADCASTING') {
       currentBooking.status = 'FAILED'
       await currentBooking.save()
+      await refundBookingWalletDiscount(currentBooking, 'expired')
       console.log(`Booking ${booking._id} EXPIRED without acceptance.`)
       
       // Notify customer
@@ -227,6 +230,7 @@ export async function startBroadcastCycle(bookingId) {
 async function markBookingFailed(booking, reason) {
   booking.status = 'FAILED'
   await booking.save()
+  await refundBookingWalletDiscount(booking, 'could not be matched')
   console.log(`Booking ${booking._id} FAILED: ${reason}`)
   import('../socket.js').then(({ emitToUser }) => {
     emitToUser(booking.userId, 'BOOKING_FAILED', { bookingId: booking._id, reason })
