@@ -22,7 +22,7 @@ function isSmsConfigured() {
   return Boolean(process.env.SMS_API_KEY && process.env.SMS_SENDER_ID)
 }
 
-function buildOtpMessage(otpCode, appName = 'LabourChowck') {
+function buildOtpMessage(otpCode, appName = 'Mappto') {
   return OTP_TEMPLATE_TEXT.replace('##var##', appName).replace('##var##', otpCode)
 }
 

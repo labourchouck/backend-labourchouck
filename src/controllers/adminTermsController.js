@@ -4,7 +4,7 @@ import { USER_ROLES } from '../constants/roles.js'
 const SEED_DATA = {
   [USER_ROLES.INDIVIDUAL]: `Terms and Conditions for Individuals (Homeowners)
 
-Welcome to LabourChowk!
+Welcome to Mappto!
 
 By registering as an Individual/Homeowner, you agree to the following terms:
 
@@ -15,7 +15,7 @@ By registering as an Individual/Homeowner, you agree to the following terms:
 
   [USER_ROLES.LABOUR]: `Terms and Conditions for Labour (Workers)
 
-Welcome to LabourChowk!
+Welcome to Mappto!
 
 By registering as a Worker on our platform, you agree to the following terms:
 
@@ -26,18 +26,18 @@ By registering as a Worker on our platform, you agree to the following terms:
 
   [USER_ROLES.CONTRACTOR]: `Terms and Conditions for Vendors (Contractors)
 
-Welcome to LabourChowk!
+Welcome to Mappto!
 
 By registering as a Vendor/Contractor, you agree to the following terms:
 
 1. Workforce Supply: You are responsible for ensuring that the crews you deploy are skilled, verified, and legally permitted to work.
 2. Project Commitments: You must meet the timeline and workforce counts agreed upon with the corporate clients.
-3. Payments & Commission: You agree to the platform's commission rates on contracts secured through LabourChowk.
+3. Payments & Commission: You agree to the platform's commission rates on contracts secured through Mappto.
 4. Compliance: You must adhere to all local labor laws, including minimum wage and safety regulations for your deployed workers.`,
 
   [USER_ROLES.CORPORATE]: `Terms and Conditions for Corporate Clients
 
-Welcome to LabourChowk!
+Welcome to Mappto!
 
 By registering as a Corporate Client, you agree to the following terms:
 

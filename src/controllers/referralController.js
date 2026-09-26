@@ -30,7 +30,7 @@ export const validateReferralCode = asyncHandler(async (req, res) => {
   return sendSuccess(res, {
     data: {
       valid: true,
-      referrerName: referrer.fullName || 'a LaborChowck user',
+      referrerName: referrer.fullName || 'a Mappto user',
       refereeReward: config.refereeReward,
     },
   })

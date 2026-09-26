@@ -1,4 +1,3 @@
-import fs from 'fs'
 import { verifyAccessToken } from '../services/tokenService.js'
 import { User } from '../models/User.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
@@ -50,8 +49,7 @@ export function restrictTo(...roles) {
         code: 'UNAUTHORIZED',
       })
     }
-    
-    fs.appendFileSync('/tmp/auth.log', `User role: ${req.user.role}, Allowed roles: ${lowerRoles.join(',')}\n`)
+
     if (!lowerRoles.includes(String(req.user.role).toLowerCase())) {
       return sendError(res, {
         message: 'You do not have permission for this action',

@@ -1,6 +1,6 @@
 # Admin Booking API Documentation
 
-The Admin Booking API provides endpoints for platform administrators to manage bookings on LabourChowk.
+The Admin Booking API provides endpoints for platform administrators to manage bookings on Mappto.
 
 **Base URL**: `/api/v1/admin/bookings`
 **Authentication**: Requires Admin JWT Token
