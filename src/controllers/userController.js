@@ -352,7 +352,7 @@ export const reviewLabourKyc = asyncHandler(async (req, res) => {
   sendToUser(user._id, {
     title: decision === 'approved' ? 'KYC verified ✅' : 'KYC rejected',
     body: decision === 'approved'
-      ? 'Your KYC has been verified. You can now accept jobs on LabourChowk!'
+      ? 'Your KYC has been verified. You can now accept jobs on Mappto!'
       : `Your KYC was rejected.${user.labourProfile.kycReviewNote ? ` Reason: ${user.labourProfile.kycReviewNote}` : ''} Please resubmit your documents.`,
     type: decision === 'approved' ? 'KYC_APPROVED' : 'KYC_REJECTED',
     data: { link: '/app/kyc' },

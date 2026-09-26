@@ -18,7 +18,7 @@ app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'))
 app.use(express.json({ limit: '12mb' }))
 
 app.get('/health', (_req, res) => {
-  res.json({ ok: true, service: 'labourchowck-api' })
+  res.json({ ok: true, service: 'mappto-api' })
 })
 
 app.use('/api/v1', routes)

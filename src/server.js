@@ -32,7 +32,7 @@ async function main() {
   })
 
   server.listen(port, () => {
-    console.log(`LabourChowck API listening on :${port}`)
+    console.log(`Mappto API listening on :${port}`)
   })
 }
 

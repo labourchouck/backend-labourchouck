@@ -4,7 +4,7 @@ import { USER_ROLES } from '../constants/roles.js'
 const SEED_DATA = {
   [USER_ROLES.INDIVIDUAL]: `Privacy Policy for Individuals (Homeowners)
 
-Welcome to LabourChowk!
+Welcome to Mappto!
 
 1. Information We Collect: We collect your name, contact details, and location to facilitate service requests.
 2. How We Use Your Data: Your data is used exclusively to connect you with verified labor and manage your bookings.
@@ -13,7 +13,7 @@ Welcome to LabourChowk!
 
   [USER_ROLES.LABOUR]: `Privacy Policy for Labour (Workers)
 
-Welcome to LabourChowk!
+Welcome to Mappto!
 
 1. Information We Collect: We collect your identification documents, skills, location, and payment details for verification and payouts.
 2. How We Use Your Data: Your profile data helps match you with suitable jobs and process your earnings.
@@ -22,7 +22,7 @@ Welcome to LabourChowk!
 
   [USER_ROLES.CONTRACTOR]: `Privacy Policy for Vendors (Contractors)
 
-Welcome to LabourChowk!
+Welcome to Mappto!
 
 1. Information We Collect: We collect your business registration, contact info, and workforce details.
 2. How We Use Your Data: Your data is used to manage your corporate contracts, track your crew, and process settlements.
@@ -31,7 +31,7 @@ Welcome to LabourChowk!
 
   [USER_ROLES.CORPORATE]: `Privacy Policy for Corporate Clients
 
-Welcome to LabourChowk!
+Welcome to Mappto!
 
 1. Information We Collect: We collect your company details, project sites, and billing information.
 2. How We Use Your Data: We use this information to fulfill bulk workforce requests and manage invoicing.
