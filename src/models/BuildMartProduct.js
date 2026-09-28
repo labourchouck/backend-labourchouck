@@ -7,6 +7,8 @@ const buildMartVariantSchema = new mongoose.Schema(
     size: { type: String },
     unit: { type: String },
     retailPrice: { type: Number, required: true },
+    /** Optional "was" price shown struck-through above retailPrice when higher. */
+    mrp: { type: Number },
     contractorPrice: { type: Number, required: true },
     bulkPrice: { type: Number },
     moq: { type: Number },

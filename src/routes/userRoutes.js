@@ -3,6 +3,7 @@ import { body, param, query } from 'express-validator'
 import { protect, restrictTo } from '../middleware/auth.js'
 import { validateRequest } from '../middleware/validateRequest.js'
 import * as user from '../controllers/userController.js'
+import * as userAddress from '../controllers/userAddressController.js'
 import { USER_ROLES } from '../constants/roles.js'
 import { validateUserIdParam } from '../validators/authValidators.js'
 
@@ -30,6 +31,36 @@ router.use(protect)
 
 router.get('/me', user.getProfile)
 router.delete('/me', user.deleteMe)
+
+const addressBodyRules = [
+  body('label').optional().trim().isLength({ max: 40 }).withMessage('Label is too long'),
+  body('lat').optional({ values: 'null' }).isFloat({ min: -90, max: 90 }).withMessage('Invalid latitude'),
+  body('lng').optional({ values: 'null' }).isFloat({ min: -180, max: 180 }).withMessage('Invalid longitude'),
+]
+
+router.get('/me/addresses', userAddress.listMyAddresses)
+router.post(
+  '/me/addresses',
+  [body('address').trim().isLength({ min: 3, max: 500 }).withMessage('Enter an address'), ...addressBodyRules],
+  validateRequest,
+  userAddress.createMyAddress,
+)
+router.patch(
+  '/me/addresses/:id',
+  [
+    param('id').isMongoId().withMessage('Invalid address id'),
+    body('address').optional().trim().isLength({ min: 3, max: 500 }).withMessage('Enter an address'),
+    ...addressBodyRules,
+  ],
+  validateRequest,
+  userAddress.updateMyAddress,
+)
+router.delete(
+  '/me/addresses/:id',
+  [param('id').isMongoId().withMessage('Invalid address id')],
+  validateRequest,
+  userAddress.deleteMyAddress,
+)
 router.patch(
   '/me',
   [
