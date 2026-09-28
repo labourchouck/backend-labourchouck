@@ -271,6 +271,13 @@ export const createBooking = asyncHandler(async (req, res) => {
         'savedAddress.lng': lng
       }).catch(err => console.error('Update savedAddress error:', err))
     })
+    import('../models/UserAddress.js').then(({ UserAddress }) => {
+      UserAddress.updateOne(
+        { userId: req.user._id, address: String(locationText).trim() },
+        { $setOnInsert: { label: 'Other', lat: lat ?? null, lng: lng ?? null } },
+        { upsert: true },
+      ).catch(err => console.error('Save UserAddress error:', err))
+    })
   }
 
   return sendSuccess(res, { message: 'Booking created successfully', statusCode: HTTP_STATUS.CREATED, data: { booking } })
