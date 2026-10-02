@@ -144,18 +144,18 @@ const MART_PRODUCTS = {
   'Red Clay Bricks': 'red-bricks',
   'Concrete Blocks (Solid/Hollow)': 'concrete-blocks',
   // Variants that share the closest matching icon.
-  'Primer (Interior & Exterior)': 'paint',
-  'Enamel Paint': 'paint',
-  'Wood Polish & Varnish': 'paint',
-  Distemper: 'wall-putty',
-  'Granite / Marble Slabs': 'tiles-slabs',
-  'Skirting Tiles': 'ceramic-tiles',
+  'Primer (Interior & Exterior)': 'mart-primer',
+  'Enamel Paint': 'mart-enamel-paint',
+  'Wood Polish & Varnish': 'mart-wood-polish',
+  Distemper: 'mart-distemper',
+  'Granite / Marble Slabs': 'mart-granite',
+  'Skirting Tiles': 'mart-skirting',
   'Tile Adhesive & Grout': 'cement',
-  'Wooden Flooring': 'plywood',
-  'Laminates & Veneers': 'plywood',
-  'GI Pipes & Fittings': 'pvc-pipes',
-  'Conduit Pipes (PVC/MS)': 'pvc-pipes',
-  'Waterproofing Tapes': 'bitumen-sheets',
+  'Wooden Flooring': 'mart-wooden-flooring',
+  'Laminates & Veneers': 'mart-laminates',
+  'GI Pipes & Fittings': 'mart-gi-pipes',
+  'Conduit Pipes (PVC/MS)': 'mart-conduit',
+  'Waterproofing Tapes': 'mart-waterproofing-tape',
   // Cut-outs from the Safety / Steel / Hardware category art so each product looks distinct.
   'Reflective Jackets': 'reflective-jacket',
   'Safety Helmets': 'safety-helmet',
@@ -165,6 +165,10 @@ const MART_PRODUCTS = {
   'Stainless Steel Pipes / Railings': 'steel-square-pipes',
   'Aluminum Sections': 'aluminium-sections',
   'Nails & Screws': 'nails-screws',
+  // Unsplash photos so no two products share one picture.
+  'Binding Wire': 'mart-binding-wire',
+  'Structural Steel (I-Beams, H-Beams)': 'mart-structural-steel',
+  'Roofing Sheets (GI, Color Coated)': 'mart-roofing-sheets',
 }
 /** Products whose current (non-placeholder) photo should still be replaced. */
 const FORCE_PRODUCTS = new Set([
@@ -241,7 +245,9 @@ async function applyProducts() {
         stats.skipped += 1
         continue
       }
-      const realPhotos = images.filter((u) => u && !isPlaceholder(u) && !categoryIcons.has(u))
+      const realPhotos = images.filter(
+        (u) => u && !isPlaceholder(u) && !categoryIcons.has(u) && !u.includes(`${SLUG_PREFIX}`),
+      )
       if (realPhotos.length && !FORCE_PRODUCTS.has(name)) {
         stats.skipped += 1
         console.log(`[seed:icons] product · ${name} kept (has a real photo)`)
