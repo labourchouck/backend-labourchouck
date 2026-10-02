@@ -1,0 +1,55 @@
+[
+  {
+    "at": "2026-10-02T11:39:47.733Z",
+    "docs": [
+      {
+        "doc": "terms",
+        "role": "individual",
+        "previousContent": "Welcome to LabourChowk!\n\nBy registering as an Homeowner, you agree to the following terms:\n\n1. Service Requests: You agree to provide accurate descriptions of the tasks and location for any labour you hire through the platform.\n2. Payments: All payments for services rendered must be settled as per the platform's payment guidelines. Booking amounts are non-refundable unless specified otherwise.\n3. Safety and Environment: You must ensure a safe and non-hazardous working environment for the workers at your premises.\n4. Dispute Resolution: Any disputes regarding the quality of work must be raised within 24 hours of task completion via the complaint section.",
+        "previousUpdatedAt": "2026-08-13T06:17:24.838Z"
+      },
+      {
+        "doc": "terms",
+        "role": "labour",
+        "previousContent": "Welcome to LabourChowk!\n\nBy registering as a Worker on our platform, you agree to the following terms:\n\n1. Profile Verification: You must provide accurate identification and skill details. Fake profiles will lead to immediate ban.\n2. Job Acceptance: Once you accept a job match, you must arrive on time and complete the task to the best of your abilities.\n3. Professionalism: Maintain professional conduct at the client's premises. Any reports of misconduct may result in account termination.\n4. Earnings and Withdrawals: Your earnings will be credited to your wallet and can be withdrawn subject to the minimum withdrawal limits and processing times.",
+        "previousUpdatedAt": "2026-08-13T06:45:32.864Z"
+      },
+      {
+        "doc": "terms",
+        "role": "contractor",
+        "previousContent": "Welcome to LabourChowk!\n\nBy registering as a Contractor, you agree to the following terms:\n\n1. Workforce Supply: You are responsible for ensuring that the crews you deploy are skilled, verified, and legally permitted to work.\n2. Project Commitments: You must meet the timeline and workforce counts agreed upon with the corporate clients.\n3. Payments & Commission: You agree to the platform's commission rates on contracts secured through LabourChowk.\n4. Compliance: You must adhere to all local labor laws, including minimum wage and safety regulations for your deployed workers.",
+        "previousUpdatedAt": "2026-08-13T06:54:52.990Z"
+      },
+      {
+        "doc": "terms",
+        "role": "corporate",
+        "previousContent": "Welcome to LabourChowk!\n\nBy registering as a Corporate Client, you agree to the following terms:\n\n1. Bulk Requisitions: You must provide clear and accurate project details, duration, and worker requirements for bulk workforce requests.\n2. Billing and Invoices: You agree to clear invoices within the stipulated credit period to ensure uninterrupted supply of workforce.\n3. Site Safety: You must ensure full compliance with occupational health and safety standards at your project sites.\n4. Platform Fees: You agree to applicable platform fees and B2B processing charges as defined in your subscription or service agreement.",
+        "previousUpdatedAt": "2026-08-13T06:54:33.972Z"
+      },
+      {
+        "doc": "privacy",
+        "role": "individual",
+        "previousContent": "Welcome to LabourChowk!\n\n1. Information We Collect: We collect your name, contact details, and location to facilitate service requests.\n2. How We Use Your Data: Your data is used exclusively to connect you with verified labor and manage your bookings.\n3. Data Sharing: We share your address only with the worker assigned to your task for the purpose of completing the job.\n4. Data Security: Your payment details and personal data are encrypted and stored securely.",
+        "previousUpdatedAt": "2026-08-13T07:10:14.657Z"
+      },
+      {
+        "doc": "privacy",
+        "role": "labour",
+        "previousContent": "Welcome to LabourChowk!\n\n1. Information We Collect: We collect your identification documents, skills, location, and payment details for verification and payouts.\n2. How We Use Your Data: Your profile data helps match you with suitable jobs and process your earnings.\n3. Visibility: Your name and skill ratings will be visible to potential employers (individuals or vendors).\n4. Data Security: Your KYC documents are stored securely and used only for compliance and verification purposes.",
+        "previousUpdatedAt": "2026-08-13T07:10:29.378Z"
+      },
+      {
+        "doc": "privacy",
+        "role": "contractor",
+        "previousContent": "Welcome to LabourChowk!\n\n1. Information We Collect: We collect your business registration, contact info, and workforce details.\n2. How We Use Your Data: Your data is used to manage your corporate contracts, track your crew, and process settlements.\n3. Data Sharing: Your business profile is visible to corporate clients seeking workforce supply.\n4. Data Security: We protect your financial and business data using industry-standard security measures.",
+        "previousUpdatedAt": "2026-08-13T07:10:36.652Z"
+      },
+      {
+        "doc": "privacy",
+        "role": "corporate",
+        "previousContent": "Welcome to LabourChowk!\n\n1. Information We Collect: We collect your company details, project sites, and billing information.\n2. How We Use Your Data: We use this information to fulfill bulk workforce requests and manage invoicing.\n3. Data Sharing: Project site details are shared with vendors and workers assigned to your projects.\n4. Data Security: Your project requirements and financial transactions are strictly confidential and securely handled.",
+        "previousUpdatedAt": "2026-08-13T07:10:44.583Z"
+      }
+    ]
+  }
+]
