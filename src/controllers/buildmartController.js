@@ -319,7 +319,10 @@ export const reviewProductAdmin = asyncHandler(async (req, res) => {
 // --- Banners ---
 
 export const getBanners = asyncHandler(async (req, res) => {
-  const banners = await BuildMartBanner.find().select('-_id -__v -createdAt -updatedAt').lean()
+  const banners = await BuildMartBanner.find()
+    .sort({ sortOrder: 1, createdAt: 1 })
+    .select('-_id -__v -createdAt -updatedAt')
+    .lean()
   return sendSuccess(res, { data: banners })
 })
 
@@ -328,6 +331,7 @@ export const getAdminBanners = asyncHandler(async (req, res) => {
   const limit = Math.min(500, Math.max(5, parseInt(req.query.limit, 10) || 50))
   const [items, total] = await Promise.all([
     BuildMartBanner.find()
+      .sort({ sortOrder: 1, createdAt: 1 })
       .select('-_id -__v -createdAt -updatedAt')
       .skip((page - 1) * limit)
       .limit(limit)

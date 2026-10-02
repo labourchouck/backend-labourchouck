@@ -10,6 +10,7 @@
     "seed:categories": "node src/scripts/seedLabourCategories.js",
     "seed:banners": "node src/scripts/seedHomeBanners.js",
     "seed:icons": "node src/scripts/seedCatalogIcons.js",
+    "seed:mart-banners": "node src/scripts/seedMartBanners.js",
     "backfill:referral-codes": "node src/scripts/backfillReferralCodes.js"
   },
   "dependencies": {

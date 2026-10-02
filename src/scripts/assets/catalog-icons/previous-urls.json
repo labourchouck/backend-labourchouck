@@ -1219,5 +1219,136 @@
         "previous": "https://res.cloudinary.com/diqowg8wy/image/upload/v1784539913/labourchowck/labour-categories/6a5208190998d0f16f966458/1784539913376-ad563ae62fbf-labour.jpg"
       }
     ]
+  },
+  {
+    "at": "2026-10-02T11:08:14.188Z",
+    "changes": [
+      {
+        "model": "product",
+        "id": "6a5baa85688f940c7b815ac9",
+        "name": "Primer (Interior & Exterior)",
+        "field": "images",
+        "previous": [
+          "https://res.cloudinary.com/diqowg8wy/image/upload/v1790926560/labourchowck/catalog-icons/seed/1790926558556-7e17bab1b4e3-mappto-icon-paint.webp"
+        ]
+      },
+      {
+        "model": "product",
+        "id": "6a5baa85688f940c7b815acb",
+        "name": "Enamel Paint",
+        "field": "images",
+        "previous": [
+          "https://res.cloudinary.com/diqowg8wy/image/upload/v1790926560/labourchowck/catalog-icons/seed/1790926558556-7e17bab1b4e3-mappto-icon-paint.webp"
+        ]
+      },
+      {
+        "model": "product",
+        "id": "6a5baa85688f940c7b815acd",
+        "name": "Wood Polish & Varnish",
+        "field": "images",
+        "previous": [
+          "https://res.cloudinary.com/diqowg8wy/image/upload/v1790926560/labourchowck/catalog-icons/seed/1790926558556-7e17bab1b4e3-mappto-icon-paint.webp"
+        ]
+      },
+      {
+        "model": "product",
+        "id": "6a5baa85688f940c7b815acc",
+        "name": "Distemper",
+        "field": "images",
+        "previous": [
+          "https://res.cloudinary.com/diqowg8wy/image/upload/v1790926561/labourchowck/catalog-icons/seed/1790926560798-a8a4edab30c8-mappto-icon-wall-putty.webp"
+        ]
+      },
+      {
+        "model": "product",
+        "id": "6a5baa85688f940c7b815ad0",
+        "name": "Granite / Marble Slabs",
+        "field": "images",
+        "previous": [
+          "https://res.cloudinary.com/diqowg8wy/image/upload/v1790926563/labourchowck/catalog-icons/seed/1790926563296-7752b8aaf941-mappto-icon-tiles-slabs.webp"
+        ]
+      },
+      {
+        "model": "product",
+        "id": "6a5baa85688f940c7b815ad3",
+        "name": "Skirting Tiles",
+        "field": "images",
+        "previous": [
+          "https://res.cloudinary.com/diqowg8wy/image/upload/v1790926564/labourchowck/catalog-icons/seed/1790926564016-efde9727c8d8-mappto-icon-ceramic-tiles.webp"
+        ]
+      },
+      {
+        "model": "product",
+        "id": "6a5baa85688f940c7b815ad1",
+        "name": "Wooden Flooring",
+        "field": "images",
+        "previous": [
+          "https://res.cloudinary.com/diqowg8wy/image/upload/v1790926565/labourchowck/catalog-icons/seed/1790926565503-c60086d0299d-mappto-icon-plywood.webp"
+        ]
+      },
+      {
+        "model": "product",
+        "id": "6a5baa85688f940c7b815ad8",
+        "name": "Laminates & Veneers",
+        "field": "images",
+        "previous": [
+          "https://res.cloudinary.com/diqowg8wy/image/upload/v1790926565/labourchowck/catalog-icons/seed/1790926565503-c60086d0299d-mappto-icon-plywood.webp"
+        ]
+      },
+      {
+        "model": "product",
+        "id": "6a5baa84688f940c7b815abd",
+        "name": "GI Pipes & Fittings",
+        "field": "images",
+        "previous": [
+          "https://res.cloudinary.com/diqowg8wy/image/upload/v1790926566/labourchowck/catalog-icons/seed/1790926566368-96f3d9c0943f-mappto-icon-pvc-pipes.webp"
+        ]
+      },
+      {
+        "model": "product",
+        "id": "6a5baa85688f940c7b815ac3",
+        "name": "Conduit Pipes (PVC/MS)",
+        "field": "images",
+        "previous": [
+          "https://res.cloudinary.com/diqowg8wy/image/upload/v1790926566/labourchowck/catalog-icons/seed/1790926566368-96f3d9c0943f-mappto-icon-pvc-pipes.webp"
+        ]
+      },
+      {
+        "model": "product",
+        "id": "6a5baa85688f940c7b815adb",
+        "name": "Waterproofing Tapes",
+        "field": "images",
+        "previous": [
+          "https://res.cloudinary.com/diqowg8wy/image/upload/v1790926567/labourchowck/catalog-icons/seed/1790926567252-5a5d8a437fc6-mappto-icon-bitumen-sheets.webp"
+        ]
+      },
+      {
+        "model": "product",
+        "id": "6a5baa84688f940c7b815ab6",
+        "name": "Binding Wire",
+        "field": "images",
+        "previous": [
+          "https://res.cloudinary.com/diqowg8wy/image/upload/v1788430464/labourchowck/general-media/6a5208190998d0f16f966458/1788430461958-9e38b5ccfb99-steel-and-metal.png"
+        ]
+      },
+      {
+        "model": "product",
+        "id": "6a5baa84688f940c7b815ab7",
+        "name": "Structural Steel (I-Beams, H-Beams)",
+        "field": "images",
+        "previous": [
+          "https://res.cloudinary.com/diqowg8wy/image/upload/v1788430464/labourchowck/general-media/6a5208190998d0f16f966458/1788430461958-9e38b5ccfb99-steel-and-metal.png"
+        ]
+      },
+      {
+        "model": "product",
+        "id": "6a5baa84688f940c7b815aba",
+        "name": "Roofing Sheets (GI, Color Coated)",
+        "field": "images",
+        "previous": [
+          "https://res.cloudinary.com/diqowg8wy/image/upload/v1788430464/labourchowck/general-media/6a5208190998d0f16f966458/1788430461958-9e38b5ccfb99-steel-and-metal.png"
+        ]
+      }
+    ]
   }
 ]
