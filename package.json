@@ -8,6 +8,8 @@
     "dev": "nodemon src/server.js",
     "seed:admin": "node src/scripts/seedAdmin.js",
     "seed:categories": "node src/scripts/seedLabourCategories.js",
+    "seed:banners": "node src/scripts/seedHomeBanners.js",
+    "seed:icons": "node src/scripts/seedCatalogIcons.js",
     "backfill:referral-codes": "node src/scripts/backfillReferralCodes.js"
   },
   "dependencies": {
