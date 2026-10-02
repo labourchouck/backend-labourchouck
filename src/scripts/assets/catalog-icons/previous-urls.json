@@ -744,5 +744,480 @@
         ]
       }
     ]
+  },
+  {
+    "at": "2026-10-02T08:37:15.459Z",
+    "changes": [
+      {
+        "model": "service",
+        "id": "6a5de7215d93393ea129ae41",
+        "name": "Car Washer",
+        "field": "iconUrl",
+        "previous": ""
+      },
+      {
+        "model": "service",
+        "id": "6a5de7215d93393ea129ae3f",
+        "name": "Tyre Repair Worker",
+        "field": "iconUrl",
+        "previous": ""
+      },
+      {
+        "model": "service",
+        "id": "6a5de7215d93393ea129ae3b",
+        "name": "Auto Electrician",
+        "field": "iconUrl",
+        "previous": ""
+      },
+      {
+        "model": "service",
+        "id": "6a5de7215d93393ea129ae39",
+        "name": "Diesel Mechanic",
+        "field": "iconUrl",
+        "previous": ""
+      },
+      {
+        "model": "service",
+        "id": "6a5de7215d93393ea129ae35",
+        "name": "Mechanic (2-Wheeler)",
+        "field": "iconUrl",
+        "previous": ""
+      },
+      {
+        "model": "service",
+        "id": "6a5de7215d93393ea129ae37",
+        "name": "Mechanic (4-Wheeler)",
+        "field": "iconUrl",
+        "previous": ""
+      },
+      {
+        "model": "service",
+        "id": "6a5de71f5d93393ea129ae09",
+        "name": "Bulldozer Operator",
+        "field": "iconUrl",
+        "previous": ""
+      },
+      {
+        "model": "service",
+        "id": "6a5de71f5d93393ea129ae07",
+        "name": "Excavator Operator",
+        "field": "iconUrl",
+        "previous": ""
+      },
+      {
+        "model": "service",
+        "id": "6a5de71f5d93393ea129ae05",
+        "name": "JCB Operator",
+        "field": "iconUrl",
+        "previous": ""
+      },
+      {
+        "model": "service",
+        "id": "6a5de7205d93393ea129ae0d",
+        "name": "Crane Operator",
+        "field": "iconUrl",
+        "previous": ""
+      },
+      {
+        "model": "service",
+        "id": "6a5de7205d93393ea129ae0f",
+        "name": "Forklift Operator",
+        "field": "iconUrl",
+        "previous": ""
+      },
+      {
+        "model": "service",
+        "id": "6a5de7205d93393ea129ae13",
+        "name": "Dumper Driver",
+        "field": "iconUrl",
+        "previous": ""
+      },
+      {
+        "model": "service",
+        "id": "6a5de7205d93393ea129ae15",
+        "name": "Tractor Operator",
+        "field": "iconUrl",
+        "previous": ""
+      },
+      {
+        "model": "service",
+        "id": "6a5de7225d93393ea129ae69",
+        "name": "Delivery Boy",
+        "field": "iconUrl",
+        "previous": ""
+      },
+      {
+        "model": "service",
+        "id": "6a5de7225d93393ea129ae5d",
+        "name": "Cook / Chef",
+        "field": "iconUrl",
+        "previous": ""
+      },
+      {
+        "model": "service",
+        "id": "6a5de7225d93393ea129ae5f",
+        "name": "Helper Cook",
+        "field": "iconUrl",
+        "previous": ""
+      },
+      {
+        "model": "service",
+        "id": "6a5de7225d93393ea129ae65",
+        "name": "Dishwasher",
+        "field": "iconUrl",
+        "previous": ""
+      },
+      {
+        "model": "service",
+        "id": "6a5de7225d93393ea129ae63",
+        "name": "Waiter",
+        "field": "iconUrl",
+        "previous": ""
+      },
+      {
+        "model": "service",
+        "id": "6a5de7215d93393ea129ae4e",
+        "name": "Industrial Cleaner",
+        "field": "iconUrl",
+        "previous": ""
+      },
+      {
+        "model": "service",
+        "id": "6a5de7215d93393ea129ae54",
+        "name": "Drain Cleaner",
+        "field": "iconUrl",
+        "previous": ""
+      },
+      {
+        "model": "service",
+        "id": "6a5de7215d93393ea129ae52",
+        "name": "Garbage Collector",
+        "field": "iconUrl",
+        "previous": ""
+      },
+      {
+        "model": "service",
+        "id": "6a5de7225d93393ea129ae56",
+        "name": "Sweeper",
+        "field": "iconUrl",
+        "previous": ""
+      },
+      {
+        "model": "service",
+        "id": "6a5de71f5d93393ea129adf4",
+        "name": "Demolition Worker",
+        "field": "iconUrl",
+        "previous": ""
+      },
+      {
+        "model": "service",
+        "id": "6a5de71f5d93393ea129adf6",
+        "name": "Road Construction Worker",
+        "field": "iconUrl",
+        "previous": ""
+      },
+      {
+        "model": "service",
+        "id": "6a5de71f5d93393ea129adf2",
+        "name": "Scaffolding Worker",
+        "field": "iconUrl",
+        "previous": ""
+      },
+      {
+        "model": "service",
+        "id": "6a5de7225d93393ea129ae74",
+        "name": "Aluminium Worker",
+        "field": "iconUrl",
+        "previous": ""
+      },
+      {
+        "model": "service",
+        "id": "6a5de7225d93393ea129ae76",
+        "name": "False Ceiling Worker",
+        "field": "iconUrl",
+        "previous": ""
+      },
+      {
+        "model": "service",
+        "id": "6a5de7225d93393ea129ae72",
+        "name": "Glass Installer",
+        "field": "iconUrl",
+        "previous": ""
+      },
+      {
+        "model": "service",
+        "id": "6a5de7205d93393ea129ae24",
+        "name": "RO Technician",
+        "field": "iconUrl",
+        "previous": ""
+      }
+    ]
+  },
+  {
+    "at": "2026-10-02T08:56:17.482Z",
+    "changes": [
+      {
+        "model": "service",
+        "id": "6a5de7215d93393ea129ae41",
+        "name": "Car Washer",
+        "field": "iconUrl",
+        "previous": "https://res.cloudinary.com/diqowg8wy/image/upload/v1790930203/labourchowck/catalog-icons/seed/1790930201194-8ef127a2d844-mappto-icon-svc-car-washer.webp"
+      },
+      {
+        "model": "service",
+        "id": "6a5de7215d93393ea129ae3f",
+        "name": "Tyre Repair Worker",
+        "field": "iconUrl",
+        "previous": "https://res.cloudinary.com/diqowg8wy/image/upload/v1790930204/labourchowck/catalog-icons/seed/1790930203744-bc04d5c1e563-mappto-icon-svc-tyre-repair-worker.webp"
+      },
+      {
+        "model": "service",
+        "id": "6a5de7215d93393ea129ae3b",
+        "name": "Auto Electrician",
+        "field": "iconUrl",
+        "previous": "https://res.cloudinary.com/diqowg8wy/image/upload/v1790930205/labourchowck/catalog-icons/seed/1790930204651-a455c700ee12-mappto-icon-svc-auto-electrician.webp"
+      },
+      {
+        "model": "service",
+        "id": "6a5de7215d93393ea129ae39",
+        "name": "Diesel Mechanic",
+        "field": "iconUrl",
+        "previous": "https://res.cloudinary.com/diqowg8wy/image/upload/v1790930206/labourchowck/catalog-icons/seed/1790930205714-9deafe8efbf8-mappto-icon-svc-diesel-mechanic.webp"
+      },
+      {
+        "model": "service",
+        "id": "6a5de7215d93393ea129ae35",
+        "name": "Mechanic (2-Wheeler)",
+        "field": "iconUrl",
+        "previous": "https://res.cloudinary.com/diqowg8wy/image/upload/v1790930207/labourchowck/catalog-icons/seed/1790930206625-d3732bb5eccc-mappto-icon-svc-mechanic-2-wheeler.webp"
+      },
+      {
+        "model": "service",
+        "id": "6a5de7215d93393ea129ae37",
+        "name": "Mechanic (4-Wheeler)",
+        "field": "iconUrl",
+        "previous": "https://res.cloudinary.com/diqowg8wy/image/upload/v1790930208/labourchowck/catalog-icons/seed/1790930207732-ebb47bc27014-mappto-icon-svc-mechanic-4-wheeler.webp"
+      },
+      {
+        "model": "service",
+        "id": "6a5de71f5d93393ea129ae09",
+        "name": "Bulldozer Operator",
+        "field": "iconUrl",
+        "previous": "https://res.cloudinary.com/diqowg8wy/image/upload/v1790930209/labourchowck/catalog-icons/seed/1790930208814-2ab8f0b46710-mappto-icon-svc-bulldozer-operator.webp"
+      },
+      {
+        "model": "service",
+        "id": "6a5de71f5d93393ea129ae07",
+        "name": "Excavator Operator",
+        "field": "iconUrl",
+        "previous": "https://res.cloudinary.com/diqowg8wy/image/upload/v1790930210/labourchowck/catalog-icons/seed/1790930209785-e69982602ffc-mappto-icon-svc-excavator-operator.webp"
+      },
+      {
+        "model": "service",
+        "id": "6a5de71f5d93393ea129ae05",
+        "name": "JCB Operator",
+        "field": "iconUrl",
+        "previous": "https://res.cloudinary.com/diqowg8wy/image/upload/v1790930211/labourchowck/catalog-icons/seed/1790930210799-9293ac3ddcf8-mappto-icon-svc-jcb-operator.webp"
+      },
+      {
+        "model": "service",
+        "id": "6a5de7205d93393ea129ae0d",
+        "name": "Crane Operator",
+        "field": "iconUrl",
+        "previous": "https://res.cloudinary.com/diqowg8wy/image/upload/v1790930212/labourchowck/catalog-icons/seed/1790930211903-ae75f2215479-mappto-icon-svc-crane-operator.webp"
+      },
+      {
+        "model": "service",
+        "id": "6a5de7205d93393ea129ae13",
+        "name": "Dumper Driver",
+        "field": "iconUrl",
+        "previous": "https://res.cloudinary.com/diqowg8wy/image/upload/v1790930214/labourchowck/catalog-icons/seed/1790930214014-0a75a190bce9-mappto-icon-svc-dumper-driver.webp"
+      },
+      {
+        "model": "service",
+        "id": "6a5de7205d93393ea129ae15",
+        "name": "Tractor Operator",
+        "field": "iconUrl",
+        "previous": "https://res.cloudinary.com/diqowg8wy/image/upload/v1790930216/labourchowck/catalog-icons/seed/1790930215744-8433ed141da4-mappto-icon-svc-tractor-operator.webp"
+      },
+      {
+        "model": "service",
+        "id": "6a5de7225d93393ea129ae69",
+        "name": "Delivery Boy",
+        "field": "iconUrl",
+        "previous": "https://res.cloudinary.com/diqowg8wy/image/upload/v1790930217/labourchowck/catalog-icons/seed/1790930217155-f14ffba9f607-mappto-icon-svc-delivery-boy.webp"
+      },
+      {
+        "model": "service",
+        "id": "6a5de7225d93393ea129ae5d",
+        "name": "Cook / Chef",
+        "field": "iconUrl",
+        "previous": "https://res.cloudinary.com/diqowg8wy/image/upload/v1790930218/labourchowck/catalog-icons/seed/1790930218222-01fe1669769a-mappto-icon-svc-cook-chef.webp"
+      },
+      {
+        "model": "service",
+        "id": "6a5de7225d93393ea129ae5f",
+        "name": "Helper Cook",
+        "field": "iconUrl",
+        "previous": "https://res.cloudinary.com/diqowg8wy/image/upload/v1790930219/labourchowck/catalog-icons/seed/1790930219394-52dd678cdb8e-mappto-icon-svc-helper-cook.webp"
+      },
+      {
+        "model": "service",
+        "id": "6a5de7225d93393ea129ae65",
+        "name": "Dishwasher",
+        "field": "iconUrl",
+        "previous": "https://res.cloudinary.com/diqowg8wy/image/upload/v1790930221/labourchowck/catalog-icons/seed/1790930220650-89926d6864cc-mappto-icon-svc-dishwasher.webp"
+      },
+      {
+        "model": "service",
+        "id": "6a5de7225d93393ea129ae63",
+        "name": "Waiter",
+        "field": "iconUrl",
+        "previous": "https://res.cloudinary.com/diqowg8wy/image/upload/v1790930222/labourchowck/catalog-icons/seed/1790930221551-794127dece24-mappto-icon-svc-waiter.webp"
+      },
+      {
+        "model": "service",
+        "id": "6a5de7215d93393ea129ae4e",
+        "name": "Industrial Cleaner",
+        "field": "iconUrl",
+        "previous": "https://res.cloudinary.com/diqowg8wy/image/upload/v1790930222/labourchowck/catalog-icons/seed/1790930222569-8f8f810cf758-mappto-icon-svc-industrial-cleaner.webp"
+      },
+      {
+        "model": "service",
+        "id": "6a5de7215d93393ea129ae54",
+        "name": "Drain Cleaner",
+        "field": "iconUrl",
+        "previous": "https://res.cloudinary.com/diqowg8wy/image/upload/v1790930223/labourchowck/catalog-icons/seed/1790930223527-863567769063-mappto-icon-svc-drain-cleaner.webp"
+      },
+      {
+        "model": "service",
+        "id": "6a5de7215d93393ea129ae52",
+        "name": "Garbage Collector",
+        "field": "iconUrl",
+        "previous": "https://res.cloudinary.com/diqowg8wy/image/upload/v1790930224/labourchowck/catalog-icons/seed/1790930224374-2dc3c5e481ed-mappto-icon-svc-garbage-collector.webp"
+      },
+      {
+        "model": "service",
+        "id": "6a5de7225d93393ea129ae56",
+        "name": "Sweeper",
+        "field": "iconUrl",
+        "previous": "https://res.cloudinary.com/diqowg8wy/image/upload/v1790930225/labourchowck/catalog-icons/seed/1790930225362-f65f4d0efbe0-mappto-icon-svc-sweeper.webp"
+      },
+      {
+        "model": "service",
+        "id": "6a5de71f5d93393ea129adf4",
+        "name": "Demolition Worker",
+        "field": "iconUrl",
+        "previous": "https://res.cloudinary.com/diqowg8wy/image/upload/v1790930226/labourchowck/catalog-icons/seed/1790930226494-9bfac2e61c78-mappto-icon-svc-demolition-worker.webp"
+      },
+      {
+        "model": "service",
+        "id": "6a5de71f5d93393ea129adf6",
+        "name": "Road Construction Worker",
+        "field": "iconUrl",
+        "previous": "https://res.cloudinary.com/diqowg8wy/image/upload/v1790930227/labourchowck/catalog-icons/seed/1790930227435-4425c30fcb4c-mappto-icon-svc-road-construction-worker.webp"
+      },
+      {
+        "model": "service",
+        "id": "6a5de71f5d93393ea129adf2",
+        "name": "Scaffolding Worker",
+        "field": "iconUrl",
+        "previous": "https://res.cloudinary.com/diqowg8wy/image/upload/v1790930228/labourchowck/catalog-icons/seed/1790930228461-500b939c23fb-mappto-icon-svc-scaffolding-worker.webp"
+      },
+      {
+        "model": "service",
+        "id": "6a5de7225d93393ea129ae74",
+        "name": "Aluminium Worker",
+        "field": "iconUrl",
+        "previous": "https://res.cloudinary.com/diqowg8wy/image/upload/v1790930230/labourchowck/catalog-icons/seed/1790930229613-775e56f4125e-mappto-icon-svc-aluminium-worker.webp"
+      }
+    ]
+  },
+  {
+    "at": "2026-10-02T08:58:45.238Z",
+    "changes": [
+      {
+        "model": "service",
+        "id": "6a5de71d5d93393ea129adc6",
+        "name": "Bar Bender (Steel Fixer)",
+        "field": "iconUrl",
+        "previous": "https://res.cloudinary.com/diqowg8wy/image/upload/v1784540894/labourchowck/labour-categories/6a5208190998d0f16f966458/1784540893030-9e4ff046a8aa-iron.jpg"
+      }
+    ]
+  },
+  {
+    "at": "2026-10-02T09:07:37.936Z",
+    "changes": [
+      {
+        "model": "service",
+        "id": "6a5de7235d93393ea129ae83",
+        "name": "Security Guard",
+        "field": "iconUrl",
+        "previous": "https://res.cloudinary.com/diqowg8wy/image/upload/v1784542357/labourchowck/labour-categories/6a5208190998d0f16f966458/1784542351969-2b5fa8c4fdfa-guard.jpg"
+      },
+      {
+        "model": "service",
+        "id": "6a5de7235d93393ea129ae87",
+        "name": "Driver (Light Vehicle)",
+        "field": "iconUrl",
+        "previous": "https://res.cloudinary.com/diqowg8wy/image/upload/v1784542460/labourchowck/labour-categories/6a5208190998d0f16f966458/1784542458548-fb788602ab90-drive.jpg"
+      },
+      {
+        "model": "service",
+        "id": "6a5de7235d93393ea129ae89",
+        "name": "Driver (Heavy Vehicle)",
+        "field": "iconUrl",
+        "previous": "https://res.cloudinary.com/diqowg8wy/image/upload/v1784542413/labourchowck/labour-categories/6a5208190998d0f16f966458/1784542412508-7cf7a1b83643-truck.jpg"
+      },
+      {
+        "model": "service",
+        "id": "6a5de71f5d93393ea129adea",
+        "name": "General Labor / Helper",
+        "field": "iconUrl",
+        "previous": "https://res.cloudinary.com/diqowg8wy/image/upload/v1784541951/labourchowck/labour-categories/6a5208190998d0f16f966458/1784541949867-9a10cd695c0c-image.jpg"
+      },
+      {
+        "model": "subcategory",
+        "id": "6a5de7235d93393ea129ae81",
+        "name": "Security",
+        "field": "iconUrl",
+        "previous": "https://res.cloudinary.com/diqowg8wy/image/upload/v1784540792/labourchowck/labour-categories/6a5208190998d0f16f966458/1784540790647-9c0b8033519f-security.jpg"
+      },
+      {
+        "model": "subcategory",
+        "id": "6a5de7235d93393ea129ae85",
+        "name": "Transportation",
+        "field": "iconUrl",
+        "previous": "https://res.cloudinary.com/diqowg8wy/image/upload/v1784540833/labourchowck/labour-categories/6a5208190998d0f16f966458/1784540832198-468a2ff14820-transport.jpg"
+      },
+      {
+        "model": "subcategory",
+        "id": "6a5de7225d93393ea129ae67",
+        "name": "Delivery",
+        "field": "iconUrl",
+        "previous": "https://res.cloudinary.com/diqowg8wy/image/upload/v1784540581/labourchowck/labour-categories/6a5208190998d0f16f966458/1784540579879-b96447c98e19-delivery.jpg"
+      },
+      {
+        "model": "subcategory",
+        "id": "6a5de7225d93393ea129ae61",
+        "name": "Restaurant Staff",
+        "field": "iconUrl",
+        "previous": "https://res.cloudinary.com/diqowg8wy/image/upload/v1784540639/labourchowck/labour-categories/6a5208190998d0f16f966458/1784540637514-29cbc64723cf-res.jpg"
+      },
+      {
+        "model": "subcategory",
+        "id": "6a5de7225d93393ea129ae5a",
+        "name": "Food Services",
+        "field": "iconUrl",
+        "previous": "https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=600&h=450&fit=crop&q=80&auto=format"
+      },
+      {
+        "model": "subcategory",
+        "id": "6a5de71e5d93393ea129ade7",
+        "name": "General Labour",
+        "field": "iconUrl",
+        "previous": "https://res.cloudinary.com/diqowg8wy/image/upload/v1784539913/labourchowck/labour-categories/6a5208190998d0f16f966458/1784539913376-ad563ae62fbf-labour.jpg"
+      }
+    ]
   }
 ]

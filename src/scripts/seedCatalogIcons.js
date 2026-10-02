@@ -52,6 +52,43 @@ const SERVICES = {
   'Home Appliance Repair Technician': 'home-appliances',
   'Modular Kitchen Installer': 'modular-kitchen',
   'Drill Machine Operator': 'power-tools',
+  // Replaces a watermarked stock photo.
+  'Bar Bender (Steel Fixer)': 'svc-bar-bender',
+  'Security Guard': 'svc-in-security-guard',
+  'Driver (Light Vehicle)': 'svc-in-driver-light',
+  'Driver (Heavy Vehicle)': 'svc-in-driver-heavy',
+  'General Labor / Helper': 'svc-in-general-helper',
+  // Services with no tile in the icon set: free Unsplash photos, Indian settings where available
+  // (svc-in-*); the rest (svc-*) are neutral shots with no fitting Indian alternative.
+  'Car Washer': 'svc-in-car-washer',
+  'Tyre Repair Worker': 'svc-in-tyre-repair-worker',
+  'Auto Electrician': 'svc-in-auto-electrician',
+  'Diesel Mechanic': 'svc-in-diesel-mechanic',
+  'Mechanic (2-Wheeler)': 'svc-in-mechanic-2-wheeler',
+  'Mechanic (4-Wheeler)': 'svc-in-mechanic-4-wheeler',
+  'Bulldozer Operator': 'svc-in-bulldozer-operator',
+  'Excavator Operator': 'svc-in-excavator-operator',
+  'JCB Operator': 'svc-in-jcb-operator',
+  'Crane Operator': 'svc-in-crane-operator',
+  'Forklift Operator': 'svc-forklift-operator',
+  'Dumper Driver': 'svc-in-dumper-driver',
+  'Tractor Operator': 'svc-in-tractor-operator',
+  'Delivery Boy': 'svc-in-delivery-boy',
+  'Cook / Chef': 'svc-in-cook-chef',
+  'Helper Cook': 'svc-in-helper-cook',
+  Dishwasher: 'svc-in-dishwasher',
+  Waiter: 'svc-in-waiter',
+  'Industrial Cleaner': 'svc-in-industrial-cleaner',
+  'Drain Cleaner': 'svc-in-drain-cleaner',
+  'Garbage Collector': 'svc-in-garbage-collector',
+  Sweeper: 'svc-in-sweeper',
+  'Demolition Worker': 'svc-in-demolition-worker',
+  'Road Construction Worker': 'svc-in-road-construction-worker',
+  'Scaffolding Worker': 'svc-in-scaffolding-worker',
+  'Aluminium Worker': 'svc-in-aluminium-worker',
+  'False Ceiling Worker': 'svc-false-ceiling-worker',
+  'Glass Installer': 'svc-glass-installer',
+  'RO Technician': 'svc-ro-technician',
 }
 
 /** Labour sub-category name → icon file. */
@@ -61,6 +98,13 @@ const SUBCATEGORIES = {
   'Security & Automation': 'smart-lock',
   'HVAC & Cooling': 'ac-outdoor-unit',
   'Equipment Support': 'angle-grinder-drill',
+  // Indian-setting photos replacing foreign-looking / third-party-branded ones.
+  Security: 'sub-in-security',
+  Transportation: 'sub-in-transportation',
+  Delivery: 'sub-in-delivery',
+  'Restaurant Staff': 'sub-in-restaurant-staff',
+  'Food Services': 'sub-in-food-services',
+  'General Labour': 'sub-in-general-labour',
 }
 
 /** BuildMart category name → icon file. */
