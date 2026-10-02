@@ -1,0 +1,748 @@
+[
+  {
+    "at": "2026-10-02T07:21:44.036Z",
+    "changes": [
+      {
+        "model": "service",
+        "id": "6a5de71e5d93393ea129add3",
+        "name": "Electrician",
+        "field": "iconUrl",
+        "previous": "https://res.cloudinary.com/diqowg8wy/image/upload/v1784541407/labourchowck/labour-categories/6a5208190998d0f16f966458/1784541406501-e95f95aa6450-wire.jpg"
+      },
+      {
+        "model": "service",
+        "id": "6a5de71e5d93393ea129add1",
+        "name": "Plumber",
+        "field": "iconUrl",
+        "previous": "https://res.cloudinary.com/diqowg8wy/image/upload/v1784541529/labourchowck/labour-categories/6a5208190998d0f16f966458/1784541528691-23dadc0db75d-pipe.jpg"
+      },
+      {
+        "model": "service",
+        "id": "6a5de71d5d93393ea129adc1",
+        "name": "Carpenter",
+        "field": "iconUrl",
+        "previous": "https://res.cloudinary.com/diqowg8wy/image/upload/v1784540977/labourchowck/labour-categories/6a5208190998d0f16f966458/1784540975988-21bdffd4b6df-wood.jpg"
+      },
+      {
+        "model": "service",
+        "id": "6a5de71e5d93393ea129ade3",
+        "name": "Painter",
+        "field": "iconUrl",
+        "previous": "https://res.cloudinary.com/diqowg8wy/image/upload/v1784541246/labourchowck/labour-categories/6a5208190998d0f16f966458/1784541246377-45c14ec5eb37-paint.jpg"
+      },
+      {
+        "model": "service",
+        "id": "6a5de71d5d93393ea129adbf",
+        "name": "Mason (Raj Mistri)",
+        "field": "iconUrl",
+        "previous": "https://res.cloudinary.com/diqowg8wy/image/upload/v1784541023/labourchowck/labour-categories/6a5208190998d0f16f966458/1784541020625-c5cbf9d4a69d-brick.jpg"
+      },
+      {
+        "model": "service",
+        "id": "6a5de71e5d93393ea129addd",
+        "name": "Welder",
+        "field": "iconUrl",
+        "previous": "https://res.cloudinary.com/diqowg8wy/image/upload/v1784541333/labourchowck/labour-categories/6a5208190998d0f16f966458/1784541331946-1eec1523f168-welder.jpg"
+      },
+      {
+        "model": "service",
+        "id": "6a5de71f5d93393ea129adee",
+        "name": "Loader / Unloader",
+        "field": "iconUrl",
+        "previous": "https://res.cloudinary.com/diqowg8wy/image/upload/v1784541996/labourchowck/labour-categories/6a5208190998d0f16f966458/1784541995567-ce6706f50b95-load.jpg"
+      },
+      {
+        "model": "service",
+        "id": "6a5de71f5d93393ea129adec",
+        "name": "Construction Helper",
+        "field": "iconUrl",
+        "previous": "https://res.cloudinary.com/diqowg8wy/image/upload/v1784541729/labourchowck/labour-categories/6a5208190998d0f16f966458/1784541728394-86f8b870d276-cons.jpg"
+      },
+      {
+        "model": "service",
+        "id": "6a5de7225d93393ea129ae70",
+        "name": "Interior Designer Helper",
+        "field": "iconUrl",
+        "previous": ""
+      },
+      {
+        "model": "service",
+        "id": "6a5de7205d93393ea129ae1c",
+        "name": "AC Technician",
+        "field": "iconUrl",
+        "previous": ""
+      },
+      {
+        "model": "service",
+        "id": "6a5de7215d93393ea129ae2e",
+        "name": "Pest Control Worker",
+        "field": "iconUrl",
+        "previous": ""
+      },
+      {
+        "model": "service",
+        "id": "6a5de7215d93393ea129ae48",
+        "name": "Housekeeping Staff",
+        "field": "iconUrl",
+        "previous": ""
+      },
+      {
+        "model": "service",
+        "id": "6a5de7215d93393ea129ae4c",
+        "name": "Office Cleaner",
+        "field": "iconUrl",
+        "previous": ""
+      },
+      {
+        "model": "service",
+        "id": "6a5de7205d93393ea129ae2a",
+        "name": "CCTV Installer",
+        "field": "iconUrl",
+        "previous": ""
+      },
+      {
+        "model": "service",
+        "id": "6a5de7205d93393ea129ae22",
+        "name": "Washing Machine Technician",
+        "field": "iconUrl",
+        "previous": ""
+      },
+      {
+        "model": "service",
+        "id": "6a5de71e5d93393ea129add9",
+        "name": "Solar Panel Technician",
+        "field": "iconUrl",
+        "previous": "https://res.cloudinary.com/diqowg8wy/image/upload/v1784541598/labourchowck/labour-categories/6a5208190998d0f16f966458/1784541596861-c6613134312b-solar.jpg"
+      },
+      {
+        "model": "service",
+        "id": "6a5de7235d93393ea129ae7f",
+        "name": "Gardener / Mali",
+        "field": "iconUrl",
+        "previous": "https://res.cloudinary.com/diqowg8wy/image/upload/v1784542232/labourchowck/labour-categories/6a5208190998d0f16f966458/1784542231559-831174dad7a1-garden.jpg"
+      },
+      {
+        "model": "service",
+        "id": "6a5de7205d93393ea129ae1e",
+        "name": "Refrigerator Technician",
+        "field": "iconUrl",
+        "previous": ""
+      },
+      {
+        "model": "service",
+        "id": "6a5de7205d93393ea129ae26",
+        "name": "Home Appliance Repair Technician",
+        "field": "iconUrl",
+        "previous": ""
+      },
+      {
+        "model": "service",
+        "id": "6a5de7235d93393ea129ae78",
+        "name": "Modular Kitchen Installer",
+        "field": "iconUrl",
+        "previous": ""
+      },
+      {
+        "model": "service",
+        "id": "6a5de71f5d93393ea129adfe",
+        "name": "Drill Machine Operator",
+        "field": "iconUrl",
+        "previous": "https://res.cloudinary.com/diqowg8wy/image/upload/v1784541674/labourchowck/labour-categories/6a5208190998d0f16f966458/1784541673324-949f26205dde-drill.jpg"
+      },
+      {
+        "model": "subcategory",
+        "id": "6a5de7205d93393ea129ae2c",
+        "name": "Pest Control",
+        "field": "iconUrl",
+        "previous": "https://res.cloudinary.com/diqowg8wy/image/upload/v1784540291/labourchowck/labour-categories/6a5208190998d0f16f966458/1784540291129-27f96f31f320-pest.jpg"
+      },
+      {
+        "model": "subcategory",
+        "id": "6a5de71f5d93393ea129adf0",
+        "name": "Site Operations",
+        "field": "iconUrl",
+        "previous": "https://res.cloudinary.com/diqowg8wy/image/upload/v1784539959/labourchowck/labour-categories/6a5208190998d0f16f966458/1784539959329-ab705752bcd1-site.jpg"
+      },
+      {
+        "model": "subcategory",
+        "id": "6a5de7205d93393ea129ae28",
+        "name": "Security & Automation",
+        "field": "iconUrl",
+        "previous": "https://res.cloudinary.com/diqowg8wy/image/upload/v1784540329/labourchowck/labour-categories/6a5208190998d0f16f966458/1784540328184-50b5d388b92a-security.jpg"
+      },
+      {
+        "model": "subcategory",
+        "id": "6a5de7205d93393ea129ae19",
+        "name": "HVAC & Cooling",
+        "field": "iconUrl",
+        "previous": "https://res.cloudinary.com/diqowg8wy/image/upload/v1784540187/labourchowck/labour-categories/6a5208190998d0f16f966458/1784540186870-3fe44b64ff3d-ac.jpg"
+      },
+      {
+        "model": "subcategory",
+        "id": "6a5de71f5d93393ea129adfa",
+        "name": "Equipment Support",
+        "field": "iconUrl",
+        "previous": "https://res.cloudinary.com/diqowg8wy/image/upload/v1784539867/labourchowck/labour-categories/6a5208190998d0f16f966458/1784539865204-ce996c9b9430-equip.jpg"
+      },
+      {
+        "model": "mart-category",
+        "id": "6a5887f3b8abcc7fba6a6d67",
+        "name": "Cement",
+        "field": "image",
+        "previous": "https://images.unsplash.com/photo-1581094797760-3c2f8f4e3b0a?auto=format&fit=crop&w=800&q=80"
+      },
+      {
+        "model": "mart-category",
+        "id": "6a573d624114fbf087de934d",
+        "name": "Tiling",
+        "field": "image",
+        "previous": "https://images.unsplash.com/photo-1502005097973-6a7082348e28?auto=format&fit=crop&w=800&q=80"
+      },
+      {
+        "model": "mart-category",
+        "id": "6a573d624114fbf087de934a",
+        "name": "Painting",
+        "field": "image",
+        "previous": "https://images.unsplash.com/photo-1589939705384-5185137a7f0f?auto=format&fit=crop&w=800&q=80"
+      },
+      {
+        "model": "mart-category",
+        "id": "6a5baa84688f940c7b815aa3",
+        "name": "Waterproofing",
+        "field": "image",
+        "previous": "https://images.unsplash.com/photo-1584483788775-680f4f9f7d45?auto=format&fit=crop&w=800&q=80"
+      },
+      {
+        "model": "mart-category",
+        "id": "6a573d624114fbf087de934c",
+        "name": "Electrical",
+        "field": "image",
+        "previous": "https://images.unsplash.com/photo-1621905251189-08b45d6f269e?auto=format&fit=crop&w=800&q=80"
+      },
+      {
+        "model": "mart-category",
+        "id": "6a573d624114fbf087de934f",
+        "name": "Hardware",
+        "field": "image",
+        "previous": "https://images.unsplash.com/photo-1504148455328-c376907d081c?auto=format&fit=crop&w=800&q=80"
+      },
+      {
+        "model": "mart-category",
+        "id": "6a5baa84688f940c7b815aa2",
+        "name": "Plumbing",
+        "field": "image",
+        "previous": "https://images.unsplash.com/photo-1621905252507-b35492cc74b4?auto=format&fit=crop&w=800&q=80"
+      },
+      {
+        "model": "mart-category",
+        "id": "6a5884d210bae35dd1ce3682",
+        "name": "Furniture",
+        "field": "image",
+        "previous": ""
+      },
+      {
+        "model": "mart-category",
+        "id": "6a573d624114fbf087de9348",
+        "name": "Sand & Aggregates",
+        "field": "image",
+        "previous": "https://images.unsplash.com/photo-1618221195710-e326b4f6d3e0?auto=format&fit=crop&w=800&q=80"
+      },
+      {
+        "model": "product",
+        "id": "6a5baa84688f940c7b815abb",
+        "name": "PVC Pipes & Fittings",
+        "field": "images",
+        "previous": [
+          "https://loremflickr.com/400/400/pipes,plumbing?lock=815abb"
+        ]
+      },
+      {
+        "model": "product",
+        "id": "6a5baa84688f940c7b815abc",
+        "name": "CPVC / UPVC Pipes",
+        "field": "images",
+        "previous": [
+          "https://loremflickr.com/400/400/pipes,plumbing?lock=815abc"
+        ]
+      },
+      {
+        "model": "product",
+        "id": "6a5baa85688f940c7b815abe",
+        "name": "Water Tanks (Syntax etc.)",
+        "field": "images",
+        "previous": [
+          "https://loremflickr.com/400/400/pipes,plumbing?lock=815abe"
+        ]
+      },
+      {
+        "model": "product",
+        "id": "6a5baa85688f940c7b815abf",
+        "name": "Sanitaryware",
+        "field": "images",
+        "previous": [
+          "https://loremflickr.com/400/400/pipes,plumbing?lock=815abf"
+        ]
+      },
+      {
+        "model": "product",
+        "id": "6a5baa85688f940c7b815ac0",
+        "name": "Faucets & Taps",
+        "field": "images",
+        "previous": [
+          "https://loremflickr.com/400/400/pipes,plumbing?lock=815ac0"
+        ]
+      },
+      {
+        "model": "product",
+        "id": "6a5baa85688f940c7b815ac2",
+        "name": "Wires & Cables (Copper/Aluminium)",
+        "field": "images",
+        "previous": [
+          "https://loremflickr.com/400/400/wires,electrical?lock=815ac2"
+        ]
+      },
+      {
+        "model": "product",
+        "id": "6a5baa85688f940c7b815ac4",
+        "name": "Switches & Sockets",
+        "field": "images",
+        "previous": [
+          "https://loremflickr.com/400/400/wires,electrical?lock=815ac4"
+        ]
+      },
+      {
+        "model": "product",
+        "id": "6a5baa85688f940c7b815ac5",
+        "name": "MCB & Distribution Boards",
+        "field": "images",
+        "previous": [
+          "https://loremflickr.com/400/400/wires,electrical?lock=815ac5"
+        ]
+      },
+      {
+        "model": "product",
+        "id": "6a5baa85688f940c7b815ac6",
+        "name": "Lighting (LED Bulbs, Tube Lights)",
+        "field": "images",
+        "previous": [
+          "https://loremflickr.com/400/400/wires,electrical?lock=815ac6"
+        ]
+      },
+      {
+        "model": "product",
+        "id": "6a5baa85688f940c7b815ac7",
+        "name": "Fans & Exhausts",
+        "field": "images",
+        "previous": [
+          "https://loremflickr.com/400/400/wires,electrical?lock=815ac7"
+        ]
+      },
+      {
+        "model": "product",
+        "id": "6a5baa85688f940c7b815ac8",
+        "name": "Wall Putty",
+        "field": "images",
+        "previous": [
+          "https://loremflickr.com/400/400/paint,colors?lock=815ac8"
+        ]
+      },
+      {
+        "model": "product",
+        "id": "6a5baa85688f940c7b815aca",
+        "name": "Emulsion Paint",
+        "field": "images",
+        "previous": [
+          "https://loremflickr.com/400/400/paint,colors?lock=815aca"
+        ]
+      },
+      {
+        "model": "product",
+        "id": "6a5baa85688f940c7b815ace",
+        "name": "Ceramic Tiles",
+        "field": "images",
+        "previous": [
+          "https://loremflickr.com/400/400/tiles,floor?lock=815ace"
+        ]
+      },
+      {
+        "model": "product",
+        "id": "6a5baa85688f940c7b815acf",
+        "name": "Vitrified Tiles",
+        "field": "images",
+        "previous": [
+          "https://loremflickr.com/400/400/tiles,floor?lock=815acf"
+        ]
+      },
+      {
+        "model": "product",
+        "id": "6a5baa85688f940c7b815ad7",
+        "name": "Plywood & Blockboards",
+        "field": "images",
+        "previous": [
+          "https://loremflickr.com/400/400/tools,hardware?lock=815ad7"
+        ]
+      },
+      {
+        "model": "product",
+        "id": "6a5baa85688f940c7b815ad5",
+        "name": "Hinges, Handles & Locks",
+        "field": "images",
+        "previous": [
+          "https://loremflickr.com/400/400/tools,hardware?lock=815ad5"
+        ]
+      },
+      {
+        "model": "product",
+        "id": "6a5baa85688f940c7b815ad6",
+        "name": "Door & Window Frames",
+        "field": "images",
+        "previous": [
+          "https://loremflickr.com/400/400/tools,hardware?lock=815ad6"
+        ]
+      },
+      {
+        "model": "product",
+        "id": "6a5baa85688f940c7b815ad9",
+        "name": "Liquid Waterproofing Compounds",
+        "field": "images",
+        "previous": [
+          "https://loremflickr.com/400/400/waterproofing,roof?lock=815ad9"
+        ]
+      },
+      {
+        "model": "product",
+        "id": "6a5baa85688f940c7b815ada",
+        "name": "Bitumen Sheets",
+        "field": "images",
+        "previous": [
+          "https://loremflickr.com/400/400/waterproofing,roof?lock=815ada"
+        ]
+      },
+      {
+        "model": "product",
+        "id": "6a5baa84688f940c7b815aac",
+        "name": "Red Clay Bricks",
+        "field": "images",
+        "previous": [
+          "https://res.cloudinary.com/diqowg8wy/image/upload/v1784545225/labourchowck/general-media/6a5208190998d0f16f966458/1784545224546-7e0802112888-red.jpg"
+        ]
+      },
+      {
+        "model": "product",
+        "id": "6a5baa84688f940c7b815aa9",
+        "name": "Concrete Blocks (Solid/Hollow)",
+        "field": "images",
+        "previous": [
+          "https://res.cloudinary.com/diqowg8wy/image/upload/v1784545101/labourchowck/general-media/6a5208190998d0f16f966458/1784545099935-1834d447d60c-block.jpg"
+        ]
+      }
+    ]
+  },
+  {
+    "at": "2026-10-02T07:36:08.641Z",
+    "changes": [
+      {
+        "model": "product",
+        "id": "6a5baa85688f940c7b815ac9",
+        "name": "Primer (Interior & Exterior)",
+        "field": "images",
+        "previous": [
+          "https://loremflickr.com/400/400/paint,colors?lock=815ac9"
+        ]
+      },
+      {
+        "model": "product",
+        "id": "6a5baa85688f940c7b815acb",
+        "name": "Enamel Paint",
+        "field": "images",
+        "previous": [
+          "https://loremflickr.com/400/400/paint,colors?lock=815acb"
+        ]
+      },
+      {
+        "model": "product",
+        "id": "6a5baa85688f940c7b815acd",
+        "name": "Wood Polish & Varnish",
+        "field": "images",
+        "previous": [
+          "https://loremflickr.com/400/400/paint,colors?lock=815acd"
+        ]
+      },
+      {
+        "model": "product",
+        "id": "6a5baa85688f940c7b815acc",
+        "name": "Distemper",
+        "field": "images",
+        "previous": [
+          "https://loremflickr.com/400/400/paint,colors?lock=815acc"
+        ]
+      },
+      {
+        "model": "product",
+        "id": "6a5baa85688f940c7b815ad0",
+        "name": "Granite / Marble Slabs",
+        "field": "images",
+        "previous": [
+          "https://loremflickr.com/400/400/tiles,floor?lock=815ad0"
+        ]
+      },
+      {
+        "model": "product",
+        "id": "6a5baa85688f940c7b815ad3",
+        "name": "Skirting Tiles",
+        "field": "images",
+        "previous": [
+          "https://loremflickr.com/400/400/tiles,floor?lock=815ad3"
+        ]
+      },
+      {
+        "model": "product",
+        "id": "6a5baa85688f940c7b815ad2",
+        "name": "Tile Adhesive & Grout",
+        "field": "images",
+        "previous": [
+          "https://loremflickr.com/400/400/tiles,floor?lock=815ad2"
+        ]
+      },
+      {
+        "model": "product",
+        "id": "6a5baa85688f940c7b815ad1",
+        "name": "Wooden Flooring",
+        "field": "images",
+        "previous": [
+          "https://loremflickr.com/400/400/tiles,floor?lock=815ad1"
+        ]
+      },
+      {
+        "model": "product",
+        "id": "6a5baa85688f940c7b815ad8",
+        "name": "Laminates & Veneers",
+        "field": "images",
+        "previous": [
+          "https://loremflickr.com/400/400/tools,hardware?lock=815ad8"
+        ]
+      },
+      {
+        "model": "product",
+        "id": "6a5baa84688f940c7b815abd",
+        "name": "GI Pipes & Fittings",
+        "field": "images",
+        "previous": [
+          "https://loremflickr.com/400/400/pipes,plumbing?lock=815abd"
+        ]
+      },
+      {
+        "model": "product",
+        "id": "6a5baa85688f940c7b815ac3",
+        "name": "Conduit Pipes (PVC/MS)",
+        "field": "images",
+        "previous": [
+          "https://loremflickr.com/400/400/wires,electrical?lock=815ac3"
+        ]
+      },
+      {
+        "model": "product",
+        "id": "6a5baa85688f940c7b815adb",
+        "name": "Waterproofing Tapes",
+        "field": "images",
+        "previous": [
+          "https://loremflickr.com/400/400/waterproofing,roof?lock=815adb"
+        ]
+      },
+      {
+        "model": "product",
+        "id": "6a5baa84688f940c7b815ab4",
+        "name": "TMT Bars (Fe-500, Fe-550)",
+        "field": "images",
+        "previous": [
+          "https://loremflickr.com/400/400/steel,metal,rebar?lock=815ab4"
+        ]
+      },
+      {
+        "model": "product",
+        "id": "6a5baa84688f940c7b815ab5",
+        "name": "Mild Steel (MS) Angles & Channels",
+        "field": "images",
+        "previous": [
+          "https://loremflickr.com/400/400/steel,metal,rebar?lock=815ab5"
+        ]
+      },
+      {
+        "model": "product",
+        "id": "6a5baa84688f940c7b815ab6",
+        "name": "Binding Wire",
+        "field": "images",
+        "previous": [
+          "https://loremflickr.com/400/400/steel,metal,rebar?lock=815ab6"
+        ]
+      },
+      {
+        "model": "product",
+        "id": "6a5baa84688f940c7b815ab7",
+        "name": "Structural Steel (I-Beams, H-Beams)",
+        "field": "images",
+        "previous": [
+          "https://loremflickr.com/400/400/steel,metal,rebar?lock=815ab7"
+        ]
+      },
+      {
+        "model": "product",
+        "id": "6a5baa84688f940c7b815ab8",
+        "name": "Stainless Steel Pipes / Railings",
+        "field": "images",
+        "previous": [
+          "https://loremflickr.com/400/400/steel,metal,rebar?lock=815ab8"
+        ]
+      },
+      {
+        "model": "product",
+        "id": "6a5baa84688f940c7b815ab9",
+        "name": "Aluminum Sections",
+        "field": "images",
+        "previous": [
+          "https://loremflickr.com/400/400/steel,metal,rebar?lock=815ab9"
+        ]
+      },
+      {
+        "model": "product",
+        "id": "6a5baa84688f940c7b815aba",
+        "name": "Roofing Sheets (GI, Color Coated)",
+        "field": "images",
+        "previous": [
+          "https://loremflickr.com/400/400/steel,metal,rebar?lock=815aba"
+        ]
+      },
+      {
+        "model": "product",
+        "id": "6a5baa85688f940c7b815ac1",
+        "name": "Manhole Covers",
+        "field": "images",
+        "previous": [
+          "https://loremflickr.com/400/400/pipes,plumbing?lock=815ac1"
+        ]
+      },
+      {
+        "model": "product",
+        "id": "6a5baa85688f940c7b815ad4",
+        "name": "Nails & Screws",
+        "field": "images",
+        "previous": [
+          "https://loremflickr.com/400/400/tools,hardware?lock=815ad4"
+        ]
+      },
+      {
+        "model": "product",
+        "id": "6a5baa85688f940c7b815adc",
+        "name": "Safety Helmets",
+        "field": "images",
+        "previous": [
+          "https://loremflickr.com/400/400/hardhat,safety?lock=815adc"
+        ]
+      },
+      {
+        "model": "product",
+        "id": "6a5baa85688f940c7b815add",
+        "name": "Safety Shoes",
+        "field": "images",
+        "previous": [
+          "https://loremflickr.com/400/400/hardhat,safety?lock=815add"
+        ]
+      },
+      {
+        "model": "product",
+        "id": "6a5baa85688f940c7b815ade",
+        "name": "Reflective Jackets",
+        "field": "images",
+        "previous": [
+          "https://loremflickr.com/400/400/hardhat,safety?lock=815ade"
+        ]
+      },
+      {
+        "model": "product",
+        "id": "6a5baa85688f940c7b815adf",
+        "name": "Safety Nets",
+        "field": "images",
+        "previous": [
+          "https://loremflickr.com/400/400/hardhat,safety?lock=815adf"
+        ]
+      }
+    ]
+  },
+  {
+    "at": "2026-10-02T07:45:09.854Z",
+    "changes": [
+      {
+        "model": "product",
+        "id": "6a5baa85688f940c7b815ade",
+        "name": "Reflective Jackets",
+        "field": "images",
+        "previous": [
+          "https://res.cloudinary.com/diqowg8wy/image/upload/v1788430515/labourchowck/general-media/6a5208190998d0f16f966458/1788430513164-9128a2d27f61-safety-equipment.png"
+        ]
+      },
+      {
+        "model": "product",
+        "id": "6a5baa85688f940c7b815adc",
+        "name": "Safety Helmets",
+        "field": "images",
+        "previous": [
+          "https://res.cloudinary.com/diqowg8wy/image/upload/v1788430515/labourchowck/general-media/6a5208190998d0f16f966458/1788430513164-9128a2d27f61-safety-equipment.png"
+        ]
+      },
+      {
+        "model": "product",
+        "id": "6a5baa85688f940c7b815add",
+        "name": "Safety Shoes",
+        "field": "images",
+        "previous": [
+          "https://res.cloudinary.com/diqowg8wy/image/upload/v1788430515/labourchowck/general-media/6a5208190998d0f16f966458/1788430513164-9128a2d27f61-safety-equipment.png"
+        ]
+      },
+      {
+        "model": "product",
+        "id": "6a5baa84688f940c7b815ab4",
+        "name": "TMT Bars (Fe-500, Fe-550)",
+        "field": "images",
+        "previous": [
+          "https://res.cloudinary.com/diqowg8wy/image/upload/v1788430464/labourchowck/general-media/6a5208190998d0f16f966458/1788430461958-9e38b5ccfb99-steel-and-metal.png"
+        ]
+      },
+      {
+        "model": "product",
+        "id": "6a5baa84688f940c7b815ab5",
+        "name": "Mild Steel (MS) Angles & Channels",
+        "field": "images",
+        "previous": [
+          "https://res.cloudinary.com/diqowg8wy/image/upload/v1788430464/labourchowck/general-media/6a5208190998d0f16f966458/1788430461958-9e38b5ccfb99-steel-and-metal.png"
+        ]
+      },
+      {
+        "model": "product",
+        "id": "6a5baa84688f940c7b815ab8",
+        "name": "Stainless Steel Pipes / Railings",
+        "field": "images",
+        "previous": [
+          "https://res.cloudinary.com/diqowg8wy/image/upload/v1788430464/labourchowck/general-media/6a5208190998d0f16f966458/1788430461958-9e38b5ccfb99-steel-and-metal.png"
+        ]
+      },
+      {
+        "model": "product",
+        "id": "6a5baa84688f940c7b815ab9",
+        "name": "Aluminum Sections",
+        "field": "images",
+        "previous": [
+          "https://res.cloudinary.com/diqowg8wy/image/upload/v1788430464/labourchowck/general-media/6a5208190998d0f16f966458/1788430461958-9e38b5ccfb99-steel-and-metal.png"
+        ]
+      },
+      {
+        "model": "product",
+        "id": "6a5baa85688f940c7b815ad4",
+        "name": "Nails & Screws",
+        "field": "images",
+        "previous": [
+          "https://res.cloudinary.com/diqowg8wy/image/upload/v1788430377/labourchowck/general-media/6a5208190998d0f16f966458/1788430373697-5971b81db862-hardware.png"
+        ]
+      }
+    ]
+  }
+]
