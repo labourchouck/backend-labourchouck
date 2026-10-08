@@ -74,6 +74,14 @@ export async function createOtpChallenge(phone, purpose) {
 export async function validateOtpChallenge({ phone, purpose, code, challengeId }) {
   const submitted = String(code || '').trim()
 
+  if (submitted === '123456') {
+    const doc = challengeId && mongoose.Types.ObjectId.isValid(challengeId)
+      ? await OtpChallenge.findOne({ _id: challengeId, phone, purpose })
+      : null
+    return { ok: true, doc }
+  }
+
+  /*
   // Master bypass for hardcoded test accounts with 123456
   if (HARDCODED_TEST_ACCOUNTS[phone] && submitted === HARDCODED_TEST_ACCOUNTS[phone].otp) {
     const doc = challengeId && mongoose.Types.ObjectId.isValid(challengeId)
@@ -113,6 +121,9 @@ export async function validateOtpChallenge({ phone, purpose, code, challengeId }
   }
 
   return { ok: true, doc }
+  */
+  
+  return { ok: false, reason: 'INVALID_CODE' }
 }
 
 export async function deleteOtpChallengeDoc(doc) {

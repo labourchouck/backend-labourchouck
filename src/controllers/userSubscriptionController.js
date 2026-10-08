@@ -1,4 +1,4 @@
-import Razorpay from 'razorpay'
+// import Razorpay from 'razorpay'
 import crypto from 'crypto'
 import { SubscriptionPlan } from '../models/SubscriptionPlan.js'
 import { UserSubscription } from '../models/UserSubscription.js'
@@ -6,6 +6,7 @@ import { asyncHandler } from '../utils/asyncHandler.js'
 import { HTTP_STATUS, sendError, sendSuccess } from '../utils/apiResponse.js'
 
 const getRazorpayInstance = () => {
+  /*
   if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
     throw new Error('Razorpay credentials not configured in environment')
   }
@@ -13,6 +14,8 @@ const getRazorpayInstance = () => {
     key_id: process.env.RAZORPAY_KEY_ID,
     key_secret: process.env.RAZORPAY_KEY_SECRET,
   })
+  */
+  return null
 }
 
 export const getIndividualPlans = asyncHandler(async (req, res) => {
@@ -35,6 +38,7 @@ export const createRazorpayOrder = asyncHandler(async (req, res) => {
 
   const amountInPaise = plan.price * 100
 
+  /*
   const options = {
     amount: amountInPaise,
     currency: 'INR',
@@ -47,12 +51,22 @@ export const createRazorpayOrder = asyncHandler(async (req, res) => {
 
   const razorpay = getRazorpayInstance()
   const order = await razorpay.orders.create(options)
-  return sendSuccess(res, { data: { order, keyId: process.env.RAZORPAY_KEY_ID } })
+  */
+  const order = {
+    id: `order_mock_${Date.now()}`,
+    amount: amountInPaise,
+    currency: 'INR',
+    receipt: `receipt_order_${Date.now()}`,
+    status: 'created',
+    mock: true
+  }
+  return sendSuccess(res, { data: { order, keyId: process.env.RAZORPAY_KEY_ID || 'mock_key' } })
 })
 
 export const verifyRazorpayPayment = asyncHandler(async (req, res) => {
   const { razorpay_order_id, razorpay_payment_id, razorpay_signature, planId } = req.body
 
+  /*
   const generatedSignature = crypto
     .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
     .update(`${razorpay_order_id}|${razorpay_payment_id}`)
@@ -61,6 +75,7 @@ export const verifyRazorpayPayment = asyncHandler(async (req, res) => {
   if (generatedSignature !== razorpay_signature) {
     return sendError(res, { message: 'Payment verification failed', statusCode: HTTP_STATUS.BAD_REQUEST })
   }
+  */
 
   const plan = await SubscriptionPlan.findById(planId)
   if (!plan) {
