@@ -19,6 +19,7 @@ import reviewRoutes from './reviewRoutes.js'
 import userSubscriptionRoutes from './userSubscriptionRoutes.js'
 import termsRoutes from './termsRoutes.js'
 import privacyPolicyRoutes from './privacyPolicyRoutes.js'
+import supportPolicyRoutes from './supportPolicyRoutes.js'
 import faqRoutes from './faqRoutes.js'
 import notificationRoutes from './notificationRoutes.js'
 import referralRoutes from './referralRoutes.js'
@@ -39,6 +40,7 @@ import adminVendorRoutes from './adminVendorRoutes.js'
 import adminSubscriptionRoutes from './adminSubscriptionRoutes.js'
 import adminTermsRoutes from './adminTermsRoutes.js'
 import adminPrivacyPolicyRoutes from './adminPrivacyPolicyRoutes.js'
+import adminSupportPolicyRoutes from './adminSupportPolicyRoutes.js'
 import adminFaqRoutes from './admin/adminFaqRoutes.js'
 import adminProfileRoutes from './adminProfileRoutes.js'
 
@@ -63,6 +65,7 @@ router.use('/banners', bannerRoutes)
 router.use('/user-subscriptions', userSubscriptionRoutes)
 router.use('/terms', termsRoutes)
 router.use('/privacy-policy', privacyPolicyRoutes)
+router.use('/support-policy', supportPolicyRoutes)
 router.use('/faqs', faqRoutes)
 router.use('/notifications', notificationRoutes)
 router.use('/referrals', referralRoutes)
@@ -83,6 +86,7 @@ router.use('/admin/vendors', adminVendorRoutes)
 router.use('/admin/subscriptions', adminSubscriptionRoutes)
 router.use('/admin/terms', adminTermsRoutes)
 router.use('/admin/privacy-policy', adminPrivacyPolicyRoutes)
+router.use('/admin/support-policy', adminSupportPolicyRoutes)
 router.use('/admin/faqs', adminFaqRoutes)
 router.use('/admin/profile', adminProfileRoutes)
 router.use('/labour/location', locationRoutes)
