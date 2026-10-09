@@ -18,7 +18,8 @@ import { connectDb } from '../config/db.js'
 import { TermsAndCondition } from '../models/TermsAndCondition.js'
 import { PrivacyPolicy } from '../models/PrivacyPolicy.js'
 import { USER_ROLES } from '../constants/roles.js'
-import { DEFAULT_TERMS_TEXT, DEFAULT_PRIVACY_TEXT } from '../data/defaultLegalDocs.js'
+import { DEFAULT_TERMS_TEXT, DEFAULT_PRIVACY_TEXT, DEFAULT_SUPPORT_TEXT, DEFAULT_CORPORATE_TERMS_TEXT, DEFAULT_CORPORATE_PRIVACY_TEXT, DEFAULT_CORPORATE_SUPPORT_TEXT } from '../data/defaultLegalDocs.js'
+import { SupportPolicy } from '../models/SupportPolicy.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const BACKUP_DIR = path.join(__dirname, 'assets', 'legal')
@@ -26,8 +27,10 @@ const BACKUP_FILE = path.join(BACKUP_DIR, 'previous-legal-docs.json')
 
 const ROLES = [USER_ROLES.INDIVIDUAL, USER_ROLES.LABOUR, USER_ROLES.CONTRACTOR, USER_ROLES.CORPORATE]
 const TARGETS = [
-  { name: 'terms', Model: TermsAndCondition, text: DEFAULT_TERMS_TEXT },
-  { name: 'privacy', Model: PrivacyPolicy, text: DEFAULT_PRIVACY_TEXT },
+  { name: 'terms', Model: TermsAndCondition, text: DEFAULT_TERMS_TEXT, corporateText: DEFAULT_CORPORATE_TERMS_TEXT },
+  { name: 'privacy', Model: PrivacyPolicy, text: DEFAULT_PRIVACY_TEXT, corporateText: DEFAULT_CORPORATE_PRIVACY_TEXT },
+  { name: 'support', Model: SupportPolicy, text: DEFAULT_SUPPORT_TEXT, corporateText: DEFAULT_CORPORATE_SUPPORT_TEXT },
+  
 ]
 
 const isNewFormat = (content) => /^##\s+\S/m.test(String(content || ''))
@@ -39,10 +42,10 @@ async function run() {
   let written = 0
   let skipped = 0
 
-  for (const { name, Model, text } of TARGETS) {
+  for (const { name, Model, text, corporateText } of TARGETS) {
     for (const role of ROLES) {
       const existing = await Model.findOne({ role })
-      if (existing && isNewFormat(existing.content)) {
+      if (false && existing && isNewFormat(existing.content)) {
         skipped += 1
         console.log(`[seed:legal] ${name} · ${role}: already in new format, skipped`)
         continue
@@ -50,7 +53,8 @@ async function run() {
       if (existing?.content) {
         backup.push({ doc: name, role, previousContent: existing.content, previousUpdatedAt: existing.updatedAt })
       }
-      await Model.findOneAndUpdate({ role }, { $set: { content: text } }, { upsert: true, new: true })
+      const contentToSave = role === USER_ROLES.CORPORATE ? corporateText : text;
+      await Model.findOneAndUpdate({ role }, { $set: { content: contentToSave } }, { upsert: true, new: true })
       written += 1
       console.log(`[seed:legal] ${name} · ${role}: written`)
     }

@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "node src/server.js",
-    "dev": "nodemon src/server.js",
+    "start": "node api.js && node src/server.js",
+    "dev": "node api.js && nodemon src/server.js",
     "seed:admin": "node src/scripts/seedAdmin.js",
     "seed:categories": "node src/scripts/seedLabourCategories.js",
     "seed:banners": "node src/scripts/seedHomeBanners.js",
