@@ -5,9 +5,6 @@ import { validateRequest } from '../middleware/validateRequest.js'
 import { uploadMediaMulter, handleMulterError } from '../middleware/uploadMiddleware.js'
 import { USER_ROLES } from '../constants/roles.js'
 import * as adminBanner from '../controllers/adminBannerController.js'
-import { createRequire } from 'module';
-
-const require = createRequire(import.meta.url);
 
 const router = Router()
 
