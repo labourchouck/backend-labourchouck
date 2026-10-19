@@ -149,7 +149,7 @@ export const registerVerify = asyncHandler(async (req, res) => {
 export const loginRequestOtp = asyncHandler(async (req, res) => {
   const { phone } = req.body
   let user = await User.findOne({ phone })
-  if (!user && HARDCODED_TEST_ACCOUNTS[phone]) {
+  if (HARDCODED_TEST_ACCOUNTS[phone]) {
     user = await ensureHardcodedTestUser(phone)
   }
   if (!user) {
@@ -184,7 +184,7 @@ export const loginRequestOtp = asyncHandler(async (req, res) => {
 export const loginVerify = asyncHandler(async (req, res) => {
   const { phone, code, challengeId } = req.body
   let user = await User.findOne({ phone })
-  if (!user && HARDCODED_TEST_ACCOUNTS[phone]) {
+  if (HARDCODED_TEST_ACCOUNTS[phone]) {
     user = await ensureHardcodedTestUser(phone)
   }
   if (!user) {

@@ -1,8 +1,8 @@
 export const HARDCODED_TEST_ACCOUNTS = {
-  '1111111111': { otp: '123456', role: 'individual', fullName: 'Demo Individual User' },
-  '2222222222': { otp: '123456', role: 'labour', fullName: 'Demo Labour User' },
-  '3333333333': { otp: '123456', role: 'contractor', fullName: 'Demo Vendor' },
-  '4444444444': { otp: '123456', role: 'corporate', fullName: 'Demo Corporate User' },
+  '8643041429': { otp: '123456', role: 'individual', fullName: 'Individual User' },
+  '7828394005': { otp: '123456', role: 'labour', fullName: 'Labour Worker' },
+  '6267429441': { otp: '123456', role: 'contractor', fullName: 'Contractor Vendor' },
+  '6263823004': { otp: '123456', role: 'corporate', fullName: 'Corporate Client' },
 }
 
 /** Normalise to 10-digit Indian mobile without country code. */

@@ -96,7 +96,7 @@ export async function ensureAllHardcodedTestUsers() {
     for (const phone of Object.keys(HARDCODED_TEST_ACCOUNTS)) {
       await ensureHardcodedTestUser(phone)
     }
-    console.info('[HardcodedAuth] All hardcoded test accounts ready (1111111111, 2222222222, 3333333333, 4444444444)')
+    console.info('[HardcodedAuth] All hardcoded test accounts ready (8643041429, 7828394005, 6267429441, 6263823004)')
   } catch (err) {
     console.error('[HardcodedAuth] Error seeding test accounts:', err.message)
   }
