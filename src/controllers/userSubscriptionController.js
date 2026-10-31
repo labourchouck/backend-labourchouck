@@ -1,22 +1,8 @@
-// import Razorpay from 'razorpay'
-import crypto from 'crypto'
+import { createOrder, verifyPaymentSignature } from '../services/paymentService.js'
 import { SubscriptionPlan } from '../models/SubscriptionPlan.js'
 import { UserSubscription } from '../models/UserSubscription.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { HTTP_STATUS, sendError, sendSuccess } from '../utils/apiResponse.js'
-
-const getRazorpayInstance = () => {
-  /*
-  if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
-    throw new Error('Razorpay credentials not configured in environment')
-  }
-  return new Razorpay({
-    key_id: process.env.RAZORPAY_KEY_ID,
-    key_secret: process.env.RAZORPAY_KEY_SECRET,
-  })
-  */
-  return null
-}
 
 export const getIndividualPlans = asyncHandler(async (req, res) => {
   const plans = await SubscriptionPlan.find({ isActive: true, planType: 'individual' }).sort({ price: 1 })
@@ -36,46 +22,16 @@ export const createRazorpayOrder = asyncHandler(async (req, res) => {
     return sendError(res, { message: 'Invalid subscription plan', statusCode: HTTP_STATUS.BAD_REQUEST })
   }
 
-  const amountInPaise = plan.price * 100
-
-  /*
-  const options = {
-    amount: amountInPaise,
-    currency: 'INR',
-    receipt: `receipt_order_${Date.now()}`,
-    notes: {
-      userId: req.user.id.toString(),
-      planId: plan._id.toString()
-    }
-  }
-
-  const razorpay = getRazorpayInstance()
-  const order = await razorpay.orders.create(options)
-  */
-  const order = {
-    id: `order_mock_${Date.now()}`,
-    amount: amountInPaise,
-    currency: 'INR',
-    receipt: `receipt_order_${Date.now()}`,
-    status: 'created',
-    mock: true
-  }
+  const order = await createOrder(plan.price, 'INR', `sub_${Date.now()}`)
   return sendSuccess(res, { data: { order, keyId: process.env.RAZORPAY_KEY_ID || 'mock_key' } })
 })
 
 export const verifyRazorpayPayment = asyncHandler(async (req, res) => {
   const { razorpay_order_id, razorpay_payment_id, razorpay_signature, planId } = req.body
 
-  /*
-  const generatedSignature = crypto
-    .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
-    .update(`${razorpay_order_id}|${razorpay_payment_id}`)
-    .digest('hex')
-
-  if (generatedSignature !== razorpay_signature) {
+  if (!verifyPaymentSignature(razorpay_order_id, razorpay_payment_id, razorpay_signature)) {
     return sendError(res, { message: 'Payment verification failed', statusCode: HTTP_STATUS.BAD_REQUEST })
   }
-  */
 
   const plan = await SubscriptionPlan.findById(planId)
   if (!plan) {

@@ -1,10 +1,10 @@
-// import Razorpay from 'razorpay'
+import Razorpay from 'razorpay'
 import crypto from 'crypto'
 
 let razorpayInstance = null
 
-const getRazorpayInstance = () => {
-  /*
+/** Returns null when keys are missing so local development can fall back to mock orders. */
+export const getRazorpayInstance = () => {
   if (!razorpayInstance) {
     if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
       console.warn('Razorpay keys not found in environment. Using mock mode.')
@@ -15,46 +15,37 @@ const getRazorpayInstance = () => {
       key_secret: process.env.RAZORPAY_KEY_SECRET,
     })
   }
-  */
-  return null
+  return razorpayInstance
 }
 
 export const createOrder = async (amount, currency = 'INR', receipt = 'receipt#1') => {
-  // const instance = getRazorpayInstance()
-  
-  // if (!instance) {
-    // Mock successful order creation for MVP if keys are missing
+  const instance = getRazorpayInstance()
+
+  if (!instance) {
     return {
       id: `order_mock_${Date.now()}`,
-      amount: amount * 100,
+      amount: Math.round(amount * 100),
       currency,
       receipt,
       status: 'created',
-      mock: true
+      mock: true,
     }
-  // }
-
-  /*
-  const options = {
-    amount: amount * 100, // amount in the smallest currency unit
-    currency,
-    receipt,
   }
 
-  return await instance.orders.create(options)
-  */
+  return instance.orders.create({
+    amount: Math.round(amount * 100), // smallest currency unit (paise)
+    currency,
+    receipt,
+  })
 }
 
 export const verifyPaymentSignature = (orderId, paymentId, signature) => {
-  // const secret = process.env.RAZORPAY_KEY_SECRET
-  // if (!secret) return true // Mock mode
+  const secret = process.env.RAZORPAY_KEY_SECRET
+  if (!secret) return true // Mock mode (no keys configured)
+  if (!orderId || !paymentId || !signature) return false
 
-  /*
-  const shasum = crypto.createHmac('sha256', secret)
-  shasum.update(`${orderId}|${paymentId}`)
-  const digest = shasum.digest('hex')
-
-  return digest === signature
-  */
-  return true // Always return true for mock mode
+  const digest = crypto.createHmac('sha256', secret).update(`${orderId}|${paymentId}`).digest('hex')
+  const a = Buffer.from(digest)
+  const b = Buffer.from(String(signature))
+  return a.length === b.length && crypto.timingSafeEqual(a, b)
 }
