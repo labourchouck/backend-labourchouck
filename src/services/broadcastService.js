@@ -1,3 +1,4 @@
+import os from 'os'
 import { User } from '../models/User.js'
 import { Booking } from '../models/Booking.js'
 import { BroadcastLog } from '../models/BroadcastLog.js'
@@ -7,14 +8,106 @@ import { getRoadDistances } from '../utils/googleMapsDistance.js'
 import { sendToUser, sendToUsers } from './notificationService.js'
 import { refundBookingWalletDiscount } from './bookingSettlementService.js'
 
-export const BROADCAST_TIMEOUT_MS = 300000 // 5 minutes flash broadcast timeout
+export const INSTANCE_ID = `${os.hostname()}:${process.pid}`
+
+export const BROADCAST_TIMEOUT_MS = 300000 // 5 minutes flash broadcast timeout (instant bookings)
+
+const SCHEDULED_MIN_WINDOW_MS = 5 * 60 * 1000
+const SCHEDULED_MAX_WINDOW_MS = 30 * 60 * 1000
+const SCHEDULED_START_BUFFER_MS = 10 * 60 * 1000
+
+/**
+ * How long a broadcast stays open. Instant jobs keep the 5 minute flash window. A scheduled job is
+ * offered 1 hour ahead, so a worker who is briefly offline or busy gets a longer chance to respond —
+ * up to 30 minutes, but never past 10 minutes before the job starts.
+ */
+export function getBroadcastWindowMs(booking, now = Date.now()) {
+  if (booking.type !== 'SCHEDULED' || !booking.scheduledAt) return BROADCAST_TIMEOUT_MS
+  const untilStart = new Date(booking.scheduledAt).getTime() - now - SCHEDULED_START_BUFFER_MS
+  return Math.max(SCHEDULED_MIN_WINDOW_MS, Math.min(SCHEDULED_MAX_WINDOW_MS, untilStart))
+}
+
+
+const to24Hour = (timeStr) => {
+  if (!timeStr) return ''
+  const match = timeStr.match(/(\d+):(\d+)\s?(AM|PM)?/i)
+  if (!match) return timeStr
+  let [, h, m, ampm] = match
+  h = parseInt(h, 10)
+  if (ampm) {
+    if (ampm.toUpperCase() === 'PM' && h < 12) h += 12
+    if (ampm.toUpperCase() === 'AM' && h === 12) h = 0
+  }
+  return `${String(h).padStart(2, '0')}:${m}`
+}
+
+const getIstDayAndTime = (dateObj) => {
+  const options = { timeZone: 'Asia/Kolkata', weekday: 'long', hour: '2-digit', minute: '2-digit', hour12: false }
+  const parts = new Intl.DateTimeFormat('en-US', options).formatToParts(dateObj)
+  let day = '', hour = '', minute = ''
+  for (const part of parts) {
+    if (part.type === 'weekday') day = part.value
+    if (part.type === 'hour') hour = part.value
+    if (part.type === 'minute') minute = part.value
+  }
+  if (hour === '24') hour = '00'
+  return { day, timeStr: `${hour}:${minute}` }
+}
+
+function getBookingTarget(booking) {
+  const targetDate = booking.type === 'SCHEDULED' && booking.scheduledAt ? new Date(booking.scheduledAt) : new Date()
+  const { day, timeStr } = getIstDayAndTime(targetDate)
+  return { day, start: to24Hour(booking.timeSlot) || timeStr, end: to24Hour(booking.endTime) }
+}
+
+function describeBookingTime(booking) {
+  const t = getBookingTarget(booking)
+  return `day=${t.day} start=${t.start} end=${t.end || '(none)'}`
+}
+
+/** Does the booking's day/time fall inside this worker's weekly working hours? Shared by broadcast + pending-offer lookup. */
+export function isWithinWorkingHours(labor, booking, verbose = false) {
+  const { day, start, end } = getBookingTarget(booking)
+  const why = (reason) => {
+    if (verbose) console.log(`[BROADCAST]   - ${labor._id} dropped: ${reason}`)
+    return false
+  }
+  const dayEntry = (labor.labourProfile?.schedule || []).find((e) => e.day === day)
+  if (!dayEntry || !dayEntry.isAvailable) return why(`not available on ${day} (${dayEntry ? 'isAvailable=false' : 'no schedule entry'})`)
+
+  const sTime = to24Hour(dayEntry.startTime || '00:00')
+  const eTime = to24Hour(dayEntry.endTime || '23:59')
+  if (start < sTime || start > eTime) return why(`job start ${start} outside working hours ${sTime}-${eTime}`)
+
+  if (end) {
+    if (end > eTime) return why(`job end ${end} after working hours end ${eTime}`)
+  } else {
+    const [h, m] = start.split(':')
+    const bufferEndTime = `${String(parseInt(h, 10) + 1).padStart(2, '0')}:${m}`
+    if (bufferEndTime <= '23:59' && bufferEndTime > eTime) return why(`1h buffer end ${bufferEndTime} after working hours end ${eTime}`)
+  }
+  return true
+}
+
+/** Straight-line distance in km. */
+export function haversineKm(lat1, lon1, lat2, lon2) {
+  const R = 6371
+  const dLat = ((lat2 - lat1) * Math.PI) / 180
+  const dLon = ((lon2 - lon1) * Math.PI) / 180
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) ** 2
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+}
 
 /**
  * Starts the flash broadcast for a new booking based on a radius zone.
  */
 export async function startBroadcastCycle(bookingId) {
   const booking = await Booking.findById(bookingId).populate('userId', 'fullName phone')
-  if (!booking || booking.status !== 'CREATED') return
+  if (!booking || booking.status !== 'CREATED') {
+    console.log(`[BROADCAST] ${bookingId} skipped: ${booking ? `status is ${booking.status}, expected CREATED` : 'booking not found'}`)
+    return
+  }
+  console.log(`[BROADCAST] start ${booking._id} type=${booking.type} scheduledAt=${booking.scheduledAt?.toISOString?.()} timeSlot=${booking.timeSlot} endTime=${booking.endTime} subcategoryId=${booking.subcategoryId}`)
 
   // 1. Get Radius Setting
   const settings = await SystemSetting.findOne({ configKey: 'master_config' })
@@ -39,8 +132,22 @@ export async function startBroadcastCycle(bookingId) {
     return
   }
 
+  // Claim the booking atomically. Several server instances can share one database (each runs the cron),
+  // so only the one that flips CREATED -> BROADCASTING may send the offers; the rest must back off.
+  const claimed = await Booking.findOneAndUpdate(
+    { _id: booking._id, status: 'CREATED' },
+    { $set: { status: 'BROADCASTING', broadcastRadius: radiusKm, broadcastBy: INSTANCE_ID } },
+    { new: true },
+  )
+  if (!claimed) {
+    console.log(`[BROADCAST] ${booking._id} already claimed by another instance, skipping (this instance: ${INSTANCE_ID})`)
+    return
+  }
   booking.status = 'BROADCASTING'
-  await booking.save()
+  booking.broadcastBy = INSTANCE_ID
+  console.log(`[BROADCAST] ${booking._id} claimed by ${INSTANCE_ID}`)
+
+  console.log(`[BROADCAST] ${booking._id} radius=${radiusKm}km coords lat=${bookingLat} lng=${bookingLng}`)
 
   // 2. Pre-filter labourers by bounding box (rough estimate to avoid hitting Google Maps for everyone)
   const latDiff = radiusKm / 111
@@ -66,59 +173,18 @@ export async function startBroadcastCycle(bookingId) {
     'labourProfile.subcategoryIds': booking.subcategoryId
   }).lean()
 
-  const to24Hour = (timeStr) => {
-    if (!timeStr) return ''
-    const match = timeStr.match(/(\d+):(\d+)\s?(AM|PM)?/i)
-    if (!match) return timeStr
-    let [ , h, m, ampm ] = match
-    h = parseInt(h, 10)
-    if (ampm) {
-      if (ampm.toUpperCase() === 'PM' && h < 12) h += 12
-      if (ampm.toUpperCase() === 'AM' && h === 12) h = 0
-    }
-    return `${String(h).padStart(2, '0')}:${m}`
+  console.log(`[BROADCAST] ${booking._id} stage1 area+skill+available: ${potentialLaborersRaw.length} labourers (busy excluded: ${busyLabourIds.length})`)
+  if (potentialLaborersRaw.length === 0) {
+    const total = await User.countDocuments({ role: { $in: ['labour', 'contractor'] } })
+    const avail = await User.countDocuments({ role: { $in: ['labour', 'contractor'] }, 'labourProfile.availabilityStatus': 'available' })
+    const withLoc = await User.countDocuments({ role: { $in: ['labour', 'contractor'] }, 'labourProfile.availabilityStatus': 'available', 'labourProfile.currentLatitude': { $exists: true, $ne: null } })
+    const withSkill = await User.countDocuments({ role: { $in: ['labour', 'contractor'] }, 'labourProfile.subcategoryIds': booking.subcategoryId })
+    console.log(`[BROADCAST] ${booking._id} stage1 diagnostics: workers=${total}, available=${avail}, available+hasLocation=${withLoc}, haveThisSkill=${withSkill}`)
   }
 
-  const getIstDayAndTime = (dateObj) => {
-    const options = { timeZone: 'Asia/Kolkata', weekday: 'long', hour: '2-digit', minute: '2-digit', hour12: false }
-    const formatter = new Intl.DateTimeFormat('en-US', options)
-    const parts = formatter.formatToParts(dateObj)
-    let day = '', hour = '', minute = ''
-    for (const part of parts) {
-      if (part.type === 'weekday') day = part.value
-      if (part.type === 'hour') hour = part.value
-      if (part.type === 'minute') minute = part.value
-    }
-    if (hour === '24') hour = '00'
-    return { day, timeStr: `${hour}:${minute}` }
-  }
-
-  const targetDate = (booking.type === 'SCHEDULED' && booking.scheduledAt) ? new Date(booking.scheduledAt) : new Date()
-  const { day: targetDayName, timeStr: currentIstTimeStr } = getIstDayAndTime(targetDate)
-  const targetStartTimeStr = to24Hour(booking.timeSlot) || currentIstTimeStr
-  const targetEndTimeStr = to24Hour(booking.endTime)
-
-  const potentialLaborers = potentialLaborersRaw.filter(labor => {
-    const schedule = labor.labourProfile?.schedule || []
-    const dayEntry = schedule.find(s => s.day === targetDayName)
-    if (!dayEntry || !dayEntry.isAvailable) return false
-    
-    const sTime = to24Hour(dayEntry.startTime || '00:00')
-    const eTime = to24Hour(dayEntry.endTime || '23:59')
-    
-    if (targetStartTimeStr < sTime || targetStartTimeStr > eTime) return false
-
-    if (targetEndTimeStr) {
-      if (targetEndTimeStr > eTime) return false
-    } else {
-      let [h, m] = targetStartTimeStr.split(':')
-      h = parseInt(h, 10) + 1
-      const bufferEndTime = `${String(h).padStart(2, '0')}:${m}`
-      if (bufferEndTime <= '23:59' && bufferEndTime > eTime) return false
-    }
-
-    return true
-  })
+  console.log(`[BROADCAST] ${booking._id} schedule check for ${describeBookingTime(booking)}`)
+  const potentialLaborers = potentialLaborersRaw.filter((labor) => isWithinWorkingHours(labor, booking, true))
+  console.log(`[BROADCAST] ${booking._id} stage2 working-hours schedule: ${potentialLaborers.length} of ${potentialLaborersRaw.length} remain`)
 
   if (potentialLaborers.length === 0) {
     await markBookingFailed(booking, 'No laborers in area')
@@ -134,6 +200,7 @@ export async function startBroadcastCycle(bookingId) {
     }
   }
 
+  console.log(`[BROADCAST] ${booking._id} stage3 wallet limit: ${walletEligible.length} of ${potentialLaborers.length} remain`)
   if (walletEligible.length === 0) {
     await markBookingFailed(booking, 'No eligible laborers found')
     return
@@ -155,9 +222,15 @@ export async function startBroadcastCycle(bookingId) {
     return distData && distData.distanceKm <= radiusKm
   })
 
-  // 5. Update eligible count
+  console.log(`[BROADCAST] ${booking._id} stage4 road distance <= ${radiusKm}km: ${eligibleLaborers.length} of ${walletEligible.length} remain; distances=${JSON.stringify(distances.map(d => ({ id: d.id, km: d.distanceKm === Infinity ? 'Infinity' : Number(d.distanceKm?.toFixed?.(2)), status: d.status })))}`)
+
+  // 5. Update eligible count + remember who was offered (so missed offers can be recovered)
+  const offerWindowMs = getBroadcastWindowMs(booking)
   booking.eligibleLabourCount = eligibleLaborers.length
+  booking.eligibleLabourIds = eligibleLaborers.map((l) => l._id)
+  booking.broadcastExpiresAt = new Date(Date.now() + offerWindowMs)
   await booking.save()
+  console.log(`[BROADCAST] ${booking._id} offer window ${Math.round(offerWindowMs / 60000)} min, expires ${booking.broadcastExpiresAt.toISOString()}`)
 
   if (eligibleLaborers.length === 0) {
     await markBookingFailed(booking, 'No laborers within actual driving radius')
@@ -185,7 +258,7 @@ export async function startBroadcastCycle(bookingId) {
         scheduledAt: booking.scheduledAt,
         type: booking.type,
         customer: booking.userId,
-        timeoutMs: BROADCAST_TIMEOUT_MS
+        timeoutMs: offerWindowMs
       })
     })
   }).catch(err => console.error('Failed to load socket emitter:', err))
@@ -224,7 +297,7 @@ export async function startBroadcastCycle(bookingId) {
         data: { bookingId: String(currentBooking._id), reason: 'Expired', link: '/app/my-bookings' },
       }).catch(err => console.error('Push notify (expiry) failed:', err))
     }
-  }, BROADCAST_TIMEOUT_MS)
+  }, offerWindowMs)
 }
 
 async function markBookingFailed(booking, reason) {

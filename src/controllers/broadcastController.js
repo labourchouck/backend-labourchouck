@@ -114,3 +114,92 @@ export const rejectBroadcast = asyncHandler(async (req, res) => {
 
   return sendSuccess(res, { message: 'Booking rejected successfully' })
 })
+
+const LEGACY_WINDOW_MS = 5 * 60 * 1000 // broadcasts sent by a server without recovery data used a 5 minute window
+
+/**
+ * GET /broadcasts/pending — offers this worker can still act on.
+ *
+ * The live socket event is easy to miss (app closed, reconnecting) and, when several server instances share
+ * one database, the instance that sends a broadcast is not necessarily the one this worker is connected to.
+ * So the answer comes from the database: an open (BROADCASTING) booking is offered to this worker if they were
+ * recorded as eligible, or — for broadcasts sent by an instance that records nothing — if they qualify now
+ * (skill, available, within radius, working hours, wallet limit).
+ */
+export const getPendingBroadcasts = asyncHandler(async (req, res) => {
+  const laborId = req.user._id
+  const now = new Date()
+  const tag = `[PENDING ${String(laborId).slice(-6)}]`
+
+  const [{ User }, { checkWalletEligibility }, { isWithinWorkingHours, haversineKm }] = await Promise.all([
+    import('../models/User.js'),
+    import('./walletController.js'),
+    import('../services/broadcastService.js'),
+  ])
+
+  const me = await User.findById(laborId).select('labourProfile role').lean()
+  const profile = me?.labourProfile || {}
+
+  const busy = await Booking.exists({ acceptedLabourId: laborId, status: { $in: ['ACCEPTED', 'ASSIGNED', 'EN_ROUTE', 'STARTED'] } })
+  if (busy) {
+    console.log(`${tag} worker has an active job, no offers`)
+    return sendSuccess(res, { data: { offers: [] } })
+  }
+
+  const open = await Booking.find({ status: 'BROADCASTING', rejectedBy: { $ne: laborId } })
+    .populate('userId', 'fullName phone')
+    .sort({ scheduledAt: 1, createdAt: 1 })
+    .lean()
+  console.log(`${tag} ${open.length} open broadcast(s); worker status=${profile.availabilityStatus} hasLocation=${profile.currentLatitude != null}`)
+
+  const offers = []
+  for (const b of open) {
+    const expiresAt = b.broadcastExpiresAt ? new Date(b.broadcastExpiresAt) : new Date(new Date(b.updatedAt).getTime() + LEGACY_WINDOW_MS)
+    const label = `${tag} booking ${String(b._id).slice(-6)}`
+    if (expiresAt <= now) {
+      console.log(`${label} skipped: window closed at ${expiresAt.toISOString()}`)
+      continue
+    }
+
+    const tracked = (b.eligibleLabourIds || []).length > 0
+    if (tracked) {
+      if (!b.eligibleLabourIds.some((id) => String(id) === String(laborId))) {
+        console.log(`${label} skipped: not in the eligible list`)
+        continue
+      }
+    } else {
+      // Sent by an instance that did not record recipients: work out whether this worker qualifies.
+      const [bLng, bLat] = b.address?.coordinates?.coordinates || []
+      const radiusKm = b.broadcastRadius || 10
+      const reasons = []
+      if (profile.availabilityStatus !== 'available') reasons.push(`status is ${profile.availabilityStatus}`)
+      if (!(profile.subcategoryIds || []).some((id) => String(id) === String(b.subcategoryId))) reasons.push('skill does not match')
+      if (profile.currentLatitude == null || profile.currentLongitude == null) reasons.push('no location on file')
+      else if (!bLat || !bLng) reasons.push('booking has no coordinates')
+      else {
+        const km = haversineKm(bLat, bLng, profile.currentLatitude, profile.currentLongitude)
+        if (km > radiusKm) reasons.push(`${km.toFixed(1)}km away (limit ${radiusKm}km)`)
+      }
+      if (!isWithinWorkingHours(me, b)) reasons.push('outside working hours')
+      if (!reasons.length && !(await checkWalletEligibility(laborId))) reasons.push('cash limit reached')
+      if (reasons.length) {
+        console.log(`${label} skipped: ${reasons.join('; ')}`)
+        continue
+      }
+    }
+
+    console.log(`${label} OFFERED (${tracked ? 'recorded recipient' : 'matched on request'}), ${Math.round((expiresAt - now) / 1000)}s left`)
+    offers.push({
+      bookingId: b._id,
+      basePrice: b.basePrice,
+      laborShare: b.laborShare,
+      address: b.address,
+      scheduledAt: b.scheduledAt,
+      type: b.type,
+      customer: b.userId,
+      timeoutMs: Math.max(1000, expiresAt.getTime() - now.getTime()),
+    })
+  }
+
+  return sendSuccess(res, { data: { offers } })
+})

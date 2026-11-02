@@ -1,24 +1,28 @@
 import cron from 'node-cron'
 import { Booking } from '../models/Booking.js'
 import { WorkforceRequest } from '../models/WorkforceRequest.js'
-import { startBroadcastCycle } from '../services/broadcastService.js'
+import { startBroadcastCycle, INSTANCE_ID } from '../services/broadcastService.js'
 import { emitToUser } from '../socket.js'
 import { User } from '../models/User.js'
 import { SystemSetting } from '../models/SystemSetting.js'
 import { sendToUser, sendToUsers } from '../services/notificationService.js'
 import { refundBookingWalletDiscount } from '../services/bookingSettlementService.js'
 
-export function initBroadcastCron() {
-  // Run every minute
-  cron.schedule('* * * * *', async () => {
+/** One scheduler pass: broadcasts scheduled bookings that start within the next hour. Exported for tests. */
+export async function runScheduledBroadcastTick(now = new Date()) {
     try {
-      const now = new Date()
       // Clean up stuck BROADCASTING bookings
       // If a booking has been BROADCASTING for more than 10 minutes, mark as FAILED
       const tenMinsAgo = new Date(now.getTime() - 10 * 60 * 1000)
-      const stuckBookings = await Booking.find(
-        { status: 'BROADCASTING', updatedAt: { $lt: tenMinsAgo } }
-      ).select('_id userId walletDiscount walletRefundedAt').lean()
+      // Broadcasts with an explicit window are failed once that window has passed; older ones fall back to 10 min.
+      const stuckBookings = await Booking.find({
+        status: 'BROADCASTING',
+        $or: [
+          { broadcastExpiresAt: { $lt: now } },
+          { broadcastExpiresAt: { $exists: false }, updatedAt: { $lt: tenMinsAgo } },
+          { broadcastExpiresAt: null, updatedAt: { $lt: tenMinsAgo } },
+        ],
+      }).select('_id userId walletDiscount walletRefundedAt').lean()
       if (stuckBookings.length > 0) {
         await Booking.updateMany(
           { _id: { $in: stuckBookings.map(b => b._id) } },
@@ -43,6 +47,14 @@ export function initBroadcastCron() {
       // Find all scheduled bookings that are in CREATED status
       // where the scheduledAt is <= exactly 1 hour from now, but > now
       // This means the job is supposed to start in 1 hour or less.
+      const pendingScheduled = await Booking.find({ type: 'SCHEDULED', status: 'CREATED' }).select('_id scheduledAt').lean()
+      console.log(
+        `[CRON] ${INSTANCE_ID} tick @ ${now.toISOString()} | window (${now.toISOString()} , ${oneHourFromNow.toISOString()}] | CREATED scheduled bookings: ${pendingScheduled.length}` +
+          pendingScheduled
+            .map((b) => ` [${b._id} at ${b.scheduledAt ? b.scheduledAt.toISOString() : 'NO scheduledAt'} → in ${b.scheduledAt ? Math.round((b.scheduledAt - now) / 60000) : '?'} min]`)
+            .join(''),
+      )
+
       const bookingsToBroadcast = await Booking.find({
         type: 'SCHEDULED',
         status: 'CREATED',
@@ -130,7 +142,19 @@ export function initBroadcastCron() {
     } catch (err) {
       console.error('[CRON] Error running scheduled broadcast cron:', err)
     }
-  })
+}
 
-  console.log('Scheduled Broadcast Cron initialized.')
+export function initBroadcastCron() {
+  // Every server instance that shares this database also runs the cron. Set BROADCAST_CRON_ENABLED=false on
+  // a dev machine that points at a shared/production database so it does not broadcast bookings its own
+  // app is not connected to.
+  if (String(process.env.BROADCAST_CRON_ENABLED).toLowerCase() === 'false') {
+    console.log(`[CRON] Scheduled Broadcast Cron DISABLED on this instance (${INSTANCE_ID}) via BROADCAST_CRON_ENABLED=false.`)
+    return
+  }
+
+  // Run every minute
+  cron.schedule('* * * * *', () => runScheduledBroadcastTick())
+
+  console.log(`Scheduled Broadcast Cron initialized on ${INSTANCE_ID}.`)
 }

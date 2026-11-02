@@ -110,6 +110,12 @@ const bookingSchema = new mongoose.Schema(
     },
     broadcastRadius: { type: Number },
     eligibleLabourCount: { type: Number, default: 0 },
+    /** Workers this broadcast was sent to — lets them recover the offer if they missed the live socket event */
+    eligibleLabourIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+    /** When the current broadcast stops accepting responses */
+    broadcastExpiresAt: { type: Date },
+    /** `host:pid` of the server process that sent the broadcast (diagnoses duplicate/old instances sharing one DB) */
+    broadcastBy: { type: String },
     acceptedLabourId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     /** Labourers who declined this broadcast (used to fail-fast when everyone declines) */
     rejectedBy: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
