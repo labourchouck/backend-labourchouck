@@ -6,7 +6,7 @@ import { Wallet } from '../models/Wallet.js'
 import { AdminWallet } from '../models/AdminWallet.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { HTTP_STATUS, sendError, sendSuccess } from '../utils/apiResponse.js'
-import { parseISTDateTime } from '../utils/dateHelper.js'
+import { parseISTDateTime, checkScheduleLeadTime } from '../utils/dateHelper.js'
 import { sendToUser } from '../services/notificationService.js'
 import { countBookingTowardSubscription, countReservedBookings } from '../services/subscriptionUsageService.js'
 import { qualifyReferralForBooking } from '../services/referralService.js'
@@ -97,6 +97,18 @@ export const createBooking = asyncHandler(async (req, res) => {
     }
     if (durationKind !== 'multi_day' && !endTime) {
       return sendError(res, { message: 'endTime is required for single day SCHEDULED bookings', statusCode: HTTP_STATUS.BAD_REQUEST })
+    }
+
+    // Workers are alerted 1 hour before the job, so it must be booked at least 1 hour ahead.
+    const lead = checkScheduleLeadTime(parseISTDateTime(scheduledAt, timeSlot))
+    if (!lead.ok) {
+      const earliest = new Intl.DateTimeFormat('en-IN', { timeZone: 'Asia/Kolkata', hour: 'numeric', minute: '2-digit', hour12: true }).format(lead.earliest)
+      console.log(`[BOOKING] rejected scheduled booking: starts ${scheduledAt} ${timeSlot}, earliest allowed ${lead.earliest.toISOString()}`)
+      return sendError(res, {
+        message: `Please book at least 1 hour in advance. The earliest start time you can choose is ${earliest}.`,
+        statusCode: HTTP_STATUS.BAD_REQUEST,
+        code: 'SCHEDULE_TOO_SOON',
+      })
     }
   }
 

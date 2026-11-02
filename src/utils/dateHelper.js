@@ -44,3 +44,16 @@ export function parseISTDateTime(dateString, timeSlot) {
   
   return new Date(isoString)
 }
+
+/** A scheduled booking must start at least this long after it is created (the broadcast goes out 1 hour before). */
+export const MIN_SCHEDULE_LEAD_MS = 60 * 60 * 1000
+
+/**
+ * Minute-precision check: booking at 5:00:30 for 6:00 is allowed.
+ * @returns {{ ok: boolean, earliest: Date }}
+ */
+export function checkScheduleLeadTime(scheduledAt, now = new Date()) {
+  const minuteStart = Math.floor(now.getTime() / 60000) * 60000
+  const earliest = new Date(minuteStart + MIN_SCHEDULE_LEAD_MS)
+  return { ok: new Date(scheduledAt).getTime() >= earliest.getTime(), earliest }
+}
