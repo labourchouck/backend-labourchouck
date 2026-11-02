@@ -8,6 +8,7 @@ import { asyncHandler } from '../utils/asyncHandler.js'
 import { HTTP_STATUS, sendError, sendSuccess } from '../utils/apiResponse.js'
 import { parseISTDateTime } from '../utils/dateHelper.js'
 import { sendToUser } from '../services/notificationService.js'
+import { countBookingTowardSubscription, countReservedBookings } from '../services/subscriptionUsageService.js'
 import { qualifyReferralForBooking } from '../services/referralService.js'
 import { creditSelfBalance, debitSelfBalance, getSelfBalance } from '../services/walletService.js'
 import { refundBookingWalletDiscount, topUpWorkerForCashDiscount } from '../services/bookingSettlementService.js'
@@ -114,7 +115,11 @@ export const createBooking = asyncHandler(async (req, res) => {
     if (!activeSub) {
       return sendError(res, { message: 'You must have an active subscription to create a booking.', statusCode: HTTP_STATUS.FORBIDDEN })
     }
-    if (activeSub.bookingsUsed >= (activeSub.snapshotPlanDetails?.allowedBookings || 0)) {
+    // Only finished + paid bookings use up the plan; bookings still in progress just reserve a slot.
+    const allowedBookings = activeSub.snapshotPlanDetails?.allowedBookings || 0
+    const reserved = await countReservedBookings(activeSub._id)
+    console.log(`[SUBSCRIPTION] user ${req.user._id} plan ${activeSub._id}: used=${activeSub.bookingsUsed} reserved=${reserved} allowed=${allowedBookings}`)
+    if (activeSub.bookingsUsed + reserved >= allowedBookings) {
       return sendError(res, { message: 'You have reached the maximum number of bookings allowed for your current subscription plan.', statusCode: HTTP_STATUS.FORBIDDEN })
     }
   }
@@ -218,6 +223,7 @@ export const createBooking = asyncHandler(async (req, res) => {
     walletDiscount,
     payableAmount,
     paymentMethod,
+    subscriptionId: activeSub?._id,
     status: 'CREATED',
     startOtp,
     completionOtp,
@@ -234,11 +240,6 @@ export const createBooking = asyncHandler(async (req, res) => {
       }).catch((e) => console.error('[wallet] refund after failed booking:', e?.message || e))
     }
     throw err
-  }
-
-  if (activeSub) {
-    const { UserSubscription } = await import('../models/UserSubscription.js')
-    await UserSubscription.findByIdAndUpdate(activeSub._id, { $inc: { bookingsUsed: 1 } })
   }
 
   // Phase 3: Trigger the Broadcast Engine asynchronously
@@ -403,6 +404,7 @@ export const updateBookingStatus = asyncHandler(async (req, res) => {
 
   // Refer & Earn: a completed booking is what makes the customer's referral pay out.
   if (status === 'COMPLETED') {
+    await countBookingTowardSubscription(booking)
     await qualifyReferralForBooking(booking)
     await topUpWorkerForCashDiscount(booking)
   }
@@ -651,6 +653,8 @@ export const verifyDailyOtp = asyncHandler(async (req, res) => {
   }
 
   await booking.save()
+  // Last day of a multi-day job finished: this is the point it becomes billable (no-op for earlier days).
+  await countBookingTowardSubscription(booking)
 
   import('../socket.js').then(({ emitToUser }) => {
     emitToUser(booking.userId, 'BOOKING_STATUS_UPDATE', { bookingId: booking._id, status: booking.status })

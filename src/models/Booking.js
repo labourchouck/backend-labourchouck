@@ -116,6 +116,10 @@ const bookingSchema = new mongoose.Schema(
     broadcastExpiresAt: { type: Date },
     /** `host:pid` of the server process that sent the broadcast (diagnoses duplicate/old instances sharing one DB) */
     broadcastBy: { type: String },
+    /** Subscription plan this booking was made under (B2C plans) */
+    subscriptionId: { type: mongoose.Schema.Types.ObjectId, ref: 'UserSubscription', index: true },
+    /** True once this booking has been counted against the plan (completed and paid). Prevents double counting. */
+    subscriptionCounted: { type: Boolean, default: false },
     acceptedLabourId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     /** Labourers who declined this broadcast (used to fail-fast when everyone declines) */
     rejectedBy: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],

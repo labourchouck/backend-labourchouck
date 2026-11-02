@@ -4,6 +4,7 @@ import { Wallet } from '../models/Wallet.js'
 import { WalletTransaction } from '../models/WalletTransaction.js'
 import { createOrder, verifyPaymentSignature } from '../services/paymentService.js'
 import { sendToUser } from '../services/notificationService.js'
+import { countBookingTowardSubscription } from '../services/subscriptionUsageService.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { HTTP_STATUS, sendError, sendSuccess } from '../utils/apiResponse.js'
 
@@ -105,6 +106,8 @@ export const verifyPayment = asyncHandler(async (req, res) => {
     if (booking) {
       booking.paymentStatus = 'PAID'
       await booking.save()
+      // Online payment can arrive after the job is already completed — that is when it becomes billable.
+      await countBookingTowardSubscription(booking)
 
       // In Phase 4, Online Payment commission handling:
       // Since platform receives the money, the labor's selfWallet is credited the laborShare
