@@ -11,6 +11,7 @@ import { Complaint } from '../models/Complaint.js'
 import { Review } from '../models/Review.js'
 import { Banner } from '../models/Banner.js'
 import { SystemSetting } from '../models/SystemSetting.js'
+import { notifyAdmins } from '../services/notificationService.js'
 import { checkVendorInventory } from '../services/vendorInventoryService.js'
 import { getCorporateAttendanceData, toggleAttendanceStep } from '../services/attendanceService.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
@@ -141,6 +142,14 @@ export const submitCorporateVerification = asyncHandler(async (req, res) => {
   req.user.corporateProfile.documentsSubmittedAt = new Date()
   req.user.corporateProfile.reviewNote = undefined
   await req.user.save()
+
+  notifyAdmins({
+    title: 'New corporate approval request',
+    body: `${req.user.corporateProfile.companyName || req.user.fullName || 'A corporate client'} submitted business verification for review.`,
+    type: 'CORPORATE_VERIFICATION_SUBMITTED',
+    data: { userId: String(req.user._id), link: '/admin/business-verification' },
+  }).catch((err) => console.error('Push notify (corporate verification submitted) failed:', err))
+
   sendSuccess(res, {
     message: 'Verification submitted — our team will review your documents shortly',
     data: { user: req.user.toSafeObject() },

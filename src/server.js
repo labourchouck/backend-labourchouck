@@ -1,3 +1,4 @@
+// Server entry point for Mappto API
 import './config/env.js'
 import http from 'http'
 import app from './app.js'

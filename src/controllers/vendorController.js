@@ -174,6 +174,14 @@ export const submitVendorVerification = asyncHandler(async (req, res) => {
   req.user.contractorProfile.documentsSubmittedAt = new Date()
   req.user.contractorProfile.reviewNote = undefined
   await req.user.save()
+
+  notifyAdmins({
+    title: 'New vendor approval request',
+    body: `${req.user.contractorProfile.businessName || req.user.fullName || 'A vendor'} submitted business verification for review.`,
+    type: 'VENDOR_VERIFICATION_SUBMITTED',
+    data: { userId: String(req.user._id), link: '/admin/business-verification' },
+  }).catch((err) => console.error('Push notify (vendor verification submitted) failed:', err))
+
   sendSuccess(res, {
     message: 'Verification submitted — our team will review your documents shortly',
     data: { user: req.user.toSafeObject() },

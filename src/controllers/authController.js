@@ -25,11 +25,41 @@ function buildAuthPayload(user, token) {
   }
 }
 
+const GST_RE = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/
+
 /** POST /auth/register/request-otp */
 export const registerRequestOtp = asyncHandler(async (req, res) => {
-  const { phone, role } = req.body
+  const { phone, role, scope, gstNumber } = req.body
+  const cleanGst = gstNumber ? String(gstNumber).trim().toUpperCase() : undefined
+  if (cleanGst && !GST_RE.test(cleanGst)) {
+    return sendError(res, {
+      message: 'Please enter a valid 15-character GSTIN (e.g. 22AAAAA0000A1Z5) or leave it blank.',
+      statusCode: HTTP_STATUS.BAD_REQUEST,
+      code: 'INVALID_GSTIN',
+    })
+  }
+
   const existing = await User.findOne({ phone })
   if (existing) {
+    const b2bRoles = [USER_ROLES.CORPORATE, USER_ROLES.CONTRACTOR]
+    const isExistingB2B = b2bRoles.includes(existing.role)
+    const isRegisteringB2B = b2bRoles.includes(role) || scope === 'b2b'
+
+    if (isRegisteringB2B && !isExistingB2B) {
+      return sendError(res, {
+        message: 'This mobile number is already registered as a Personal account. Please use your business mobile number.',
+        statusCode: HTTP_STATUS.CONFLICT,
+        code: 'ROLE_MISMATCH',
+      })
+    }
+    if (!isRegisteringB2B && isExistingB2B) {
+      return sendError(res, {
+        message: 'This mobile number is already registered as a Business account. Please use your personal mobile number.',
+        statusCode: HTTP_STATUS.CONFLICT,
+        code: 'ROLE_MISMATCH',
+      })
+    }
+
     return sendError(res, {
       message: 'An account with this phone already exists. Please login.',
       statusCode: HTTP_STATUS.CONFLICT,
@@ -82,6 +112,15 @@ export const registerVerify = asyncHandler(async (req, res) => {
     })
   }
 
+  const cleanGst = gstNumber ? String(gstNumber).trim().toUpperCase() : undefined
+  if (cleanGst && !GST_RE.test(cleanGst)) {
+    return sendError(res, {
+      message: 'Please enter a valid 15-character GSTIN (e.g. 22AAAAA0000A1Z5) or leave it blank.',
+      statusCode: HTTP_STATUS.BAD_REQUEST,
+      code: 'INVALID_GSTIN',
+    })
+  }
+
   const doc = {
     phone,
     role,
@@ -93,12 +132,16 @@ export const registerVerify = asyncHandler(async (req, res) => {
   if (role === USER_ROLES.CORPORATE) {
     doc.corporateProfile = {
       companyName,
-      gstNumber: gstNumber || undefined,
+      gstNumber: cleanGst || undefined,
       status: CORPORATE_STATUS.PENDING,
     }
   }
   if (role === USER_ROLES.CONTRACTOR) {
-    doc.contractorProfile = { businessName, verificationStatus: 'pending' }
+    doc.contractorProfile = {
+      businessName,
+      gstNumber: cleanGst || undefined,
+      verificationStatus: 'pending',
+    }
   }
   if (role === USER_ROLES.LABOUR) {
     doc.labourProfile = {}
@@ -147,7 +190,7 @@ export const registerVerify = asyncHandler(async (req, res) => {
 
 /** POST /auth/login/request-otp */
 export const loginRequestOtp = asyncHandler(async (req, res) => {
-  const { phone } = req.body
+  const { phone, scope } = req.body
   let user = await User.findOne({ phone })
   if (HARDCODED_TEST_ACCOUNTS[phone]) {
     user = await ensureHardcodedTestUser(phone)
@@ -173,6 +216,25 @@ export const loginRequestOtp = asyncHandler(async (req, res) => {
       code: 'USE_ADMIN_LOGIN',
     })
   }
+
+  const b2bRoles = [USER_ROLES.CORPORATE, USER_ROLES.CONTRACTOR]
+  const b2cRoles = [USER_ROLES.INDIVIDUAL, USER_ROLES.LABOUR]
+
+  if (scope === 'b2b' && !b2bRoles.includes(user.role)) {
+    return sendError(res, {
+      message: 'This mobile number is already registered as a Personal account. Please sign in with your business mobile number.',
+      statusCode: HTTP_STATUS.FORBIDDEN,
+      code: 'ROLE_MISMATCH',
+    })
+  }
+  if (scope === 'b2c' && !b2cRoles.includes(user.role)) {
+    return sendError(res, {
+      message: 'This mobile number is already registered as a Business account. Please sign in with your personal mobile number.',
+      statusCode: HTTP_STATUS.FORBIDDEN,
+      code: 'ROLE_MISMATCH',
+    })
+  }
+
   const { challengeId } = await createOtpChallenge(phone, 'login')
   return sendSuccess(res, {
     message: 'OTP sent to your mobile number',
@@ -182,7 +244,7 @@ export const loginRequestOtp = asyncHandler(async (req, res) => {
 
 /** POST /auth/login/verify */
 export const loginVerify = asyncHandler(async (req, res) => {
-  const { phone, code, challengeId } = req.body
+  const { phone, code, challengeId, scope } = req.body
   let user = await User.findOne({ phone })
   if (HARDCODED_TEST_ACCOUNTS[phone]) {
     user = await ensureHardcodedTestUser(phone)
@@ -192,6 +254,24 @@ export const loginVerify = asyncHandler(async (req, res) => {
       message: 'User not found',
       statusCode: HTTP_STATUS.NOT_FOUND,
       code: 'USER_NOT_FOUND',
+    })
+  }
+
+  const b2bRoles = [USER_ROLES.CORPORATE, USER_ROLES.CONTRACTOR]
+  const b2cRoles = [USER_ROLES.INDIVIDUAL, USER_ROLES.LABOUR]
+
+  if (scope === 'b2b' && !b2bRoles.includes(user.role)) {
+    return sendError(res, {
+      message: 'This mobile number is already registered as a Personal account. Please sign in with your business mobile number.',
+      statusCode: HTTP_STATUS.FORBIDDEN,
+      code: 'ROLE_MISMATCH',
+    })
+  }
+  if (scope === 'b2c' && !b2cRoles.includes(user.role)) {
+    return sendError(res, {
+      message: 'This mobile number is already registered as a Business account. Please sign in with your personal mobile number.',
+      statusCode: HTTP_STATUS.FORBIDDEN,
+      code: 'ROLE_MISMATCH',
     })
   }
 
