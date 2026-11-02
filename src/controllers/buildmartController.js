@@ -3,6 +3,7 @@ import { BuildMartProduct } from '../models/BuildMartProduct.js'
 import { BuildMartCategory } from '../models/BuildMartCategory.js'
 import { BuildMartBanner } from '../models/BuildMartBanner.js'
 import { USER_ROLES } from '../constants/roles.js'
+import { changeLeadStatus, LEAD_STATUSES } from '../services/buildmartLeadService.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { HTTP_STATUS, sendError, sendSuccess } from '../utils/apiResponse.js'
 
@@ -46,6 +47,7 @@ export const submitQuoteRequest = asyncHandler(async (req, res) => {
     vendorId,
     userRole: req.user.role,
     userName: req.user.fullName || name,
+    statusHistory: [{ status: 'new', note: 'Request submitted', by: req.user.role, byName: req.user.fullName || name, at: new Date() }],
   })
 
   // Route the lead notification to the product's vendor (or admins for platform leads)
@@ -108,11 +110,10 @@ export const listLeadsAdmin = asyncHandler(async (req, res) => {
   })
 })
 
-/** PATCH /admin/buildmart/leads/:id — update lead status */
+/** PATCH /admin/buildmart/leads/:id — update lead status (optional note is shown to the requester) */
 export const updateLeadStatusAdmin = asyncHandler(async (req, res) => {
-  const { status } = req.body
-  const allowed = ['new', 'contacted', 'quoted', 'won', 'lost']
-  if (!allowed.includes(status)) {
+  const { status, note } = req.body
+  if (!LEAD_STATUSES.includes(status)) {
     return sendError(res, {
       message: 'Invalid status',
       statusCode: HTTP_STATUS.BAD_REQUEST,
@@ -120,11 +121,12 @@ export const updateLeadStatusAdmin = asyncHandler(async (req, res) => {
     })
   }
 
-  const lead = await BuildMartLead.findByIdAndUpdate(
-    req.params.id,
-    { status },
-    { new: true, runValidators: true },
-  )
+  const { lead } = await changeLeadStatus({
+    filter: { _id: req.params.id },
+    status,
+    note,
+    actor: { role: USER_ROLES.ADMIN, name: req.user.fullName || 'Mappto team' },
+  })
   if (!lead) {
     return sendError(res, {
       message: 'Lead not found',
@@ -135,8 +137,59 @@ export const updateLeadStatusAdmin = asyncHandler(async (req, res) => {
 
   return sendSuccess(res, {
     message: 'Lead updated',
-    data: { lead: lead.toObject() },
+    data: { lead },
   })
+})
+
+/** GET /buildmart/quotes/me — the signed-in user's own Mart requests, with their updates */
+export const listMyQuotes = asyncHandler(async (req, res) => {
+  const leads = await BuildMartLead.find({ userId: req.user._id })
+    .sort({ createdAt: -1 })
+    .limit(100)
+    .populate('vendorId', 'fullName contractorProfile.businessName')
+    .lean()
+
+  // Product photo for each request (leads store the product id as a string: Mongo _id or the catalogue's own id)
+  const ids = [...new Set(leads.map((l) => l.productId).filter(Boolean))]
+  const objectIds = ids.filter((id) => /^[0-9a-fA-F]{24}$/.test(id))
+  const products = ids.length
+    ? await BuildMartProduct.find({ $or: [{ _id: { $in: objectIds } }, { id: { $in: ids } }] }).select('id images').lean()
+    : []
+  const imageFor = new Map()
+  products.forEach((p) => {
+    const img = Array.isArray(p.images) ? p.images[0] : undefined
+    if (img) {
+      imageFor.set(String(p._id), img)
+      if (p.id) imageFor.set(String(p.id), img)
+    }
+  })
+
+  const items = leads.map((l) => {
+    // Requests made before updates were recorded still get a sensible timeline.
+    let history = (l.statusHistory || []).map(({ status, note, by, byName, at }) => ({ status, note, by, byName, at }))
+    if (!history.length) {
+      history = [{ status: 'new', note: 'Request submitted', by: l.userRole, at: l.createdAt }]
+      if (l.status !== 'new') history.push({ status: l.status, by: 'seller', at: l.updatedAt })
+    }
+    return {
+      _id: l._id,
+      productId: l.productId,
+      productName: l.productName,
+      productImage: imageFor.get(String(l.productId)) || null,
+      variantLabel: l.variantLabel,
+      quantity: l.quantity,
+      deliveryDate: l.deliveryDate,
+      siteLocation: l.siteLocation,
+      notes: l.notes,
+      status: l.status,
+      sellerName: l.vendorId?.contractorProfile?.businessName || l.vendorId?.fullName || 'Mappto team',
+      createdAt: l.createdAt,
+      updatedAt: l.updatedAt,
+      history,
+    }
+  })
+
+  return sendSuccess(res, { data: { items, total: items.length } })
 })
 
 export const buildWhatsAppLeadUrl = (lead) => {

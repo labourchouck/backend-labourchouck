@@ -18,6 +18,7 @@ import {
   updateBanner,
   deleteBanner,
   reviewProductAdmin,
+  listMyQuotes,
 } from '../controllers/buildmartController.js'
 import { protect, restrictTo } from '../middleware/auth.js'
 import { validateRequest } from '../middleware/validateRequest.js'
@@ -36,6 +37,8 @@ router.post(
   validateRequest,
   submitQuoteRequest,
 )
+
+router.get('/quotes/me', protect, restrictTo(...APP_ROLES), listMyQuotes)
 
 // --- Admin Catalog Routes ---
 

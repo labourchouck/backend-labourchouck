@@ -1,3 +1,4 @@
+import { changeLeadStatus, LEAD_STATUSES } from '../services/buildmartLeadService.js'
 import { BuildMartProduct } from '../models/BuildMartProduct.js'
 import { BuildMartLead } from '../models/BuildMartLead.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
@@ -181,21 +182,21 @@ export const getVendorEnquiries = asyncHandler(async (req, res) => {
 })
 
 export const updateVendorEnquiryStatus = asyncHandler(async (req, res) => {
-  const { status } = req.body
-  const allowed = ['new', 'contacted', 'quoted', 'won', 'lost']
-  
-  if (!allowed.includes(status)) {
+  const { status, note } = req.body
+
+  if (!LEAD_STATUSES.includes(status)) {
     return sendError(res, {
       message: 'Invalid status',
       statusCode: HTTP_STATUS.BAD_REQUEST,
     })
   }
 
-  const lead = await BuildMartLead.findOneAndUpdate(
-    { _id: req.params.id, vendorId: req.user._id },
-    { status },
-    { new: true, runValidators: true }
-  ).lean()
+  const { lead } = await changeLeadStatus({
+    filter: { _id: req.params.id, vendorId: req.user._id },
+    status,
+    note,
+    actor: { role: req.user.role, name: req.user.contractorProfile?.businessName || req.user.fullName },
+  })
 
   if (!lead) {
     return sendError(res, { message: 'Enquiry not found', statusCode: HTTP_STATUS.NOT_FOUND })

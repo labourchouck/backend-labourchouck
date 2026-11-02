@@ -17,6 +17,17 @@ const buildMartLeadSchema = new mongoose.Schema(
       enum: ['new', 'contacted', 'quoted', 'won', 'lost'],
       default: 'new',
     },
+    /** Every status the request has been through, newest last — shown to the requester as "updates". */
+    statusHistory: [
+      {
+        _id: false,
+        status: { type: String, enum: ['new', 'contacted', 'quoted', 'won', 'lost'], required: true },
+        note: { type: String, trim: true, maxlength: 300 },
+        by: { type: String, trim: true },
+        byName: { type: String, trim: true },
+        at: { type: Date, default: Date.now },
+      },
+    ],
     source: { type: String, default: 'buildmart_app', trim: true },
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
     vendorId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
