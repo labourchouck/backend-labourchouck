@@ -121,12 +121,15 @@ export const updateLeadStatusAdmin = asyncHandler(async (req, res) => {
     })
   }
 
-  const { lead } = await changeLeadStatus({
+  const { lead, rejected } = await changeLeadStatus({
     filter: { _id: req.params.id },
     status,
     note,
     actor: { role: USER_ROLES.ADMIN, name: req.user.fullName || 'Mappto team' },
   })
+  if (rejected) {
+    return sendError(res, { message: rejected, statusCode: HTTP_STATUS.CONFLICT, code: 'STATUS_CANNOT_GO_BACK' })
+  }
   if (!lead) {
     return sendError(res, {
       message: 'Lead not found',

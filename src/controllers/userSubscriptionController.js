@@ -1,4 +1,4 @@
-import { createOrder, verifyPaymentSignature } from '../services/paymentService.js'
+import { createOrder, getKeyId, verifyPaymentSignature, PaymentConfigError } from '../services/paymentService.js'
 import { SubscriptionPlan } from '../models/SubscriptionPlan.js'
 import { UserSubscription } from '../models/UserSubscription.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
@@ -22,8 +22,16 @@ export const createRazorpayOrder = asyncHandler(async (req, res) => {
     return sendError(res, { message: 'Invalid subscription plan', statusCode: HTTP_STATUS.BAD_REQUEST })
   }
 
-  const order = await createOrder(plan.price, 'INR', `sub_${Date.now()}`)
-  return sendSuccess(res, { data: { order, keyId: process.env.RAZORPAY_KEY_ID || 'mock_key' } })
+  let order
+  try {
+    order = await createOrder(plan.price, 'INR', `sub_${Date.now()}`)
+  } catch (err) {
+    if (err instanceof PaymentConfigError) {
+      return sendError(res, { message: err.message, statusCode: err.statusCode, code: 'PAYMENT_UNAVAILABLE' })
+    }
+    throw err
+  }
+  return sendSuccess(res, { data: { order, keyId: order.mock ? null : getKeyId() } })
 })
 
 export const verifyRazorpayPayment = asyncHandler(async (req, res) => {

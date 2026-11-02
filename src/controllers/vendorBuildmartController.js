@@ -191,12 +191,16 @@ export const updateVendorEnquiryStatus = asyncHandler(async (req, res) => {
     })
   }
 
-  const { lead } = await changeLeadStatus({
+  const { lead, rejected } = await changeLeadStatus({
     filter: { _id: req.params.id, vendorId: req.user._id },
     status,
     note,
     actor: { role: req.user.role, name: req.user.contractorProfile?.businessName || req.user.fullName },
   })
+
+  if (rejected) {
+    return sendError(res, { message: rejected, statusCode: HTTP_STATUS.CONFLICT, code: 'STATUS_CANNOT_GO_BACK' })
+  }
 
   if (!lead) {
     return sendError(res, { message: 'Enquiry not found', statusCode: HTTP_STATUS.NOT_FOUND })

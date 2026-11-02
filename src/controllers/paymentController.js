@@ -2,7 +2,7 @@ import { PaymentTransaction } from '../models/PaymentTransaction.js'
 import { Booking } from '../models/Booking.js'
 import { Wallet } from '../models/Wallet.js'
 import { WalletTransaction } from '../models/WalletTransaction.js'
-import { createOrder, verifyPaymentSignature } from '../services/paymentService.js'
+import { createOrder, getKeyId, verifyPaymentSignature, PaymentConfigError } from '../services/paymentService.js'
 import { sendToUser } from '../services/notificationService.js'
 import { countBookingTowardSubscription } from '../services/subscriptionUsageService.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
@@ -53,7 +53,15 @@ export const initPayment = asyncHandler(async (req, res) => {
 
   // Generate Razorpay Order
   const receiptId = `rcpt_${req.user._id.toString().slice(-4)}_${Date.now().toString().slice(-4)}`
-  const order = await createOrder(chargeAmount, 'INR', receiptId)
+  let order
+  try {
+    order = await createOrder(chargeAmount, 'INR', receiptId)
+  } catch (err) {
+    if (err instanceof PaymentConfigError) {
+      return sendError(res, { message: err.message, statusCode: err.statusCode, code: 'PAYMENT_UNAVAILABLE' })
+    }
+    throw err
+  }
 
   // Record Transaction intent
   const pTx = await PaymentTransaction.create({
@@ -68,7 +76,7 @@ export const initPayment = asyncHandler(async (req, res) => {
     status: 'CREATED'
   })
 
-  return sendSuccess(res, { data: { order, paymentTransactionId: pTx._id } })
+  return sendSuccess(res, { data: { order, keyId: order.mock ? null : getKeyId(), paymentTransactionId: pTx._id } })
 })
 
 export const verifyPayment = asyncHandler(async (req, res) => {
