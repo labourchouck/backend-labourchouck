@@ -13,7 +13,8 @@
     "seed:mart-banners": "node src/scripts/seedMartBanners.js",
     "seed:legal": "node src/scripts/seedLegalDocs.js",
     "backfill:referral-codes": "node src/scripts/backfillReferralCodes.js",
-    "recount:subscription-usage": "node src/scripts/recountSubscriptionUsage.js"
+    "recount:subscription-usage": "node src/scripts/recountSubscriptionUsage.js",
+    "test:push": "node src/scripts/testPush.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",

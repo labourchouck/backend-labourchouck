@@ -27,10 +27,11 @@ const toStringData = (data = {}) => {
   return out
 }
 
+// Only codes that mean "this device token is gone". `messaging/invalid-argument` is deliberately NOT here:
+// it usually means the *message* was malformed, and deleting tokens for it silently unregisters devices.
 const DEAD_TOKEN_CODES = new Set([
   'messaging/registration-token-not-registered',
   'messaging/invalid-registration-token',
-  'messaging/invalid-argument',
 ])
 
 /** Normalize any incoming platform value to the two supported token types. */
@@ -42,14 +43,38 @@ export const normalizePlatform = (platform) => {
   return { platform: 'app', deviceOs: p }
 }
 
+/**
+ * Public https origin of the web app, used to turn relative deep links (`/app/my-bookings`) into the absolute
+ * https URL FCM requires for `webpush.fcmOptions.link`. Set APP_PUBLIC_URL (e.g. https://laborchowck.com);
+ * otherwise the first https origin in CORS_ORIGIN is used.
+ */
+const getPublicOrigin = () => {
+  const candidates = [process.env.APP_PUBLIC_URL, ...String(process.env.CORS_ORIGIN || '').split(',')]
+  for (const c of candidates) {
+    const v = String(c || '').trim().replace(/\/+$/, '')
+    if (/^https:\/\/[^/\s]+$/i.test(v)) return v
+  }
+  return null
+}
+
+/** Absolute https URL for a deep link, or undefined when it can't be built (then the click handler uses data.link). */
+export const toAbsoluteLink = (link) => {
+  if (!link) return undefined
+  const raw = String(link).trim()
+  if (/^https:\/\//i.test(raw)) return raw
+  const origin = getPublicOrigin()
+  if (!origin || !raw.startsWith('/')) return undefined
+  return `${origin}${raw}`
+}
+
 /** 1) FCM WEB message — browser delivery via the webpush protocol */
-const buildWebMessage = (tokens, { title, body, data, type }) => ({
+export const buildWebMessage = (tokens, { title, body, data, type }) => ({
   tokens,
   data: { ...toStringData(data), type: type || 'GENERAL', title, body: body || '' },
   notification: { title, body: body || '' },
   webpush: {
     headers: { Urgency: 'high' },
-    fcmOptions: data?.link ? { link: String(data.link) } : undefined,
+    fcmOptions: toAbsoluteLink(data?.link) ? { link: toAbsoluteLink(data.link) } : undefined,
     notification: {
       title,
       body: body || '',
@@ -89,9 +114,22 @@ const buildAppMessage = (tokens, { title, body, data, type }) => ({
  * @param {Array<{token: string, platform: 'web'|'app'}>} devices
  * @returns {Promise<string[]>} dead tokens found
  */
-const sendFcm = async (devices, payload) => {
-  if (!isFirebaseReady() || devices.length === 0) return []
-  const messaging = getMessaging()
+let lastNotReadyWarning = 0
+export const sendFcm = async (devices, payload, deps = {}) => {
+  const ready = deps.ready ?? isFirebaseReady()
+  if (devices.length === 0) return []
+  if (!ready) {
+    // Loud but rate-limited: this is the #1 reason "push never arrives".
+    if (Date.now() - lastNotReadyWarning > 60_000) {
+      lastNotReadyWarning = Date.now()
+      console.warn(
+        `[notify] FCM SKIPPED for ${devices.length} device(s): Firebase Admin is not initialised (service account file missing or invalid). ` +
+          'No push can be sent until it is — see the [firebase] line at server start-up.',
+      )
+    }
+    return []
+  }
+  const messaging = deps.messaging ?? getMessaging()
 
   const webTokens = devices.filter((d) => d.platform !== 'app').map((d) => d.token)
   const appTokens = devices.filter((d) => d.platform === 'app').map((d) => d.token)
@@ -99,20 +137,22 @@ const sendFcm = async (devices, payload) => {
   const batches = []
   // FCM multicast caps at 500 tokens per call
   for (let i = 0; i < webTokens.length; i += 500) {
-    batches.push(buildWebMessage(webTokens.slice(i, i + 500), payload))
+    batches.push({ kind: 'web', message: buildWebMessage(webTokens.slice(i, i + 500), payload) })
   }
   for (let i = 0; i < appTokens.length; i += 500) {
-    batches.push(buildAppMessage(appTokens.slice(i, i + 500), payload))
+    batches.push({ kind: 'app', message: buildAppMessage(appTokens.slice(i, i + 500), payload) })
   }
 
   const deadTokens = []
-  for (const message of batches) {
+  for (const { kind, message } of batches) {
     try {
       const response = await messaging.sendEachForMulticast(message)
+      console.log(`[notify] FCM ${kind} "${payload.type}": ${response.successCount} sent, ${response.failureCount} failed of ${message.tokens.length}`)
       response.responses.forEach((res, idx) => {
-        if (!res.success && DEAD_TOKEN_CODES.has(res.error?.code)) {
-          deadTokens.push(message.tokens[idx])
-        }
+        if (res.success) return
+        const code = res.error?.code
+        console.warn(`[notify]   token …${String(message.tokens[idx]).slice(-8)} failed: ${code} — ${res.error?.message}`)
+        if (DEAD_TOKEN_CODES.has(code)) deadTokens.push(message.tokens[idx])
       })
     } catch (error) {
       console.error('[notify] FCM send failed:', error.message)
