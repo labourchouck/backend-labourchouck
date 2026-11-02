@@ -5,6 +5,7 @@ import app from './app.js'
 import { connectDb } from './config/db.js'
 import { initSocket } from './socket.js'
 import { initBroadcastCron } from './cron/broadcastCron.js'
+import { startBroadcastRelay } from './services/broadcastRelay.js'
 import { ensureAllHardcodedTestUsers } from './services/hardcodedTestUsersService.js'
 
 const port = Number(process.env.PORT) || 5005
@@ -18,6 +19,7 @@ async function main() {
   const server = http.createServer(app)
   initSocket(server)
   initBroadcastCron()
+  startBroadcastRelay()
 
   server.on('error', (err) => {
     if (err.code === 'EADDRINUSE') {
