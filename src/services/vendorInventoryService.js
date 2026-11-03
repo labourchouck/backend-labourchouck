@@ -1,3 +1,4 @@
+import { effectiveServicePrice } from '../utils/crewPricing.js'
 import { User } from '../models/User.js'
 import { Assignment } from '../models/Assignment.js'
 import { USER_ROLES } from '../constants/roles.js'
@@ -79,7 +80,7 @@ export async function checkVendorInventory(vendorId, lines, startDate, endDate) 
         
         if (worker.category === reqCatName) {
           allocatedCount++
-          const adminPrice = worker.services?.[0]?.adminPrice ?? worker.services?.[0]?.price ?? 0
+          const adminPrice = effectiveServicePrice(worker.services?.[0])
           categoryAdminPriceTotal += adminPrice
           remainingCrew.splice(i, 1) // Remove from pool so they can't be used for another line
         }

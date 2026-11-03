@@ -170,7 +170,9 @@ export async function startBroadcastCycle(bookingId) {
     'labourProfile.availabilityStatus': 'available',
     'labourProfile.currentLatitude': { $gte: bookingLat - bufferLatDiff, $lte: bookingLat + bufferLatDiff },
     'labourProfile.currentLongitude': { $gte: bookingLng - bufferLngDiff, $lte: bookingLng + bufferLngDiff },
-    'labourProfile.subcategoryIds': booking.subcategoryId
+    'labourProfile.subcategoryIds': booking.subcategoryId,
+    // Labour only take part once the admin has approved their KYC (contractors have their own verification).
+    $or: [{ role: 'contractor' }, { role: 'labour', 'labourProfile.kycStatus': 'verified' }],
   }).lean()
 
   console.log(`[BROADCAST] ${booking._id} stage1 area+skill+available: ${potentialLaborersRaw.length} labourers (busy excluded: ${busyLabourIds.length})`)

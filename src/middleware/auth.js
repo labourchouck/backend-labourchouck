@@ -2,6 +2,7 @@ import { verifyAccessToken } from '../services/tokenService.js'
 import { User } from '../models/User.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { HTTP_STATUS, sendError } from '../utils/apiResponse.js'
+import { KYC_STATUS, USER_ROLES } from '../constants/roles.js'
 
 export const protect = asyncHandler(async (req, res, next) => {
   const header = req.headers.authorization
@@ -59,4 +60,19 @@ export function restrictTo(...roles) {
     }
     next()
   }
+}
+
+/** A labour worker only takes part in jobs once the admin has approved their KYC. Other roles are not affected. */
+export const isLabourKycApproved = (user) =>
+  String(user?.role).toLowerCase() !== USER_ROLES.LABOUR || user?.labourProfile?.kycStatus === KYC_STATUS.VERIFIED
+
+/** Route guard: labour without approved KYC cannot see or act on broadcasts, assignments or jobs. */
+export function requireLabourKyc(req, res, next) {
+  if (isLabourKycApproved(req.user)) return next()
+  console.log(`[KYC] blocked ${req.method} ${req.originalUrl} for labour ${req.user?._id} (kycStatus=${req.user?.labourProfile?.kycStatus || 'pending'})`)
+  return sendError(res, {
+    message: 'Complete your KYC and wait for admin approval to receive and accept jobs.',
+    statusCode: HTTP_STATUS.FORBIDDEN,
+    code: 'KYC_REQUIRED',
+  })
 }

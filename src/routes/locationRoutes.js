@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { protect, restrictTo } from '../middleware/auth.js'
+import { protect, restrictTo, requireLabourKyc } from '../middleware/auth.js'
 import { USER_ROLES } from '../constants/roles.js'
 import * as zoneController from '../controllers/zoneController.js'
 
@@ -17,6 +17,7 @@ router.post(
   '/status',
   protect,
   restrictTo(USER_ROLES.LABOUR, USER_ROLES.CONTRACTOR),
+  requireLabourKyc,
   zoneController.updateLabourStatus
 )
 

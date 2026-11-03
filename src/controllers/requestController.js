@@ -1,3 +1,4 @@
+import { effectiveServicePrice } from '../utils/crewPricing.js'
 import mongoose from 'mongoose'
 import { USER_ROLES, CORPORATE_STATUS } from '../constants/roles.js'
 import {
@@ -131,7 +132,7 @@ export const createRequest = asyncHandler(async (req, res) => {
       if (matching.length > 0) {
         const first = matching[0]
         const serv = first.services?.[0]
-        const adminPrice = serv?.adminPrice ?? serv?.price ?? line.adminPrice ?? 0
+        const adminPrice = effectiveServicePrice(serv) || Number(line.adminPrice) || 0
         const serviceName = line.serviceName || serv?.name || first.category
         const categoryName = line.categoryName || first.category
         return {
@@ -254,7 +255,7 @@ export const listMyRequests = asyncHandler(async (req, res) => {
           fullName: c.fullName,
           category: c.category,
           serviceName: primaryService?.name || c.category,
-          adminPrice: Number(primaryService?.adminPrice ?? primaryService?.price ?? 0)
+          adminPrice: effectiveServicePrice(primaryService)
         }
       })
     }
@@ -314,7 +315,7 @@ export const getRequest = asyncHandler(async (req, res) => {
       const primaryService = crew.services?.[0]
       const categoryName = crew.category || 'General'
       const serviceName = primaryService?.name || crew.category || 'Labour'
-      const adminPrice = Number(primaryService?.adminPrice ?? primaryService?.price ?? 0)
+      const adminPrice = effectiveServicePrice(primaryService)
 
       // Decorate crew object
       crew.categoryName = categoryName

@@ -1,3 +1,4 @@
+import { effectiveServicePrice } from '../utils/crewPricing.js'
 import { CORPORATE_STATUS, USER_ROLES } from '../constants/roles.js'
 import { User } from '../models/User.js'
 import { Project } from '../models/Project.js'
@@ -748,7 +749,7 @@ export const searchVendors = asyncHandler(async (req, res) => {
           category: c.category,
           services: c.services || [],
           serviceName: c.services?.[0]?.name || '',
-          adminPrice: c.services?.[0]?.adminPrice || c.services?.[0]?.price || 0
+          adminPrice: effectiveServicePrice(c.services?.[0])
         }))
 
       availableVendors.push({

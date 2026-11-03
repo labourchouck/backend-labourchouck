@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { protect, restrictTo } from '../middleware/auth.js'
+import { protect, restrictTo, requireLabourKyc } from '../middleware/auth.js'
 import { USER_ROLES, APP_ROLES } from '../constants/roles.js'
 import {
   createRequest,
@@ -27,8 +27,8 @@ router.get('/requests', restrictTo(...APP_ROLES, USER_ROLES.ADMIN, 'super_admin'
 router.get('/requests/:id', restrictTo(...APP_ROLES, USER_ROLES.ADMIN), getRequest)
 router.post('/requests/:id/mock-pay', restrictTo(USER_ROLES.CORPORATE, USER_ROLES.ADMIN, 'super_admin'), mockPayRequest)
 
-router.get('/assignments', restrictTo(USER_ROLES.LABOUR), listLabourAssignments)
-router.patch('/assignments/:id/respond', restrictTo(USER_ROLES.LABOUR), respondToAssignment)
+router.get('/assignments', restrictTo(USER_ROLES.LABOUR), requireLabourKyc, listLabourAssignments)
+router.patch('/assignments/:id/respond', restrictTo(USER_ROLES.LABOUR), requireLabourKyc, respondToAssignment)
 
 
 router.get('/attendance', restrictTo(...APP_ROLES, USER_ROLES.ADMIN), listAttendance)

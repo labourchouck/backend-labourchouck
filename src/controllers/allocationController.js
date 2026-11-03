@@ -1,5 +1,5 @@
 import mongoose from 'mongoose'
-import { USER_ROLES } from '../constants/roles.js'
+import { KYC_STATUS, USER_ROLES } from '../constants/roles.js'
 import { REQUEST_STATUS, ASSIGNMENT_STATUS } from '../constants/workforceConstants.js'
 import { WorkforceRequest } from '../models/WorkforceRequest.js'
 import { Allocation } from '../models/Allocation.js'
@@ -35,7 +35,7 @@ export const createAllocationAdmin = asyncHandler(async (req, res) => {
   const ids = Array.isArray(labourIds) ? labourIds.filter((id) => mongoose.Types.ObjectId.isValid(id)) : []
   const assignments = []
   for (const labourId of ids) {
-    const labour = await User.findOne({ _id: labourId, role: USER_ROLES.LABOUR, isActive: true })
+    const labour = await User.findOne({ _id: labourId, role: USER_ROLES.LABOUR, isActive: true, 'labourProfile.kycStatus': KYC_STATUS.VERIFIED })
     if (!labour) continue
     const existing = await Assignment.findOne({
       allocationId: allocation._id,

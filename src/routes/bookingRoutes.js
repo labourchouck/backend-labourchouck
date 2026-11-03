@@ -1,6 +1,6 @@
 import { Router } from 'express'
 import { body } from 'express-validator'
-import { protect, restrictTo } from '../middleware/auth.js'
+import { protect, restrictTo, requireLabourKyc } from '../middleware/auth.js'
 import { validateRequest } from '../middleware/validateRequest.js'
 import { USER_ROLES } from '../constants/roles.js'
 import * as booking from '../controllers/bookingController.js'
@@ -36,6 +36,7 @@ router.get('/:id', booking.getBookingStatus)
 
 router.patch(
   '/:id/status',
+  requireLabourKyc,
   [
     body('status').isIn(['EN_ROUTE', 'STARTED', 'COMPLETED', 'CANCELLED']).withMessage('Invalid status'),
   ],
@@ -45,6 +46,7 @@ router.patch(
 
 router.patch(
   '/:id/verify-daily-otp',
+  requireLabourKyc,
   [
     body('type').isIn(['start', 'end']).withMessage('Invalid OTP type'),
     body('otp').isString().isLength({ min: 4, max: 4 }).withMessage('Valid 4-digit OTP is required'),
