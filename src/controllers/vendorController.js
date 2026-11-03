@@ -390,9 +390,19 @@ export const getVendorDashboard = asyncHandler(async (req, res) => {
     return sum + ((req.totalAmount || 0) - adminDues)
   }, 0)
 
+  // This month's earnings — sum of all vendor invoices issued in the current calendar month
+  const now = new Date()
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+  const earningsMonth = invoices
+    .filter((inv) => {
+      const d = new Date(inv.issuedAt || inv.createdAt)
+      return d >= monthStart
+    })
+    .reduce((sum, inv) => sum + (inv.total || inv.totalAmount || 0), 0)
+
   sendSuccess(res, {
     data: {
-      stats: { crewCount, presentToday, openJobs, activeAssignments, totalBookingAmount, totalPaid, dueAmount, totalCashEarnings, adminBalance },
+      stats: { crewCount, presentToday, openJobs, activeAssignments, totalBookingAmount, totalPaid, dueAmount, totalCashEarnings, adminBalance, earningsMonth },
       activeSubscription,
     },
   })

@@ -477,6 +477,21 @@ export async function toggleAttendanceStep({ user, recordId, action, notes }) {
             await vendorInvoiceExists.save()
           }
         }
+
+        // Auto-complete the WorkforceRequest once ALL attendance records for this request
+        // have been closed by the vendor (vendorCheckOut: true). This triggers the
+        // "Make Payment" button on the corporate side without requiring a manual refresh.
+        if (request.status !== REQUEST_STATUS.COMPLETED) {
+          const pendingRecords = await AttendanceRecord.countDocuments({
+            requestId: record.requestId,
+            vendorCheckOut: { $ne: true },
+          })
+          if (pendingRecords === 0) {
+            await WorkforceRequest.findByIdAndUpdate(record.requestId, {
+              status: REQUEST_STATUS.COMPLETED,
+            })
+          }
+        }
       }
     }
   }
