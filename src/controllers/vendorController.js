@@ -8,6 +8,7 @@ import { REQUEST_STATUS, ASSIGNMENT_STATUS } from '../constants/workforceConstan
 import { User } from '../models/User.js'
 import { Allocation } from '../models/Allocation.js'
 import { WorkforceRequest } from '../models/WorkforceRequest.js'
+import VendorCrewLabour from '../models/VendorCrewLabour.js'
 import { Assignment } from '../models/Assignment.js'
 import { Invoice } from '../models/Invoice.js'
 import { AttendanceRecord } from '../models/AttendanceRecord.js'
@@ -332,8 +333,27 @@ export const getVendorDashboard = asyncHandler(async (req, res) => {
   const err = requireApprovedVendor(req.user)
   if (err) return sendError(res, { message: err, statusCode: HTTP_STATUS.FORBIDDEN })
   const vendorId = req.user._id
-  const crewCount = await User.countDocuments({ vendorId, role: USER_ROLES.LABOUR })
-  const openJobs = await Allocation.countDocuments({ vendorId, vendorAcceptedAt: { $exists: false } })
+  // Same sources as the Crew and Jobs pages: crew profiles the vendor created, and offers still awaiting a decision
+  // (allocations neither accepted nor rejected, plus direct requests that have no allocation yet).
+  const crewCount = await VendorCrewLabour.countDocuments({ vendorId, status: 'active', verificationStatus: { $ne: 'rejected' } })
+  const [pendingAllocations, pendingDirect] = await Promise.all([
+    Allocation.countDocuments({ vendorId, vendorAcceptedAt: null, vendorRejectedAt: null }),
+    WorkforceRequest.countDocuments({
+      preferredVendorId: vendorId,
+      status: { $in: [REQUEST_STATUS.BROADCASTED, REQUEST_STATUS.PENDING_REVIEW] },
+    }),
+  ])
+  const openJobs = pendingAllocations + pendingDirect
+
+  // Workers of this vendor marked present (present / late / half-day) for today's shift
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const vendorAssignmentIds = await Assignment.find({ vendorId }).distinct('_id')
+  const presentToday = (await AttendanceRecord.distinct('labourId', {
+    assignmentId: { $in: vendorAssignmentIds },
+    shiftDate: today,
+    status: { $in: ['present', 'late', 'half_day', 'work_completed', 'completed'] },
+  })).length
   const activeAssignments = await Assignment.countDocuments({
     vendorId,
     status: { $in: ['accepted', 'on_site'] },
@@ -356,7 +376,6 @@ export const getVendorDashboard = asyncHandler(async (req, res) => {
   const wallet = await Wallet.findOne({ userId: vendorId }).lean()
   const adminBalance = wallet?.adminBalance || 0
 
-  const WorkforceRequest = (await import('../models/WorkforceRequest.js')).WorkforceRequest
   const allocations = await Allocation.find({ vendorId }).lean()
   const requestIds = allocations.map(a => a.requestId)
   
@@ -373,7 +392,7 @@ export const getVendorDashboard = asyncHandler(async (req, res) => {
 
   sendSuccess(res, {
     data: {
-      stats: { crewCount, openJobs, activeAssignments, totalBookingAmount, totalPaid, dueAmount, totalCashEarnings, adminBalance },
+      stats: { crewCount, presentToday, openJobs, activeAssignments, totalBookingAmount, totalPaid, dueAmount, totalCashEarnings, adminBalance },
       activeSubscription,
     },
   })
@@ -388,7 +407,7 @@ export const listVendorJobs = asyncHandler(async (req, res) => {
     .sort({ createdAt: -1 })
     .populate({
       path: 'requestId',
-      select: 'reference status locationText startDate endDate lines clientId preferredCrewIds',
+      select: 'reference status locationText startDate endDate shiftStart notes lines clientId preferredCrewIds',
       populate: [
         { path: 'clientId', select: 'fullName phone corporateProfile.companyName' },
         { path: 'preferredCrewIds', select: 'fullName category services' }
@@ -426,7 +445,12 @@ export const getVendorJob = asyncHandler(async (req, res) => {
   const err = requireApprovedVendor(req.user)
   if (err) return sendError(res, { message: err, statusCode: HTTP_STATUS.FORBIDDEN })
   
-  let allocation = await Allocation.findOne({ _id: req.params.id, vendorId: req.user._id })
+  // The id may be an allocation id (Jobs list) or a request id (Attendance page links by request); resolve both so an
+  // already-accepted job is never mistaken for a pending offer.
+  let allocation = await Allocation.findOne({
+    vendorId: req.user._id,
+    $or: [{ _id: req.params.id }, { requestId: req.params.id }],
+  })
     .populate({
       path: 'requestId',
       populate: [
@@ -474,6 +498,8 @@ export const getVendorJob = asyncHandler(async (req, res) => {
       locationText: reqData.locationText,
       startDate: reqData.startDate,
       endDate: reqData.endDate,
+      shiftStart: reqData.shiftStart,
+      notes: reqData.notes,
       paymentStatus: reqData.paymentStatus,
       paymentMethod: reqData.paymentMethod,
       description: reqData.notes,

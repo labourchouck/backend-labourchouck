@@ -1,4 +1,5 @@
 import { Complaint } from '../models/Complaint.js'
+import { sendToUser } from '../services/notificationService.js'
 import { User } from '../models/User.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { sendError, sendSuccess, HTTP_STATUS } from '../utils/apiResponse.js'
@@ -58,6 +59,17 @@ export const updateComplaintStatus = asyncHandler(async (req, res) => {
   if (adminRemarks !== undefined) complaint.adminRemarks = adminRemarks
 
   await complaint.save()
+
+  if (status) {
+    const complainant = await User.findById(complaint.complainantId).select('role').lean()
+    const homes = { labour: '/app', contractor: '/vendor', corporate: '/corporate' }
+    sendToUser(complaint.complainantId, {
+      title: 'Complaint update',
+      body: `Your complaint "${complaint.title}" is now ${String(status).replace(/_/g, ' ').toLowerCase()}.${complaint.adminRemarks ? ` Admin note: ${complaint.adminRemarks}` : ''}`,
+      type: 'COMPLAINT_UPDATE',
+      data: { complaintId: String(complaint._id), status: String(status), link: homes[complainant?.role] || '/app' },
+    }).catch((err) => console.error('Push notify (complaint) failed:', err))
+  }
 
   return sendSuccess(res, { message: 'Complaint updated successfully', data: { complaint } })
 })

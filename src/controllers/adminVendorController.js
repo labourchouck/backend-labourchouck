@@ -1,4 +1,5 @@
 import { User } from '../models/User.js'
+import { sendToUser } from '../services/notificationService.js'
 import VendorCrewLabour from '../models/VendorCrewLabour.js'
 import { USER_ROLES } from '../constants/roles.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
@@ -92,6 +93,17 @@ export const updateVendorCrewVerification = asyncHandler(async (req, res) => {
   }
 
   await crew.save()
+
+  if (status !== 'pending') {
+    sendToUser(crew.vendorId, {
+      title: status === 'approved' ? 'Crew approved ✅' : 'Crew rejected',
+      body: status === 'approved'
+        ? `${crew.fullName || 'Your crew member'} has been approved and can now be booked.`
+        : `${crew.fullName || 'Your crew member'} was rejected.${crew.rejectMessage ? ` Reason: ${crew.rejectMessage}` : ''}`,
+      type: status === 'approved' ? 'CREW_APPROVED' : 'CREW_REJECTED',
+      data: { crewId: String(crew._id), link: '/vendor/crew' },
+    }).catch((err) => console.error('Push notify (crew verification) failed:', err))
+  }
 
   return sendSuccess(res, {
     message: `Crew request ${status} successfully`,

@@ -1,4 +1,5 @@
 import { Booking } from '../models/Booking.js'
+import { sendToUser } from '../services/notificationService.js'
 import { User } from '../models/User.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { HTTP_STATUS, sendError, sendSuccess } from '../utils/apiResponse.js'
@@ -80,7 +81,31 @@ export const updateBookingStatusAdmin = asyncHandler(async (req, res) => {
     return sendError(res, { message: 'Booking not found', statusCode: HTTP_STATUS.NOT_FOUND })
   }
   
-  // Optionally notify user here if socket is imported
+  const adminMsgs = {
+    ASSIGNED: 'A worker has been assigned to your booking.',
+    EN_ROUTE: 'Your worker is on the way.',
+    STARTED: 'Your job has started.',
+    COMPLETED: 'Your job has been marked completed.',
+    CANCELLED: 'Your booking was cancelled by support.',
+    REFUNDED: 'Your booking was refunded.',
+  }
+  if (adminMsgs[status]) {
+    const customerId = booking.userId?._id || booking.userId
+    sendToUser(customerId, {
+      title: `Booking ${status.replace(/_/g, ' ').toLowerCase()}`,
+      body: adminMsgs[status],
+      type: 'BOOKING_STATUS_UPDATE',
+      data: { bookingId: String(booking._id), status, link: `/app/tracking/${booking._id}` },
+    }).catch((err) => console.error('Push notify (admin status, customer) failed:', err))
+    if (booking.laborId && ['CANCELLED', 'REFUNDED'].includes(status)) {
+      sendToUser(booking.laborId?._id || booking.laborId, {
+        title: 'Job cancelled',
+        body: 'This job was cancelled by support.',
+        type: 'BOOKING_STATUS_UPDATE',
+        data: { bookingId: String(booking._id), status, link: '/app/jobs' },
+      }).catch((err) => console.error('Push notify (admin status, worker) failed:', err))
+    }
+  }
 
   return sendSuccess(res, { message: 'Booking status updated successfully', data: { booking } })
 })
@@ -118,6 +143,19 @@ export const assignLabourerManually = asyncHandler(async (req, res) => {
     .populate('subcategoryId', 'name')
     .populate('serviceId', 'name basePrice')
     .lean()
+
+  sendToUser(laborId, {
+    title: 'New job assigned',
+    body: 'Support has assigned you a job. Open the app to view the details.',
+    type: 'JOB_ASSIGNED',
+    data: { bookingId: String(booking._id), link: '/app/jobs' },
+  }).catch((err) => console.error('Push notify (manual assign, worker) failed:', err))
+  sendToUser(booking.userId, {
+    title: 'Worker assigned',
+    body: `${labourer.fullName || 'A worker'} has been assigned to your booking.`,
+    type: 'BOOKING_STATUS_UPDATE',
+    data: { bookingId: String(booking._id), status: 'ASSIGNED', link: `/app/tracking/${booking._id}` },
+  }).catch((err) => console.error('Push notify (manual assign, customer) failed:', err))
 
   return sendSuccess(res, { message: 'Labourer assigned manually successfully', data: { booking: updatedBooking } })
 })

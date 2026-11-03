@@ -8,6 +8,7 @@ import {
 import { WorkforceRequest, generateRequestReference } from '../models/WorkforceRequest.js'
 import { Assignment } from '../models/Assignment.js'
 import { Allocation } from '../models/Allocation.js'
+import { AttendanceRecord } from '../models/AttendanceRecord.js'
 import { checkVendorInventory } from '../services/vendorInventoryService.js'
 import { emitToUser } from '../socket.js'
 import { sendToUser, notifyAdmins } from '../services/notificationService.js'
@@ -495,9 +496,16 @@ export const getRequest = asyncHandler(async (req, res) => {
     delete request.preferredVendorId.email
   }
 
+  // Payment unlocks only once the vendor has closed every shift (final check-out) for this request
+  const vendorCheckoutPending = await AttendanceRecord.countDocuments({
+    requestId: request._id,
+    vendorCheckOut: { $ne: true },
+  })
+
   sendSuccess(res, {
     data: {
       request,
+      vendorCheckoutPending,
       serviceBreakdown,
       pricingSummary,
       allocation,
