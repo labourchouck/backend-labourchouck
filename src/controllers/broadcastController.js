@@ -140,9 +140,10 @@ export const getPendingBroadcasts = asyncHandler(async (req, res) => {
   const me = await User.findById(laborId).select('labourProfile role').lean()
   const profile = me?.labourProfile || {}
 
-  const busy = await Booking.exists({ acceptedLabourId: laborId, status: { $in: ['ACCEPTED', 'ASSIGNED', 'EN_ROUTE', 'STARTED'] } })
-  if (busy) {
-    console.log(`${tag} worker has an active job, no offers`)
+  const { getBusyLabourIds } = await import('../services/broadcastService.js')
+  const busySet = await getBusyLabourIds(Date.now())
+  if (busySet.has(String(laborId))) {
+    console.log(`${tag} worker is on another job right now, no offers`)
     return sendSuccess(res, { data: { offers: [] } })
   }
 
@@ -189,7 +190,13 @@ export const getPendingBroadcasts = asyncHandler(async (req, res) => {
     }
 
     console.log(`${label} OFFERED (${tracked ? 'recorded recipient' : 'matched on request'}), ${Math.round((expiresAt - now) / 1000)}s left`)
+    const [oLng, oLat] = b.address?.coordinates?.coordinates || []
+    const distanceKm =
+      oLat && oLng && profile.currentLatitude != null && profile.currentLongitude != null
+        ? Math.round(haversineKm(oLat, oLng, profile.currentLatitude, profile.currentLongitude) * 10) / 10
+        : null
     offers.push({
+      distanceKm,
       bookingId: b._id,
       basePrice: b.basePrice,
       laborShare: b.laborShare,

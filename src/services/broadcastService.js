@@ -1,4 +1,5 @@
 import os from 'os'
+import mongoose from 'mongoose'
 import { User } from '../models/User.js'
 import { Booking } from '../models/Booking.js'
 import { BroadcastLog } from '../models/BroadcastLog.js'
@@ -98,6 +99,101 @@ export function haversineKm(lat1, lon1, lat2, lon2) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
 }
 
+
+const HOUR_MS = 60 * 60 * 1000
+
+/** How long a scheduled job keeps its worker occupied, from its start/end times (default 4h; multi-day = whole days). */
+function scheduledJobLengthMs(job) {
+  if (job.durationKind === 'multi_day') return Math.max(1, job.durationDays || 1) * 24 * HOUR_MS
+  const [sh, sm] = String(to24Hour(job.timeSlot) || '').split(':').map(Number)
+  const [eh, em] = String(to24Hour(job.endTime) || '').split(':').map(Number)
+  const minutes = eh * 60 + em - (sh * 60 + sm)
+  return Number.isFinite(minutes) && minutes > 0 ? minutes * 60 * 1000 : 4 * HOUR_MS
+}
+
+/**
+ * Is this accepted job actually occupying its worker at `targetMs`?
+ * A scheduled job only blocks the hours it covers (plus 1h travel either side) — not every day before and after it.
+ * An instant job blocks for 12h after it was accepted, so a job left "Accepted" and never finished cannot hide
+ * a worker from every future broadcast.
+ */
+export function jobOccupiesWorkerAt(job, targetMs) {
+  if (job.type === 'SCHEDULED' && job.scheduledAt) {
+    const start = new Date(job.scheduledAt).getTime()
+    return targetMs >= start - HOUR_MS && targetMs <= start + scheduledJobLengthMs(job) + HOUR_MS
+  }
+  const since = new Date(job.updatedAt || job.createdAt).getTime()
+  return Date.now() - since < 12 * HOUR_MS
+}
+
+/** Ids of workers who cannot take a job starting at `targetMs` because another job occupies them then. */
+export async function getBusyLabourIds(targetMs = Date.now()) {
+  const jobs = await Booking.find({
+    status: { $in: ['ACCEPTED', 'ASSIGNED', 'EN_ROUTE', 'STARTED'] },
+    acceptedLabourId: { $exists: true, $ne: null },
+  })
+    .select('acceptedLabourId type scheduledAt timeSlot endTime durationKind durationDays createdAt updatedAt')
+    .lean()
+  return new Set(jobs.filter((j) => jobOccupiesWorkerAt(j, targetMs)).map((j) => String(j.acceptedLabourId)))
+}
+
+const REASON_LABEL = {
+  offered: 'Offered the job',
+  kyc: 'KYC not approved',
+  notAvailable: 'Not set to available',
+  noLocation: 'No saved location',
+  outsideRadius: 'Outside the radius',
+  differentService: 'Does not offer this service',
+  busy: 'On another job at that time',
+  offSchedule: 'Outside working hours',
+  other: 'Cash limit / driving distance',
+}
+
+/**
+ * Explains a broadcast for the admin: every labour account, and the first reason it was not offered the job.
+ * Purely informational — it never changes who receives the broadcast.
+ */
+export async function buildBroadcastReport(booking, radiusKm, offeredIds = [], busyIds = new Set()) {
+  const [lng, lat] = booking.address?.coordinates?.coordinates || []
+  const offered = new Set(offeredIds.map(String))
+  const workers = await User.find({ role: 'labour', isActive: true })
+    .select('fullName phone labourProfile.kycStatus labourProfile.availabilityStatus labourProfile.currentLatitude labourProfile.currentLongitude labourProfile.subcategoryIds labourProfile.schedule')
+    .limit(2000)
+    .lean()
+
+  const skipped = {}
+  const rows = workers.map((w) => {
+    const p = w.labourProfile || {}
+    const km = p.currentLatitude != null && lat && lng ? haversineKm(lat, lng, p.currentLatitude, p.currentLongitude) : null
+    let key
+    if (offered.has(String(w._id))) key = 'offered'
+    else if (p.kycStatus !== 'verified') key = 'kyc'
+    else if (p.availabilityStatus !== 'available') key = 'notAvailable'
+    else if (km == null) key = 'noLocation'
+    else if (km > radiusKm) key = 'outsideRadius'
+    else if (!(p.subcategoryIds || []).some((id) => String(id) === String(booking.subcategoryId))) key = 'differentService'
+    else if (busyIds.has(String(w._id))) key = 'busy'
+    else if (!isWithinWorkingHours(w, booking)) key = 'offSchedule'
+    else key = 'other'
+    if (key !== 'offered') skipped[key] = (skipped[key] || 0) + 1
+    return { name: w.fullName || `…${String(w.phone || '').slice(-4)}`, key, reason: REASON_LABEL[key], distanceKm: km == null ? null : Math.round(km * 10) / 10 }
+  })
+  rows.sort((a, b) => (a.key === 'offered' ? -1 : 0) - (b.key === 'offered' ? -1 : 0) || (a.distanceKm ?? 1e9) - (b.distanceKm ?? 1e9))
+  return { radiusKm, totalWorkers: rows.length, offered: offered.size, skipped, workers: rows.slice(0, 60), at: new Date() }
+}
+
+/** Saves the report on the booking and logs a one-line summary. Never throws. */
+async function attachReport(booking, radiusKm, offeredIds, busyIds) {
+  try {
+    booking.broadcastReport = await buildBroadcastReport(booking, radiusKm, offeredIds, busyIds)
+    const r = booking.broadcastReport
+    const parts = Object.entries(r.skipped).map(([k, n]) => `${REASON_LABEL[k]}=${n}`).join(' | ')
+    console.log(`[BROADCAST] ${booking._id} report: offered=${r.offered} of ${r.totalWorkers} labour${parts ? ' | not offered: ' + parts : ''}`)
+  } catch (err) {
+    console.error('[BROADCAST] could not build report:', err.message)
+  }
+}
+
 /**
  * Starts the flash broadcast for a new booking based on a radius zone.
  */
@@ -157,12 +253,10 @@ export async function startBroadcastCycle(bookingId) {
   const bufferLatDiff = latDiff * 1.2
   const bufferLngDiff = lngDiff * 1.2
 
-  // EXCLUDE labourers who are already busy with an active job
-  const busyBookings = await Booking.find({
-    status: { $in: ['ACCEPTED', 'ASSIGNED', 'EN_ROUTE', 'STARTED'] },
-    acceptedLabourId: { $exists: true, $ne: null }
-  }).select('acceptedLabourId').lean()
-  const busyLabourIds = busyBookings.map(b => b.acceptedLabourId)
+  // EXCLUDE labourers whose other job actually occupies them at the time of this booking
+  const targetMs = booking.type === 'SCHEDULED' && booking.scheduledAt ? new Date(booking.scheduledAt).getTime() : Date.now()
+  const busySet = await getBusyLabourIds(targetMs)
+  const busyLabourIds = [...busySet].map((id) => new mongoose.Types.ObjectId(id))
 
   const potentialLaborersRaw = await User.find({
     _id: { $nin: busyLabourIds },
@@ -189,6 +283,7 @@ export async function startBroadcastCycle(bookingId) {
   console.log(`[BROADCAST] ${booking._id} stage2 working-hours schedule: ${potentialLaborers.length} of ${potentialLaborersRaw.length} remain`)
 
   if (potentialLaborers.length === 0) {
+    await attachReport(booking, radiusKm, [], busySet)
     await markBookingFailed(booking, 'No laborers in area')
     return
   }
@@ -204,6 +299,7 @@ export async function startBroadcastCycle(bookingId) {
 
   console.log(`[BROADCAST] ${booking._id} stage3 wallet limit: ${walletEligible.length} of ${potentialLaborers.length} remain`)
   if (walletEligible.length === 0) {
+    await attachReport(booking, radiusKm, [], busySet)
     await markBookingFailed(booking, 'No eligible laborers found')
     return
   }
@@ -231,6 +327,7 @@ export async function startBroadcastCycle(bookingId) {
   booking.eligibleLabourCount = eligibleLaborers.length
   booking.eligibleLabourIds = eligibleLaborers.map((l) => l._id)
   booking.broadcastExpiresAt = new Date(Date.now() + offerWindowMs)
+  await attachReport(booking, radiusKm, booking.eligibleLabourIds, busySet)
   await booking.save()
   console.log(`[BROADCAST] ${booking._id} offer window ${Math.round(offerWindowMs / 60000)} min, expires ${booking.broadcastExpiresAt.toISOString()}`)
 
@@ -252,7 +349,9 @@ export async function startBroadcastCycle(bookingId) {
 
     // Notify all eligible laborers
     eligibleLaborers.forEach(labor => {
+      const km = distances.find((d) => d.id === String(labor._id))?.distanceKm
       emitToUser(labor._id, 'BOOKING_RECEIVED', {
+        distanceKm: Number.isFinite(km) ? Math.round(km * 10) / 10 : null,
         bookingId: booking._id,
         basePrice: booking.basePrice,
         laborShare: booking.laborShare,

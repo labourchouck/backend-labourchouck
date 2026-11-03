@@ -25,8 +25,15 @@ export const getAllComplaints = asyncHandler(async (req, res) => {
 
   const total = await Complaint.countDocuments(query)
 
+  // Counts per status for the current role filter (not the status filter), so the header counters stay right on every page.
+  const countQuery = { ...query }
+  delete countQuery.status
+  const countRows = await Complaint.aggregate([{ $match: countQuery }, { $group: { _id: '$status', n: { $sum: 1 } } }])
+  const statusCounts = Object.fromEntries(countRows.map((r) => [r._id || 'OPEN', r.n]))
+
   return sendSuccess(res, {
     data: {
+      statusCounts,
       complaints,
       pagination: {
         total,

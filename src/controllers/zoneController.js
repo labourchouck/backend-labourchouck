@@ -66,7 +66,7 @@ export const getZoneStatistics = asyncHandler(async (req, res) => {
 
   // Count active labourers in the system
   const activeLabourCount = await User.countDocuments({
-    role: { $in: ['LABOUR', 'INDIVIDUAL'] },
+    role: 'labour',
     isActive: true,
     'labourProfile.availabilityStatus': 'available'
   })
@@ -82,8 +82,27 @@ export const getZoneStatistics = asyncHandler(async (req, res) => {
     ? ((result.totalBookings - result.bookingsWithNoLabourers) / result.totalBookings) * 100 
     : 0
 
+  // The latest broadcasts, each with who was offered the job and why everyone else was not.
+  const recent = await Booking.find({ broadcastReport: { $exists: true } })
+    .sort({ createdAt: -1 })
+    .limit(15)
+    .select('type status createdAt scheduledAt address.locationText broadcastRadius eligibleLabourCount broadcastReport')
+    .lean()
+  const recentBroadcasts = recent.map((b) => ({
+    _id: b._id,
+    type: b.type,
+    status: b.status,
+    createdAt: b.createdAt,
+    scheduledAt: b.scheduledAt,
+    location: b.address?.locationText,
+    radiusKm: b.broadcastRadius,
+    offered: b.eligibleLabourCount || 0,
+    report: b.broadcastReport,
+  }))
+
   return sendSuccess(res, {
     data: {
+      recentBroadcasts,
       totalBookings: result.totalBookings,
       totalEligibleLabourers: result.totalEligibleLabourers,
       bookingsWithNoLabourers: result.bookingsWithNoLabourers,

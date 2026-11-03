@@ -1,7 +1,7 @@
 import { Booking } from '../models/Booking.js'
 import { User } from '../models/User.js'
 import { emitToUser } from '../socket.js'
-import { INSTANCE_ID } from './broadcastService.js'
+import { INSTANCE_ID, haversineKm } from './broadcastService.js'
 
 /**
  * Several server instances can share one database (production + a dev machine). A worker is connected to just one
@@ -52,10 +52,17 @@ export function startBroadcastRelay() {
       if (doc.broadcastBy === INSTANCE_ID) return
 
       const customer = await User.findById(doc.userId).select('fullName phone').lean()
+      const workers = await User.find({ _id: { $in: ids } }).select('labourProfile.currentLatitude labourProfile.currentLongitude').lean()
+      const [jobLng, jobLat] = doc.address?.coordinates?.coordinates || []
+      const distanceOf = (id) => {
+        const p = workers.find((w) => String(w._id) === String(id))?.labourProfile
+        return jobLat && jobLng && p?.currentLatitude != null ? Math.round(haversineKm(jobLat, jobLng, p.currentLatitude, p.currentLongitude) * 10) / 10 : null
+      }
       const timeoutMs = Math.max(1000, new Date(doc.broadcastExpiresAt).getTime() - Date.now())
       console.log(`[RELAY] ${INSTANCE_ID} relaying broadcast ${doc._id} sent by ${doc.broadcastBy || 'another instance'} to ${ids.length} worker(s)`)
       ids.forEach((id) =>
         emitToUser(id, 'BOOKING_RECEIVED', {
+          distanceKm: distanceOf(id),
           bookingId: doc._id,
           basePrice: doc.basePrice,
           laborShare: doc.laborShare,

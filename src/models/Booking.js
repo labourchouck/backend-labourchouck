@@ -116,6 +116,8 @@ const bookingSchema = new mongoose.Schema(
     broadcastExpiresAt: { type: Date },
     /** `host:pid` of the server process that sent the broadcast (diagnoses duplicate/old instances sharing one DB) */
     broadcastBy: { type: String },
+    /** Who was offered this job and why everyone else was not (for the admin's radius page). */
+    broadcastReport: { type: mongoose.Schema.Types.Mixed },
     /** Subscription plan this booking was made under (B2C plans) */
     subscriptionId: { type: mongoose.Schema.Types.ObjectId, ref: 'UserSubscription', index: true },
     /** True once this booking has been counted against the plan (completed and paid). Prevents double counting. */
