@@ -104,8 +104,8 @@ export const listAttendance = asyncHandler(async (req, res) => {
   }
 
   let records = await AttendanceRecord.find(filter)
-    .sort({ shiftDate: -1 })
-    .limit(200)
+    .sort({ shiftDate: req.query.requestId ? 1 : -1 })
+    .limit(500)
     .populate('labourId', 'fullName phone')
     .lean()
 
