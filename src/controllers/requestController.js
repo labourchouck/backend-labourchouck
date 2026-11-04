@@ -450,7 +450,8 @@ export const getRequest = asyncHandler(async (req, res) => {
     serviceBreakdown.forEach(item => {
       const gstPercent = categoryGstMap.get(item.categoryName) || 0
       item.gstPercentage = gstPercent
-      item.gstAmount = (item.totalPriceForDuration * gstPercent) / 100
+      // GST is a flat, one-time amount (on one day's price) — it is not multiplied by the number of days
+      item.gstAmount = (item.totalPricePerDay * gstPercent) / 100
       taxAmount += item.gstAmount
     })
   }
@@ -502,10 +503,25 @@ export const getRequest = asyncHandler(async (req, res) => {
     vendorCheckOut: { $ne: true },
   })
 
+  // Multi-day bookings: a day counts as done once the vendor has closed every worker's shift for that date.
+  // Payment is only due after the last booked day, so the client can see how many days are finished.
+  const dayRows = await AttendanceRecord.aggregate([
+    { $match: { requestId: request._id } },
+    { $group: { _id: '$shiftDateStr', total: { $sum: 1 }, closed: { $sum: { $cond: [{ $eq: ['$vendorCheckOut', true] }, 1, 0] } } } },
+  ])
+  const daysClosed = dayRows.filter((d) => d.total > 0 && d.closed === d.total).length
+  const attendanceProgress = {
+    totalDays: days,
+    daysClosed: Math.min(daysClosed, days),
+    // Every booked day exists, is fully closed, and nothing is left open
+    paymentReady: days <= 1 ? vendorCheckoutPending === 0 && daysClosed >= 1 : vendorCheckoutPending === 0 && daysClosed >= days,
+  }
+
   sendSuccess(res, {
     data: {
       request,
       vendorCheckoutPending,
+      attendanceProgress,
       serviceBreakdown,
       pricingSummary,
       allocation,
